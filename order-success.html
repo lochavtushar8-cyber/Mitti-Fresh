@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Status — Mitti Fresh</title>
+  <meta name="description" content="Order confirmation page for Mitti Fresh. Check payment status and download invoice.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Alert Announcement Banner -->
+  <div class="alert-banner" id="announcement-banner">
+    <div class="alert-content">
+      <i class="fa-solid fa-leaf alert-icon"></i>
+      <span>Kisan Atta Chakki is now <strong>Mitti Fresh</strong> — Same Purity, New Identity!</span>
+    </div>
+  </div>
+
+  <!-- Header Section -->
+  <header class="main-header scrolled" id="site-header" style="position: sticky; top: 0;">
+    <div class="header-container">
+      <a href="index.html" class="logo-area" aria-label="Mitti Fresh Home">
+        <img src="assets/logo.jpg" alt="Mitti Fresh Logo" class="logo-img">
+        <span class="logo-text">Mitti <span class="logo-highlight">Fresh</span></span>
+      </a>
+      
+      <nav class="main-nav" aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="shop.html" class="nav-link">Shop</a></li>
+          <li><a href="about.html" class="nav-link">About</a></li>
+          <li><a href="index.html#reviews" class="nav-link">Reviews</a></li>
+          <li><a href="#contact" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Status Wrapper -->
+  <main style="padding: 80px 0; background-color: var(--color-bg-light); min-height: 70vh; display: flex; align-items: center;">
+    <div class="container" style="max-width: 750px;">
+      
+      <div id="status-card-container">
+        <!-- Loaded dynamically via JS based on URL params -->
+        <div class="loading-state" style="text-align: center;">
+          <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3rem; color: var(--color-primary); margin-bottom: 16px;"></i>
+          <h3>Resolving Transaction Status...</h3>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Invoice Print Template (Hidden from screen view, only visible during window.print()) -->
+  <div id="print-invoice-template" class="print-only" style="display: none;">
+    <div style="padding: 40px; font-family: 'Outfit', sans-serif; color: #333;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #214E34; padding-bottom: 20px; margin-bottom: 30px;">
+        <div>
+          <h1 style="margin: 0; color: #214E34; font-family: 'Playfair Display', serif; font-size: 2.2rem;">Mitti Fresh</h1>
+          <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #666;">Freshly Ground. Naturally Pure.<br>Dwarka Sec 28, New Delhi</p>
+        </div>
+        <div style="text-align: right;">
+          <h2 style="margin: 0; color: #C89A45; font-size: 1.5rem; text-transform: uppercase;">TAX INVOICE</h2>
+          <p style="margin: 4px 0 0 0; font-size: 0.9rem; font-weight: 600;" id="print-invoice-id">Invoice: #</p>
+          <p style="margin: 2px 0 0 0; font-size: 0.85rem; color: #666;" id="print-invoice-date">Date: </p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; font-size: 0.9rem;">
+        <div>
+          <h4 style="margin: 0 0 10px 0; color: #214E34; text-transform: uppercase; font-size: 0.85rem;">Billed To:</h4>
+          <strong id="print-cust-name" style="font-size: 1rem;"></strong><br>
+          <span id="print-cust-phone"></span><br>
+          <span id="print-cust-email"></span>
+        </div>
+        <div>
+          <h4 style="margin: 0 0 10px 0; color: #214E34; text-transform: uppercase; font-size: 0.85rem;">Delivery Destination:</h4>
+          <span id="print-cust-address"></span>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 0.95rem;">
+        <thead>
+          <tr style="background-color: #214E34; color: #FFF; font-weight: 700;">
+            <th style="padding: 10px 14px; text-align: left;">Sl.</th>
+            <th style="padding: 10px 14px; text-align: left;">Item Description</th>
+            <th style="padding: 10px 14px; text-align: right;">Rate</th>
+            <th style="padding: 10px 14px; text-align: center;">Qty</th>
+            <th style="padding: 10px 14px; text-align: right;">Total Amount</th>
+          </tr>
+        </thead>
+        <tbody id="print-invoice-items">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+
+      <div style="display: flex; justify-content: flex-end; font-size: 0.95rem;">
+        <div style="width: 300px; display: flex; flex-direction: column; gap: 10px; border-top: 1.5px solid #DDD; padding-top: 20px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Subtotal:</span>
+            <span id="print-subtotal">₹0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; color: #27AE60; display: none;" id="print-coupon-row">
+            <span>Coupon Discount:</span>
+            <span id="print-coupon-discount">-₹0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; display: none;" id="print-cod-row">
+            <span>COD Convenience Fee:</span>
+            <span id="print-cod-fee">₹0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Delivery Charges:</span>
+            <span id="print-shipping">₹0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-weight: 700; border-top: 2px solid #214E34; padding-top: 10px; font-size: 1.25rem; color: #214E34;">
+            <span>Grand Total:</span>
+            <span id="print-grandtotal">₹0</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 80px; text-align: center; border-top: 1px solid #EEE; padding-top: 20px; font-size: 0.85rem; color: #999;">
+        <p>This is a computer-generated tax invoice. No signature is required. Thank you for choosing Mitti Fresh!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Section -->
+  <footer class="site-footer" id="contact" style="border-top: 1px solid rgba(33, 78, 52, 0.05); margin-top: auto;">
+    <div class="container">
+      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+        <p>&copy; 2026 Mitti Fresh. All rights reserved. Formerly Kisan Atta Chakki.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('status-card-container');
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get('status');
+      const orderId = urlParams.get('orderId');
+      const paymentId = urlParams.get('paymentId');
+      const errorCode = urlParams.get('error');
+
+      // Load order info from LocalStorage database
+      const orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
+      const order = orders.find(o => o.orderId === orderId);
+
+      if (status === 'success') {
+        renderSuccessCard(order, paymentId);
+      } else {
+        renderFailureCard(orderId, errorCode);
+      }
+
+      function renderSuccessCard(ord, payId) {
+        const grandTotal = ord ? ord.amount : "TBD";
+        const customerName = ord ? ord.customer.name : "Customer";
+        
+        container.innerHTML = `
+          <div class="checkout-card text-center" style="padding: 50px 40px; box-shadow: var(--shadow-lux-md); background-color: var(--color-bg-white);">
+            <div style="width: 80px; height: 80px; background-color: #EAFAF1; color: #2ecc71; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2.5rem; animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            
+            <h1 class="font-alt" style="color: var(--color-primary); font-size: 2.2rem; margin-bottom: 12px;">Payment Successful!</h1>
+            <p style="color: var(--color-text-muted); font-size: 1.05rem; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+              Thank you, ${customerName}. Your order has been placed and is currently being processed by our milling team.
+            </p>
+
+            <div class="order-details-summary-box" style="background-color: var(--color-bg-light); border-radius: var(--radius-sm); padding: 24px; max-width: 500px; margin: 0 auto 40px; text-align: left; border: 1px solid rgba(33, 78, 52, 0.04); font-size: 0.95rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: var(--color-text-muted);">Mitti Fresh Order ID:</span>
+                <strong style="color: var(--color-primary);">${orderId}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: var(--color-text-muted);">Razorpay Payment ID:</span>
+                <span style="font-family: monospace; font-weight: 600; color: var(--color-primary);">${payId}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: var(--color-text-muted);">Amount Paid:</span>
+                <strong style="color: var(--color-primary);">₹${grandTotal}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--color-text-muted);">Estimated Delivery:</span>
+                <span style="color: var(--color-accent); font-weight: 700;"><i class="fa-solid fa-truck-fast"></i> 24-48 Hours (Milled Fresh)</span>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; max-width: 320px; margin: 0 auto;">
+              <button class="btn btn-secondary" id="download-invoice-btn" style="height: 48px;"><i class="fa-solid fa-file-invoice-dollar"></i> Download Tax Invoice</button>
+              <button class="btn btn-primary" id="track-whatsapp-btn" style="height: 48px; background-color: #25D366; border-color: #25D366;"><i class="fa-brands fa-whatsapp"></i> Track Order on WhatsApp</button>
+              <a href="shop.html" class="btn btn-accent" style="height: 48px; display: flex; align-items: center; justify-content: center;">Continue Shopping</a>
+            </div>
+          </div>
+        `;
+
+        // WhatsApp tracker listener
+        document.getElementById('track-whatsapp-btn').addEventListener('click', () => {
+          const number = "918595077263";
+          const text = `Hi Mitti Fresh! I want to track my order ${orderId}. Please share my delivery status updates. Thank you!`;
+          window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank');
+        });
+
+        // Trigger Invoice setup
+        setupInvoicePrint(ord);
+        document.getElementById('download-invoice-btn').addEventListener('click', () => {
+          window.print();
+        });
+      }
+
+      function renderFailureCard(ordId, err) {
+        container.innerHTML = `
+          <div class="checkout-card text-center" style="padding: 50px 40px; box-shadow: var(--shadow-lux-md); background-color: var(--color-bg-white);">
+            <div style="width: 80px; height: 80px; background-color: #FDEDEC; color: #E74C3C; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2.5rem; animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
+              <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            
+            <h1 class="font-alt" style="color: #E74C3C; font-size: 2.2rem; margin-bottom: 12px;">Payment Failed!</h1>
+            <p style="color: var(--color-text-muted); font-size: 1.05rem; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+              The transaction could not be processed. (Error: ${err || 'PaymentDeclined'}). No money was debited from your account.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; max-width: 320px; margin: 0 auto;">
+              <a href="checkout.html" class="btn btn-primary" style="height: 48px; display: flex; align-items: center; justify-content: center;">Retry Payment</a>
+              <a href="shop.html" class="btn btn-secondary" style="height: 48px; display: flex; align-items: center; justify-content: center;">Return to Catalog</a>
+            </div>
+          </div>
+        `;
+      }
+
+      // Populate hidden print invoice structure
+      function setupInvoicePrint(ord) {
+        if (!ord) return;
+
+        document.getElementById('print-invoice-id').textContent = `Invoice: #${ord.orderId}`;
+        document.getElementById('print-invoice-date').textContent = `Date: ${ord.date.split(',')[0]}`;
+        document.getElementById('print-cust-name').textContent = ord.customer.name;
+        document.getElementById('print-cust-phone').textContent = `Mobile: ${ord.customer.phone}`;
+        document.getElementById('print-cust-email').textContent = `Email: ${ord.customer.email}`;
+        
+        const addr = ord.address;
+        document.getElementById('print-cust-address').innerHTML = `${addr.house}, ${addr.street}<br>${addr.landmark ? addr.landmark + ', ' : ''}${addr.city} - ${addr.pin}<br>${addr.state}`;
+
+        // Render line items
+        const printItemsBody = document.getElementById('print-invoice-items');
+        printItemsBody.innerHTML = '';
+        
+        let subtotal = 0;
+        ord.items.forEach((item, index) => {
+          const itemTotal = item.price * item.quantity;
+          subtotal += itemTotal;
+
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid #EEE';
+          tr.innerHTML = `
+            <td style="padding: 10px 14px; text-align: left;">${index + 1}</td>
+            <td style="padding: 10px 14px; text-align: left; font-weight: 600;">${item.name} (${item.size})</td>
+            <td style="padding: 10px 14px; text-align: right;">₹${item.price}</td>
+            <td style="padding: 10px 14px; text-align: center;">${item.quantity}</td>
+            <td style="padding: 10px 14px; text-align: right; font-weight: 700;">₹${itemTotal}</td>
+          `;
+          printItemsBody.appendChild(tr);
+        });
+
+        // Compute invoice fields
+        // Reconstruct promo deduction if applicable
+        let discount = 0;
+        // Since discount isn't stored in DB directly but grandTotal is, we calculate:
+        // subtotal + shipping + codFee - grandTotal
+        const isFreeShipping = subtotal >= 500; // Mock standard threshold
+        const shipping = ord.amount >= subtotal ? 0 : 50; 
+        const isCod = ord.razorpayPaymentId === "COD";
+        const codFee = isCod ? 50 : 0;
+        discount = subtotal + shipping + codFee - ord.amount;
+        if (discount < 0) discount = 0; // Guard
+
+        document.getElementById('print-subtotal').textContent = `₹${subtotal}`;
+        document.getElementById('print-grandtotal').textContent = `₹${ord.amount}`;
+        
+        const printShippingEl = document.getElementById('print-shipping');
+        printShippingEl.textContent = shipping === 0 ? 'FREE' : `₹${shipping}`;
+
+        const printCouponRow = document.getElementById('print-coupon-row');
+        if (discount > 0) {
+          document.getElementById('print-coupon-discount').textContent = `-₹${discount}`;
+          printCouponRow.style.display = 'flex';
+        } else {
+          printCouponRow.style.display = 'none';
+        }
+
+        const printCodRow = document.getElementById('print-cod-row');
+        if (codFee > 0) {
+          document.getElementById('print-cod-fee').textContent = `₹${codFee}`;
+          printCodRow.style.display = 'flex';
+        } else {
+          printCodRow.style.display = 'none';
+        }
+      }
+    });
+  </script>
+
+  <style>
+    @keyframes scaleUp {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Print styling rules */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-invoice-template, #print-invoice-template * {
+        visibility: visible;
+      }
+      #print-invoice-template {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: block !important;
+      }
+      .site-footer, .alert-banner, #site-header, .breadcrumbs-container {
+        display: none !important;
+      }
+    }
+  </style>
+</body>
+</html>

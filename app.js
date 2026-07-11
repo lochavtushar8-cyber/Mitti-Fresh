@@ -1250,43 +1250,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- WHATSAPP CHECKOUT INTEGRATION ---
+  // --- SECURE CHECKOUT PAGE REDIRECT ---
   if (checkoutBtn) {
-    checkoutBtn.addEventListener('click', () => {
-      if (cart.length === 0) return;
-
-      const phoneNumber = "918595077263"; // Direct business WhatsApp
-      let message = `*Mitti Fresh Order Inquiry*\n`;
-      message += `------------------------------------\n`;
-      
-      let subtotalValue = 0;
-      cart.forEach((item, index) => {
-        const itemSubtotal = item.price * item.quantity;
-        subtotalValue += itemSubtotal;
-        message += `${index + 1}. *${item.name}* (${item.size})\n`;
-        message += `   Qty: ${item.quantity} x ₹${item.price} = *₹${itemSubtotal}*\n`;
-      });
-
-      message += `------------------------------------\n`;
-      
-      let finalSubtotal = subtotalValue;
-      if (discountPercentage > 0) {
-        const discount = Math.floor(subtotalValue * (discountPercentage / 100));
-        finalSubtotal = subtotalValue - discount;
-        message += `*Subtotal:* ₹${subtotalValue}\n`;
-        message += `*Coupon Code applied (PURE10):* -10% (-₹${discount})\n`;
+    checkoutBtn.innerHTML = `<i class="fa-solid fa-credit-card"></i> Proceed to Checkout`;
+    checkoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (cart.length === 0) {
+        alert("Your basket is empty!");
+        return;
       }
-
-      const threshold = 500;
-      const shipping = subtotalValue >= threshold ? 'Free' : '₹50 (Coordinated via WhatsApp)';
-      message += `*Shipping:* ${shipping}\n`;
-      message += `*Total Order Value: ₹${finalSubtotal}*\n\n`;
-      message += `Please confirm availability and coordinate delivery/pick-up details for Dwarka Sector 28. Thank you!`;
-
-      const encodedText = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedText}`;
-
-      window.open(whatsappUrl, '_blank');
+      window.location.href = 'checkout.html';
     });
   }
 
