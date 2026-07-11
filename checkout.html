@@ -746,23 +746,63 @@
             return;
           }
 
-          const orderPayload = {
-            orderId: mittiOrderId,
-            paymentMethod: "UPI",
-            upiTransactionId: txnId,
-            upiScreenshot: upiScreenshotBase64,
-            upiNotes: document.getElementById('upi-notes').value.trim(),
-            paymentStatus: "Pending Verification",
-            orderStatus: "Payment Verification Pending",
-            amount: grandTotal,
-            date: new Date().toLocaleString(),
-            customer: { name: custName, phone: custPhone, email: custEmail },
-            address: { house: houseNo, street: street, landmark: landmark, pin: pinCode, city: "New Delhi", state: "Delhi" },
-            items: cart
-          };
+          // Build Multipart Form Data
+          const formData = new FormData();
+          formData.append("orderId", mittiOrderId);
+          formData.append("amount", grandTotal);
+          formData.append("customerName", custName);
+          formData.append("customerPhone", custPhone);
+          formData.append("customerEmail", custEmail);
+          formData.append("houseNo", houseNo);
+          formData.append("street", street);
+          formData.append("landmark", landmark);
+          formData.append("pinCode", pinCode);
+          formData.append("upiTransactionId", txnId);
+          formData.append("upiNotes", document.getElementById('upi-notes').value.trim());
+          formData.append("items", JSON.stringify(cart));
 
-          saveOrder(orderPayload);
-          window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
+          const fileInput = document.getElementById('upi-screenshot-file');
+          if (fileInput.files.length > 0) {
+            formData.append("screenshot", fileInput.files[0]);
+          }
+
+          placeOrderBtn.disabled = true;
+          placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Submitting...`;
+
+          fetch("http://localhost:3000/api/submit-upi-payment", {
+            method: "POST",
+            body: formData
+          })
+          .then(res => {
+            if (!res.ok) {
+              return res.json().then(errData => { throw new Error(errData.error || "Upload failed"); });
+            }
+            return res.json();
+          })
+          .then(data => {
+            const orderPayload = {
+              orderId: mittiOrderId,
+              paymentMethod: "UPI",
+              upiTransactionId: txnId,
+              upiScreenshot: data.upiScreenshot || upiScreenshotBase64,
+              upiNotes: document.getElementById('upi-notes').value.trim(),
+              paymentStatus: "Pending Verification",
+              orderStatus: "Payment Verification Pending",
+              amount: grandTotal,
+              date: new Date().toLocaleString(),
+              customer: { name: custName, phone: custPhone, email: custEmail },
+              address: { house: houseNo, street: street, landmark: landmark, pin: pinCode, city: "New Delhi", state: "Delhi" },
+              items: cart
+            };
+            saveOrder(orderPayload);
+            window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
+          })
+          .catch(err => {
+            console.error("UPI submission failed:", err);
+            alert(`Payment Details Submission Failed: ${err.message}\n\nPlease check that the Mitti Fresh backend server is running and try again.`);
+            placeOrderBtn.disabled = false;
+            placeOrderBtn.innerHTML = `<i class="fa-solid fa-square-check"></i> Place Order`;
+          });
         } else if (isCod) {
           // Complete direct COD Order
           const orderPayload = {

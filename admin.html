@@ -174,13 +174,27 @@
 
       // Load data
       const loadOrders = () => {
-        try {
-          orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
-        } catch(e) {
-          orders = [];
-        }
-        renderOrders();
-        calculateDashboardStats();
+        fetch("http://localhost:3000/api/orders")
+          .then(res => {
+            if (!res.ok) throw new Error("Server error");
+            return res.json();
+          })
+          .then(serverOrders => {
+            orders = serverOrders;
+            localStorage.setItem('mitti_fresh_orders', JSON.stringify(orders));
+            renderOrders();
+            calculateDashboardStats();
+          })
+          .catch(err => {
+            console.warn("Backend orders API down, loading from LocalStorage", err);
+            try {
+              orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
+            } catch(e) {
+              orders = [];
+            }
+            renderOrders();
+            calculateDashboardStats();
+          });
       };
 
       // Statistics values
@@ -437,40 +451,69 @@
       };
 
       const updateOrderVerification = (id, result) => {
-        const orderIdx = orders.findIndex(o => o.orderId === id);
-        if (orderIdx !== -1) {
-          if (result === 'Verified') {
-            orders[orderIdx].paymentStatus = 'Verified';
-            orders[orderIdx].orderStatus = 'Payment Verified';
-            alert(`Order ${id} payment approved! Status set to Payment Verified.`);
-          } else {
-            orders[orderIdx].paymentStatus = 'Rejected';
-            orders[orderIdx].orderStatus = 'Cancelled';
-            alert(`Order ${id} payment rejected! Status set to Cancelled.`);
-          }
-          localStorage.setItem('mitti_fresh_orders', JSON.stringify(orders));
+        const paymentStatus = result === 'Verified' ? 'Verified' : 'Rejected';
+        const orderStatus = result === 'Verified' ? 'Payment Verified' : 'Cancelled';
+
+        fetch("http://localhost:3000/api/update-order-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: id, paymentStatus, orderStatus })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Update failed on server");
+          return res.json();
+        })
+        .then(() => {
+          alert(`Order ${id} payment approved/rejected successfully.`);
           loadOrders();
-        }
+        })
+        .catch(err => {
+          console.warn("Backend status update failed, syncing locally", err);
+          const orderIdx = orders.findIndex(o => o.orderId === id);
+          if (orderIdx !== -1) {
+            orders[orderIdx].paymentStatus = paymentStatus;
+            orders[orderIdx].orderStatus = orderStatus;
+            localStorage.setItem('mitti_fresh_orders', JSON.stringify(orders));
+            loadOrders();
+          }
+        });
       };
 
       // Update Order Status in Local DB
       const updateOrderStatus = (id, status) => {
-        const orderIdx = orders.findIndex(o => o.orderId === id);
-        if (orderIdx !== -1) {
-          orders[orderIdx].orderStatus = status;
-          if (status === 'Refunded') {
-            orders[orderIdx].paymentStatus = 'Refunded';
-          } else if (status === 'Cancelled') {
-            // Keep payment status but mark order as Cancelled
-          } else if (status === 'Delivered' && orders[orderIdx].paymentStatus === 'Pending') {
-            // COD Order paid at door
-            orders[orderIdx].paymentStatus = 'Paid';
+        let paymentStatus = null;
+        if (status === 'Refunded') {
+          paymentStatus = 'Refunded';
+        } else if (status === 'Delivered') {
+          const ordObj = orders.find(o => o.orderId === id);
+          if (ordObj && ordObj.paymentStatus === 'Pending') {
+            paymentStatus = 'Paid';
           }
-          
-          localStorage.setItem('mitti_fresh_orders', JSON.stringify(orders));
-          loadOrders();
-          alert(`Order ${id} status updated successfully to ${status}!`);
         }
+
+        fetch("http://localhost:3000/api/update-order-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: id, orderStatus: status, paymentStatus })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Update failed on server");
+          return res.json();
+        })
+        .then(() => {
+          alert(`Order ${id} status updated successfully to ${status}!`);
+          loadOrders();
+        })
+        .catch(err => {
+          console.warn("Backend status update failed, syncing locally", err);
+          const orderIdx = orders.findIndex(o => o.orderId === id);
+          if (orderIdx !== -1) {
+            orders[orderIdx].orderStatus = status;
+            if (paymentStatus) orders[orderIdx].paymentStatus = paymentStatus;
+            localStorage.setItem('mitti_fresh_orders', JSON.stringify(orders));
+            loadOrders();
+          }
+        });
       };
 
       // Search & Filters inputs

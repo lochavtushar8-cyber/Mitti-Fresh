@@ -154,15 +154,29 @@
       const paymentId = urlParams.get('paymentId');
       const errorCode = urlParams.get('error');
 
-      // Load order info from LocalStorage database
-      const orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
-      const order = orders.find(o => o.orderId === orderId);
-
-      if (status === 'success') {
-        renderSuccessCard(order, paymentId);
-      } else {
-        renderFailureCard(orderId, errorCode);
-      }
+      // Load order info from server first, fall back to LocalStorage cache
+      fetch(`http://localhost:3000/api/orders/${orderId}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Order not found on server");
+          return res.json();
+        })
+        .then(serverOrder => {
+          if (status === 'success') {
+            renderSuccessCard(serverOrder, paymentId);
+          } else {
+            renderFailureCard(orderId, errorCode);
+          }
+        })
+        .catch(err => {
+          console.warn("Could not retrieve order from server, using local cache", err);
+          const orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
+          const localOrder = orders.find(o => o.orderId === orderId);
+          if (status === 'success') {
+            renderSuccessCard(localOrder, paymentId);
+          } else {
+            renderFailureCard(orderId, errorCode);
+          }
+        });
 
       function renderSuccessCard(ord, payId) {
         const grandTotal = ord ? ord.amount : "TBD";
