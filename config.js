@@ -8,8 +8,8 @@ const CONFIG = {
   RAZORPAY_KEY_ID: "rzp_test_placeholder",
 
   // Production endpoints for secure backend integration (empty strings default to sandbox/simulation)
-  CREATE_ORDER_API: "",      // e.g. "https://api.mittifresh.com/payments/create-order"
-  VERIFY_PAYMENT_API: "",    // e.g. "https://api.mittifresh.com/payments/verify-payment"
+  CREATE_ORDER_API: "http://localhost:3000/api/create-order",
+  VERIFY_PAYMENT_API: "http://localhost:3000/api/verify-payment",
 
   // Cash on Delivery parameters
   COD_ELIGIBLE_PINS: ["110078", "110075", "110059", "110045", "110077", "110076", "110043"], // Dwarka and surrounding sectors
