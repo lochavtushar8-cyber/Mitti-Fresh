@@ -202,7 +202,7 @@ const PRODUCTS = [
       { name: "5 kg", value: "5kg", price: 550 }
     ],
     image: "assets/wheat_atta.jpg",
-    badge: "High Protein",
+    badge: "Bestseller",
     badgeType: "bestseller"
   },
   {
@@ -358,7 +358,7 @@ const PRODUCTS = [
       { name: "5 Liters (Value Pack)", value: "5L", price: 1750 }
     ],
     image: "assets/mustard_oil.jpg",
-    badge: "Premium Wood Press",
+    badge: "Bestseller",
     badgeType: "bestseller",
     infoBubble: "Crafted from 3kg premium seeds per liter"
   },
@@ -474,6 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const categoryTabs = document.getElementById('category-tabs');
   const productList = document.getElementById('product-list');
+  const bestsellersList = document.getElementById('bestsellers-list');
   
   const searchInput = document.getElementById('search-input');
   const searchClear = document.getElementById('search-clear');
@@ -522,162 +523,190 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PRODUCT RENDERING LOGIC ---
-  const renderProducts = () => {
-    productList.innerHTML = '';
+  // --- HELPER TO BUILD PRODUCT CARD HTML ---
+  const createProductCardHTML = (prod) => {
+    // Determine default option
+    const defaultOption = prod.sizes[1] || prod.sizes[0]; // Prefer family sizes
     
-    // Filter product listing
-    const filteredProducts = PRODUCTS.filter(prod => {
-      const matchesCategory = currentCategory === 'all' || prod.category === currentCategory;
-      const matchesSearch = prod.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
-                            prod.description.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
-                            (prod.ingredients && prod.ingredients.toLowerCase().includes(currentSearchQuery.toLowerCase()));
-      return matchesCategory && matchesSearch;
-    });
+    // Build options HTML
+    const optionsHtml = prod.sizes.map(opt => {
+      const isSelected = opt.value === defaultOption.value ? 'selected' : '';
+      return `<option value="${opt.value}" data-price="${opt.price}" ${isSelected}>${opt.name} - ₹${opt.price}</option>`;
+    }).join('');
 
-    if (filteredProducts.length === 0) {
-      productList.innerHTML = `
-        <div class="no-results-state">
-          <i class="fa-solid fa-carrot"></i>
-          <h3>No items found</h3>
-          <p>We couldn't find any staples matching "${currentSearchQuery}". Try adjusting your keywords.</p>
+    // Build product badge
+    const badgeHtml = prod.badge ? `<span class="product-tag badge-${prod.badgeType || 'accent'} font-alt">${prod.badge}</span>` : '';
+    
+    // Build info bubble (for mustard oil crafted text, etc.)
+    const bubbleHtml = prod.infoBubble ? `<div class="info-bubble">${prod.infoBubble}</div>` : '';
+
+    // Build special diet goal blocks (ingredients & benefits list)
+    let infoListHtml = '';
+    if (prod.ingredients && prod.benefits) {
+      infoListHtml = `
+        <div class="product-info-list">
+          <div class="info-list-title"><i class="fa-solid fa-mortar-pestle"></i> Ingredients Ratio:</div>
+          <div class="info-list-val">${prod.ingredients}</div>
+          <div class="info-list-title" style="margin-top: 8px;"><i class="fa-solid fa-award"></i> Health Benefits:</div>
+          <div class="info-list-val">${prod.benefits}</div>
         </div>
       `;
+    }
+
+    return `
+      <div class="product-image-container">
+        <img src="${prod.image}" alt="${prod.name}" class="product-image" loading="lazy">
+        ${badgeHtml}
+        ${bubbleHtml}
+      </div>
+      <div class="product-details">
+        <h3 class="product-title">${prod.name}</h3>
+        <p class="product-description">${prod.description}</p>
+        
+        ${infoListHtml}
+
+        <div class="product-selector-group">
+          <label for="size-select-${prod.id}" class="selector-label">Selection:</label>
+          <select id="size-select-${prod.id}" class="product-size-select" data-product-id="${prod.id}">
+            ${optionsHtml}
+          </select>
+        </div>
+
+        <div class="product-footer">
+          <div class="product-price">₹<span class="price-val" id="price-${prod.id}">${defaultOption.price}</span></div>
+          <button class="btn btn-sm btn-accent add-to-cart-btn" 
+                  data-id="${prod.id}" 
+                  data-name="${prod.name}" 
+                  data-image="${prod.image}">
+            <i class="fa-solid fa-cart-plus"></i> Add to Cart
+          </button>
+        </div>
+      </div>
+    `;
+  };
+
+  // --- PRODUCT RENDERING LOGIC ---
+  const renderProducts = () => {
+    // 1. Render Bestsellers if on Home Page
+    if (bestsellersList) {
+      bestsellersList.innerHTML = '';
+      const bestsellers = PRODUCTS.filter(prod => prod.badgeType === 'bestseller');
+      
+      bestsellers.forEach(prod => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.setAttribute('data-category', prod.category);
+        card.innerHTML = createProductCardHTML(prod);
+        bestsellersList.appendChild(card);
+      });
       return;
     }
 
-    filteredProducts.forEach(prod => {
-      // Determine default option
-      const defaultOption = prod.sizes[1] || prod.sizes[0]; // Prefer family sizes
+    // 2. Render Full Catalog if on Shop Page
+    if (productList) {
+      productList.innerHTML = '';
       
-      // Build options HTML
-      const optionsHtml = prod.sizes.map(opt => {
-        const isSelected = opt.value === defaultOption.value ? 'selected' : '';
-        return `<option value="${opt.value}" data-price="${opt.price}" ${isSelected}>${opt.name} - ₹${opt.price}</option>`;
-      }).join('');
+      // Filter product listing
+      const filteredProducts = PRODUCTS.filter(prod => {
+        const matchesCategory = currentCategory === 'all' || prod.category === currentCategory;
+        const matchesSearch = prod.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
+                              prod.description.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
+                              (prod.ingredients && prod.ingredients.toLowerCase().includes(currentSearchQuery.toLowerCase()));
+        return matchesCategory && matchesSearch;
+      });
 
-      // Build product badge
-      const badgeHtml = prod.badge ? `<span class="product-tag badge-${prod.badgeType || 'accent'} font-alt">${prod.badge}</span>` : '';
-      
-      // Build info bubble (for mustard oil crafted text, etc.)
-      const bubbleHtml = prod.infoBubble ? `<div class="info-bubble">${prod.infoBubble}</div>` : '';
-
-      // Build special diet goal blocks (ingredients & benefits list)
-      let infoListHtml = '';
-      if (prod.ingredients && prod.benefits) {
-        infoListHtml = `
-          <div class="product-info-list">
-            <div class="info-list-title"><i class="fa-solid fa-mortar-pestle"></i> Ingredients Ratio:</div>
-            <div class="info-list-val">${prod.ingredients}</div>
-            <div class="info-list-title" style="margin-top: 8px;"><i class="fa-solid fa-award"></i> Health Benefits:</div>
-            <div class="info-list-val">${prod.benefits}</div>
+      if (filteredProducts.length === 0) {
+        productList.innerHTML = `
+          <div class="no-results-state">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <h3>No items found</h3>
+            <p>We couldn't find any staples matching "${currentSearchQuery}". Try adjusting your keywords.</p>
           </div>
         `;
+        return;
       }
 
-      const card = document.createElement('div');
-      card.className = 'product-card';
-      card.setAttribute('data-category', prod.category);
-      card.innerHTML = `
-        <div class="product-image-container">
-          <img src="${prod.image}" alt="${prod.name}" class="product-image" loading="lazy">
-          ${badgeHtml}
-          ${bubbleHtml}
-        </div>
-        <div class="product-details">
-          <h3 class="product-title">${prod.name}</h3>
-          <p class="product-description">${prod.description}</p>
-          
-          ${infoListHtml}
-
-          <div class="product-selector-group">
-            <label for="size-select-${prod.id}" class="selector-label">Selection:</label>
-            <select id="size-select-${prod.id}" class="product-size-select" data-product-id="${prod.id}">
-              ${optionsHtml}
-            </select>
-          </div>
-
-          <div class="product-footer">
-            <div class="product-price">₹<span class="price-val" id="price-${prod.id}">${defaultOption.price}</span></div>
-            <button class="btn btn-sm btn-accent add-to-cart-btn" 
-                    data-id="${prod.id}" 
-                    data-name="${prod.name}" 
-                    data-image="${prod.image}">
-              <i class="fa-solid fa-cart-plus"></i> Add to Cart
-            </button>
-          </div>
-        </div>
-      `;
-      productList.appendChild(card);
-    });
+      filteredProducts.forEach(prod => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.setAttribute('data-category', prod.category);
+        card.innerHTML = createProductCardHTML(prod);
+        productList.appendChild(card);
+      });
+    }
   };
 
-  // --- DELEGATED EVENT LISTENERS FOR DYNAMIC PRODUCT GRID ---
+  // --- DELEGATED EVENT LISTENERS FOR DYNAMIC PRODUCT GRIDS ---
   
-  // 1. Dropdown Size/Price Update
-  productList.addEventListener('change', (e) => {
-    if (e.target.classList.contains('product-size-select')) {
-      const select = e.target;
-      const selectedOption = select.options[select.selectedIndex];
-      const newPrice = selectedOption.getAttribute('data-price');
-      const productId = select.getAttribute('data-product-id');
-      
-      const priceDisplay = document.getElementById(`price-${productId}`);
-      if (priceDisplay) {
-        priceDisplay.textContent = newPrice;
+  // Shared parent listener (detects clicks/changes on either list depending on which page we are on)
+  const activeGridContainer = productList || bestsellersList;
+  
+  if (activeGridContainer) {
+    // 1. Dropdown Size/Price Update
+    activeGridContainer.addEventListener('change', (e) => {
+      if (e.target.classList.contains('product-size-select')) {
+        const select = e.target;
+        const selectedOption = select.options[select.selectedIndex];
+        const newPrice = selectedOption.getAttribute('data-price');
+        const productId = select.getAttribute('data-product-id');
+        
+        const priceDisplay = document.getElementById(`price-${productId}`);
+        if (priceDisplay) {
+          priceDisplay.textContent = newPrice;
+        }
       }
-    }
-  });
+    });
 
-  // 2. Add to Cart button clicked
-  productList.addEventListener('click', (e) => {
-    const btn = e.target.closest('.add-to-cart-btn');
-    if (btn) {
-      const id = btn.getAttribute('data-id');
-      const name = btn.getAttribute('data-name');
-      const image = btn.getAttribute('data-image');
-      
-      const select = document.getElementById(`size-select-${id}`);
-      const selectedOption = select.options[select.selectedIndex];
-      const size = selectedOption.value;
-      const price = parseInt(selectedOption.getAttribute('data-price'));
+    // 2. Add to Cart button clicked
+    activeGridContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.add-to-cart-btn');
+      if (btn) {
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        const image = btn.getAttribute('data-image');
+        
+        const select = document.getElementById(`size-select-${id}`);
+        const selectedOption = select.options[select.selectedIndex];
+        const size = selectedOption.value;
+        const price = parseInt(selectedOption.getAttribute('data-price'));
 
-      // Check if product is already in cart
-      const existingItem = cart.find(item => item.id === id && item.size === size);
-      if (existingItem) {
-        existingItem.quantity += 1;
-      } else {
-        cart.push({
-          id,
-          name,
-          image,
-          size,
-          price,
-          quantity: 1
-        });
+        // Check if product is already in cart
+        const existingItem = cart.find(item => item.id === id && item.size === size);
+        if (existingItem) {
+          existingItem.quantity += 1;
+        } else {
+          cart.push({
+            id,
+            name,
+            image,
+            size,
+            price,
+            quantity: 1
+          });
+        }
+
+        saveCart();
+        updateCartUI();
+        
+        // Button success feedback
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> Added!`;
+        btn.style.backgroundColor = '#1E442F'; // Success green
+        btn.disabled = true;
+        
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+          btn.style.backgroundColor = '';
+          btn.disabled = false;
+        }, 1000);
+
+        // Open drawer automatically on add
+        setTimeout(() => {
+          toggleCartDrawer(true);
+        }, 400);
       }
-
-      saveCart();
-      updateCartUI();
-      
-      // Button success feedback
-      const originalHTML = btn.innerHTML;
-      btn.innerHTML = `<i class="fa-solid fa-check"></i> Added!`;
-      btn.style.backgroundColor = '#1E442F'; // Success green
-      btn.disabled = true;
-      
-      setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.style.backgroundColor = '';
-        btn.disabled = false;
-      }, 1000);
-
-      // Open drawer automatically on add
-      setTimeout(() => {
-        toggleCartDrawer(true);
-      }, 400);
-    }
-  });
+    });
+  }
 
   // --- SEARCH TRIGGERS ---
   if (searchInput) {

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mitti Fresh — Pure, Fresh & Essential Food Staples</title>
-  <meta name="description" content="Kisan Atta Chakki is now Mitti Fresh. Experience the true taste of purity with our traditional cold-pressed oils, goal-based flour blends, and freshly milled stone-ground atta in Dwarka Sector 28, Delhi.">
+  <title>Mitti Fresh Store — Fresh Chakki Atta & Cold-Pressed Oils</title>
+  <meta name="description" content="Shop all 29 premium food staples from Mitti Fresh Dwarka Sector 28. Explore goal-based health flours, stone-ground grains, sattu, and wood-pressed oils.">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,9 +37,9 @@
       
       <nav class="main-nav" aria-label="Main Navigation">
         <ul class="nav-links">
-          <li><a href="index.html" class="nav-link active">Home</a></li>
-          <li><a href="shop.html" class="nav-link">Shop</a></li>
-          <li><a href="#our-story" class="nav-link">Our Story</a></li>
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="shop.html" class="nav-link active">Shop</a></li>
+          <li><a href="index.html#our-story" class="nav-link">Our Story</a></li>
           <li><a href="#contact" class="nav-link">Contact</a></li>
         </ul>
       </nav>
@@ -65,123 +65,79 @@
       <ul class="mobile-nav-links">
         <li><a href="index.html" class="mobile-nav-link">Home</a></li>
         <li><a href="shop.html" class="mobile-nav-link">Shop</a></li>
-        <li><a href="#our-story" class="mobile-nav-link">Our Story</a></li>
+        <li><a href="index.html#our-story" class="mobile-nav-link">Our Story</a></li>
         <li><a href="#contact" class="mobile-nav-link">Contact</a></li>
       </ul>
     </div>
   </div>
 
-  <!-- Hero Section -->
-  <section class="hero-section" id="home">
-    <div class="hero-container">
-      <div class="hero-content">
-        <span class="sub-badge">100% Pure & Stone-Ground</span>
-        <h1 class="hero-title">Pure, Fresh & Essential Food Staples</h1>
-        <p class="hero-description">Bringing traditional, chemical-free cold-pressed oils, custom diet-goal flour blends, and nutrient-rich stone-ground grains straight from the farm to your kitchen.</p>
-        <div class="hero-actions">
-          <a href="shop.html" class="btn btn-primary">Shop Now</a>
-          <a href="#our-story" class="btn btn-secondary">Our Story</a>
+  <!-- Shop Header Section -->
+  <section class="hero-section" style="padding: 60px 0 40px; background: linear-gradient(180deg, rgba(250, 247, 242, 0.2) 0%, rgba(243, 236, 224, 0.3) 100%);">
+    <div class="container text-center">
+      <span class="sub-badge">Mitti Fresh Store</span>
+      <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 12px;">Our Full Price Menu & Catalog</h1>
+      <p class="hero-description" style="margin: 0 auto; max-width: 650px;">Use filters or the search bar below to browse our fresh cold-pressed oils, goal-based flour formulations, and raw staples.</p>
+    </div>
+  </section>
+
+  <!-- Categories Section -->
+  <section class="categories-section" style="padding-top: 20px;">
+    <div class="container">
+      <div class="category-grid" id="category-tabs">
+        <div class="category-card active" data-category="all" id="cat-all">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-border-all"></i>
+          </div>
+          <h3 class="category-card-title">All Staples</h3>
         </div>
-        <div class="hero-features">
-          <div class="feature-badge">
-            <i class="fa-solid fa-circle-check"></i> Traditional Kohlus
+        <div class="category-card" data-category="atta-specialty" id="cat-atta-special">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-bullseye"></i>
           </div>
-          <div class="feature-badge">
-            <i class="fa-solid fa-circle-check"></i> Zero Preservatives
-          </div>
-          <div class="feature-badge">
-            <i class="fa-solid fa-circle-check"></i> Milled Daily
-          </div>
+          <h3 class="category-card-title">Goal-Based Atta Blends</h3>
         </div>
-      </div>
-      <div class="hero-image-wrapper">
-        <div class="hero-image-card">
-          <img src="assets/hero_banner.jpg" alt="Pure ingredients collection" class="hero-image">
-          <div class="hero-image-overlay">
-            <span class="highlight-info"><i class="fa-solid fa-store"></i> Visit our Dwarka Sector 28 Shop</span>
+        <div class="category-card" data-category="atta-grains" id="cat-atta-grain">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-wheat-awn"></i>
           </div>
+          <h3 class="category-card-title">Chakki Flours & Grains</h3>
+        </div>
+        <div class="category-card" data-category="oils" id="cat-oils">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-droplet"></i>
+          </div>
+          <h3 class="category-card-title">Cold-Pressed Oils</h3>
+        </div>
+        <div class="category-card" data-category="khal-seeds" id="cat-khal">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-cow"></i>
+          </div>
+          <h3 class="category-card-title">Khal & Seeds</h3>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Best Sellers Section -->
-  <section class="shop-section" id="bestsellers">
+  <!-- Shop Grid Section -->
+  <section class="shop-section">
     <div class="container">
-      <div class="section-header text-center">
-        <span class="section-subtitle">Customer Favorites</span>
-        <h2 class="section-title">Our Best Selling Staples</h2>
-        <p class="section-desc">Experience our top-rated stone-ground flours and wood-pressed oils. Milled and pressed fresh daily.</p>
+      <!-- Search Bar -->
+      <div class="search-section">
+        <div class="search-bar-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="search-input" placeholder="Search for sattu, oats, mustard oil, basmati rice, besan...">
+          <button class="search-clear-btn" id="search-clear" aria-label="Clear Search" style="display: none;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Bestseller Product Grid (Populated via JS) -->
-      <div class="product-grid" id="bestsellers-list">
+      <!-- Product Grid (Populated via JS) -->
+      <div class="product-grid" id="product-list">
         <div class="loading-state">
-          <i class="fa-solid fa-circle-notch fa-spin"></i> Loading best sellers...
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Loading fresh staples...
         </div>
       </div>
-
-      <!-- Call to Action Link to Shop Page -->
-      <div class="text-center" style="margin-top: 48px;">
-        <a href="shop.html" class="btn btn-primary btn-large">
-          <i class="fa-solid fa-basket-shopping"></i> View All Products (29 Items)
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Story Section -->
-  <section class="story-section" id="our-story">
-    <div class="container">
-      <div class="story-layout">
-        <div class="story-text">
-          <span class="section-subtitle">Our Heritage</span>
-          <h2 class="section-title">From Kisan Atta Chakki to Mitti Fresh</h2>
-          <p>For years, we served our neighbors as <strong>Kisan Atta Chakki</strong>, dedicated to quality grain milling. Today, we are taking a leap forward to bring our commitment to unrefined, chemical-free nutrition to a wider audience under our new name: <strong>Mitti Fresh</strong>.</p>
-          <p>Our values remain exactly the same. We still believe that healthy living starts with pure ingredients. We extract our oils using traditional, cold-pressed wood pressing (Kohlu) which runs at low speeds and temperatures to guarantee no nutrients are lost. Our grains are stone-ground daily, maintaining the natural goodness of the grain.</p>
-          <div class="story-features-grid">
-            <div class="story-feat-item">
-              <div class="story-feat-icon"><i class="fa-solid fa-heart-pulse"></i></div>
-              <div>
-                <h4>Zero Chemical Process</h4>
-                <p>Absolutely no bleach, refining agents, or added chemicals are used during extraction.</p>
-              </div>
-            </div>
-            <div class="story-feat-item">
-              <div class="story-feat-icon"><i class="fa-solid fa-eye"></i></div>
-              <div>
-                <h4>Total Transparency</h4>
-                <p>We welcome you to visit our physical store and witness the live milling of your staples.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="story-visual">
-          <div class="badge-round-wrap">
-            <div class="badge-round">
-              <span class="number">100%</span>
-              <span class="label">Pure & Natural</span>
-            </div>
-          </div>
-          <div class="visual-stack">
-            <div class="visual-card main-img-card">
-              <div class="card-icon"><i class="fa-solid fa-shield-halved"></i></div>
-              <h3>Purity Guaranteed</h3>
-              <p>We test every batch of seeds and grain for organic quality before processing.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA Section -->
-  <section class="banner-cta">
-    <div class="cta-overlay-pattern"></div>
-    <div class="container text-center relative-z">
-      <h2 class="cta-headline">Experience Pure Nutrition Delivered To Your Kitchen</h2>
-      <p class="cta-desc">Choose from our daily ground atta and aromatic wood-pressed oils. Simple order via WhatsApp and pick up at the store or get home delivery.</p>
-      <a href="shop.html" class="btn btn-primary btn-large">Browse Our Store</a>
     </div>
   </section>
 
@@ -200,7 +156,7 @@
         <i class="fa-solid fa-bag-shopping empty-icon"></i>
         <h3>Your basket is empty</h3>
         <p>Browse our shop and add fresh staples to your cart!</p>
-        <a href="shop.html" class="btn btn-accent btn-sm close-cart-link">Go to Shop</a>
+        <a href="#shop" class="btn btn-accent btn-sm close-cart-link">Go to Shop</a>
       </div>
       <ul class="cart-items-list" id="cart-items-list">
         <!-- Rendered items in JavaScript -->
@@ -240,7 +196,7 @@
           <ul class="footer-links">
             <li><a href="index.html">Home</a></li>
             <li><a href="shop.html">Shop Staples</a></li>
-            <li><a href="#our-story">Our Story</a></li>
+            <li><a href="index.html#our-story">Our Story</a></li>
             <li><a href="#contact">Contact & Location</a></li>
           </ul>
         </div>
