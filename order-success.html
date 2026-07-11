@@ -167,16 +167,31 @@
       function renderSuccessCard(ord, payId) {
         const grandTotal = ord ? ord.amount : "TBD";
         const customerName = ord ? ord.customer.name : "Customer";
+        const isUpi = ord && ord.paymentMethod === 'UPI';
+
+        let iconColor = isUpi ? '#FEF9E7' : '#EAFAF1';
+        let iconTextClass = isUpi ? '#F1C40F' : '#2ecc71';
+        let iconHtml = isUpi ? '<i class="fa-solid fa-clock-rotate-left"></i>' : '<i class="fa-solid fa-circle-check"></i>';
         
+        let titleText = isUpi ? 'Payment Details Submitted Successfully' : 'Payment Successful!';
+        let subtitleText = isUpi 
+          ? `Thank you for choosing Mitti Fresh. We will verify your payment shortly and start preparing your order.`
+          : `Thank you, ${customerName}. Your order has been placed and is currently being processed by our milling team.`;
+
+        let paymentLabel = isUpi ? 'UPI Transaction ID:' : 'Razorpay Payment ID:';
+        let estDelivery = isUpi 
+          ? `<span style="color: #F1C40F; font-weight: 700;"><i class="fa-solid fa-clock"></i> Pending Payment Verification</span>`
+          : `<span style="color: var(--color-accent); font-weight: 700;"><i class="fa-solid fa-truck-fast"></i> 24-48 Hours (Milled Fresh)</span>`;
+
         container.innerHTML = `
           <div class="checkout-card text-center" style="padding: 50px 40px; box-shadow: var(--shadow-lux-md); background-color: var(--color-bg-white);">
-            <div style="width: 80px; height: 80px; background-color: #EAFAF1; color: #2ecc71; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2.5rem; animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
-              <i class="fa-solid fa-circle-check"></i>
+            <div style="width: 80px; height: 80px; background-color: ${iconColor}; color: ${iconTextClass}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2.5rem; animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
+              ${iconHtml}
             </div>
             
-            <h1 class="font-alt" style="color: var(--color-primary); font-size: 2.2rem; margin-bottom: 12px;">Payment Successful!</h1>
+            <h1 class="font-alt" style="color: var(--color-primary); font-size: 2.2rem; margin-bottom: 12px;">${titleText}</h1>
             <p style="color: var(--color-text-muted); font-size: 1.05rem; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
-              Thank you, ${customerName}. Your order has been placed and is currently being processed by our milling team.
+              ${subtitleText}
             </p>
 
             <div class="order-details-summary-box" style="background-color: var(--color-bg-light); border-radius: var(--radius-sm); padding: 24px; max-width: 500px; margin: 0 auto 40px; text-align: left; border: 1px solid rgba(33, 78, 52, 0.04); font-size: 0.95rem;">
@@ -185,16 +200,28 @@
                 <strong style="color: var(--color-primary);">${orderId}</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="color: var(--color-text-muted);">Razorpay Payment ID:</span>
+                <span style="color: var(--color-text-muted);">${paymentLabel}</span>
                 <span style="font-family: monospace; font-weight: 600; color: var(--color-primary);">${payId}</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="color: var(--color-text-muted);">Amount Paid:</span>
+                <span style="color: var(--color-text-muted);">Amount:</span>
                 <strong style="color: var(--color-primary);">₹${grandTotal}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                 <span style="color: var(--color-text-muted);">Estimated Delivery:</span>
-                <span style="color: var(--color-accent); font-weight: 700;"><i class="fa-solid fa-truck-fast"></i> 24-48 Hours (Milled Fresh)</span>
+                ${estDelivery}
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-top: 1px solid rgba(33,78,52,0.08); padding-top: 10px;">
+                <span style="color: var(--color-text-muted);">Payment Tracking:</span>
+                <strong style="color: ${ord && ord.paymentStatus === 'Verified' ? '#27AE60' : (ord && ord.paymentStatus === 'Rejected' ? '#E74C3C' : '#F1C40F')};">
+                  ${ord ? ord.paymentStatus : 'Pending Verification'}
+                </strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--color-text-muted);">Order Tracking:</span>
+                <strong style="color: var(--color-primary);">
+                  ${ord ? (ord.orderStatus === 'Payment Verification Pending' ? 'Pending Verification' : ord.orderStatus) : 'Preparing'}
+                </strong>
               </div>
             </div>
 

@@ -162,6 +162,18 @@
                   </div>
                 </label>
 
+                <!-- UPI Option -->
+                <label class="payment-method-label" id="pay-label-upi" style="display: flex; align-items: flex-start; gap: 16px; padding: 20px; border: 1.5px solid rgba(33, 78, 52, 0.1); border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition-fast);">
+                  <input type="radio" name="payment-method" id="pay-upi" value="upi" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--color-primary);">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                      <span style="font-weight: 700; color: var(--color-primary); font-size: 1.05rem;">Pay via UPI (GPay, PhonePe, Paytm)</span>
+                      <span style="font-size: 0.8rem; background-color: var(--color-accent); color: var(--color-primary); padding: 2px 8px; border-radius: 4px; font-weight: 700;">ZERO FEES</span>
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 4px; line-height: 1.4;">Transfer directly using GPay, PhonePe, Paytm, or BHIM. Scan the QR code or click the app pay link.</p>
+                  </div>
+                </label>
+
                 <!-- COD Option -->
                 <label class="payment-method-label" id="pay-label-cod" style="display: flex; align-items: flex-start; gap: 16px; padding: 20px; border: 1.5px solid rgba(33, 78, 52, 0.1); border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition-fast);">
                   <input type="radio" name="payment-method" id="pay-cod" value="cod" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--color-primary);">
@@ -177,6 +189,61 @@
 
               </div>
             </div>
+
+            <!-- Direct UPI Details Container (Shown when UPI is active) -->
+            <div class="checkout-card" id="upi-details-container" style="display: none; margin-bottom: 30px;">
+              <h3><i class="fa-solid fa-qrcode"></i> Direct UPI Payment Details</h3>
+              <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 20px;">Please scan the QR code below or open your UPI app to transfer the exact total. Once completed, click the button to enter verification details.</p>
+              
+              <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap; margin-bottom: 24px;">
+                <!-- QR Code generated dynamically -->
+                <div style="border: 2px solid var(--color-primary); padding: 12px; border-radius: var(--radius-sm); background-color: #FFF; box-shadow: var(--shadow-lux-sm); width: 224px; height: 224px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                  <img id="upi-qr-image" src="" alt="UPI Payment QR Code" style="width: 200px; height: 200px; display: block;">
+                </div>
+                
+                <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 12px;">
+                  <div>
+                    <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--color-text-muted);">Mitti Fresh UPI ID:</span>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                      <code id="upi-id-text" style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: var(--color-primary); background-color: var(--color-bg-light); padding: 6px 12px; border-radius: 4px; border: 1px solid rgba(33,78,52,0.1);">lochavtushar8-1@oksbi</code>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-upi" style="padding: 6px 12px; height: auto;"><i class="fa-solid fa-copy"></i> Copy</button>
+                    </div>
+                  </div>
+                  
+                  <div style="margin-top: 10px;">
+                    <a href="" id="btn-open-upi-app" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; width: 100%; justify-content: center;"><i class="fa-solid fa-mobile-screen-button"></i> Open UPI App (Mobile Only)</a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- I've Completed Payment -->
+              <div style="border-top: 1px solid rgba(33,78,52,0.08); padding-top: 20px; text-align: center;">
+                <button type="button" class="btn btn-accent" id="btn-completed-upi-payment" style="width: 100%; height: 46px;"><i class="fa-solid fa-clipboard-check"></i> I've Completed Payment</button>
+              </div>
+
+              <!-- UPI Verification Form Details -->
+              <div id="upi-verification-form-details" style="display: none; margin-top: 24px; border-top: 1.5px dashed rgba(33,78,52,0.15); padding-top: 24px;">
+                <h4 style="color: var(--color-primary); font-family: var(--font-secondary); margin-bottom: 16px; font-size: 1.15rem;">Payment Verification Details</h4>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div class="form-group">
+                    <label for="upi-txn-id">UPI Transaction ID (12-Digit Ref No.) <span style="color: #E74C3C;">*</span></label>
+                    <input type="text" id="upi-txn-id" class="form-control" placeholder="e.g. 304892837492" pattern="[0-9]{12}" minlength="12" maxlength="12" style="margin-bottom: 0;">
+                    <small style="color: var(--color-text-muted); font-size: 0.8rem;">Enter the 12-digit UPI reference/UTR number from your receipt.</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="upi-screenshot-file">Upload Payment Screenshot <span style="font-size: 0.8rem; font-weight: normal; color: var(--color-text-muted);">(Optional)</span></label>
+                    <input type="file" id="upi-screenshot-file" accept="image/*" class="form-control" style="padding: 10px; margin-bottom: 0; height: auto;">
+                    <small style="color: var(--color-text-muted); font-size: 0.8rem;">Upload a screenshot of the payment receipt screen.</small>
+                    <img id="screenshot-preview-el" style="display:none; max-width:150px; margin-top:10px; border-radius:4px;">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="upi-notes">Payment Notes <span style="font-size: 0.8rem; font-weight: normal; color: var(--color-text-muted);">(Optional)</span></label>
+                    <textarea id="upi-notes" class="form-control" placeholder="e.g. Paid using GPay" style="height: 80px; padding: 12px; margin-bottom: 0; resize: none;"></textarea>
+                  </div>
+                </div>
+              </div>
           </form>
 
         </div>
@@ -305,6 +372,10 @@
       let codFee = 0;
       let subtotal = 0;
 
+      // Unique Order ID generated on load
+      const mittiOrderId = "MF-" + Math.floor(100000 + Math.random() * 900000);
+      let upiScreenshotBase64 = "";
+
       // Selectors
       const itemsList = document.getElementById('summary-items-list');
       const sumSubtotal = document.getElementById('sum-subtotal');
@@ -326,10 +397,23 @@
       const codChargeNotice = document.getElementById('cod-charge-notice');
       const payCodOption = document.getElementById('pay-cod');
       const payRazorpayOption = document.getElementById('pay-razorpay');
+      const payUpiOption = document.getElementById('pay-upi');
 
       // Payment radio labels
       const labelRazorpay = document.getElementById('pay-label-razorpay');
       const labelCod = document.getElementById('pay-label-cod');
+      const labelUpi = document.getElementById('pay-label-upi');
+
+      // UPI specific elements
+      const upiDetailsContainer = document.getElementById('upi-details-container');
+      const upiQrImage = document.getElementById('upi-qr-image');
+      const btnCopyUpi = document.getElementById('btn-copy-upi');
+      const btnOpenUpiApp = document.getElementById('btn-open-upi-app');
+      const btnCompletedUpi = document.getElementById('btn-completed-upi-payment');
+      const upiVerificationForm = document.getElementById('upi-verification-form-details');
+      const upiTxnInput = document.getElementById('upi-txn-id');
+      const screenshotInput = document.getElementById('upi-screenshot-file');
+      const previewImg = document.getElementById('screenshot-preview-el');
 
       // Load cart data from LocalStorage
       const loadCheckoutCart = () => {
@@ -503,6 +587,15 @@
         } else {
           codRow.style.display = 'none';
         }
+
+        // 4. Update UPI dynamic pay link and QR code
+        const upiLink = `upi://pay?pa=lochavtushar8-1@oksbi&pn=Mitti Fresh&am=${grandTotal}&cu=INR&tn=Order-${mittiOrderId}`;
+        if (upiQrImage) {
+          upiQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=` + encodeURIComponent(upiLink);
+        }
+        if (btnOpenUpiApp) {
+          btnOpenUpiApp.href = upiLink;
+        }
       };
 
       // Coupon application
@@ -528,33 +621,74 @@
       });
 
       // Handle payment method toggles
+      // Handle payment method toggles
       const triggerPaymentSwitch = (method) => {
+        // Reset active label styles
+        [labelRazorpay, labelCod, labelUpi].forEach(lbl => {
+          if (lbl) {
+            lbl.classList.remove('active');
+            lbl.style.backgroundColor = '';
+            lbl.style.borderColor = '';
+          }
+        });
+        
+        // Hide UPI container by default
+        if (upiDetailsContainer) upiDetailsContainer.style.display = 'none';
+
         if (method === 'razorpay') {
           labelRazorpay.classList.add('active');
           labelRazorpay.style.backgroundColor = 'var(--color-bg-light)';
           labelRazorpay.style.borderColor = 'var(--color-accent)';
-          
-          labelCod.classList.remove('active');
-          labelCod.style.backgroundColor = '';
-          labelCod.style.borderColor = '';
-          
           placeOrderBtn.innerHTML = `<i class="fa-solid fa-lock"></i> Pay Securely via Razorpay`;
         } else if (method === 'cod') {
           labelCod.classList.add('active');
           labelCod.style.backgroundColor = 'var(--color-bg-light)';
           labelCod.style.borderColor = 'var(--color-accent)';
-          
-          labelRazorpay.classList.remove('active');
-          labelRazorpay.style.backgroundColor = '';
-          labelRazorpay.style.borderColor = '';
-          
           placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Place Cash on Delivery Order`;
+        } else if (method === 'upi') {
+          labelUpi.classList.add('active');
+          labelUpi.style.backgroundColor = 'var(--color-bg-light)';
+          labelUpi.style.borderColor = 'var(--color-accent)';
+          
+          if (upiDetailsContainer) upiDetailsContainer.style.display = 'block';
+          placeOrderBtn.innerHTML = `<i class="fa-solid fa-square-check"></i> Place Order`;
         }
         calculateTotals();
       };
 
       payRazorpayOption.addEventListener('change', () => triggerPaymentSwitch('razorpay'));
       payCodOption.addEventListener('change', () => triggerPaymentSwitch('cod'));
+      payUpiOption.addEventListener('change', () => triggerPaymentSwitch('upi'));
+
+      // Copy UPI ID to clipboard
+      btnCopyUpi.addEventListener('click', () => {
+        navigator.clipboard.writeText("lochavtushar8-1@oksbi").then(() => {
+          btnCopyUpi.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
+          setTimeout(() => {
+            btnCopyUpi.innerHTML = `<i class="fa-solid fa-copy"></i> Copy`;
+          }, 2000);
+        });
+      });
+
+      // Show Verification form details when clicked
+      btnCompletedUpi.addEventListener('click', () => {
+        upiVerificationForm.style.display = 'block';
+        upiVerificationForm.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      // Convert Screenshot to Base64
+      screenshotInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            upiScreenshotBase64 = event.target.result;
+            previewImg.src = upiScreenshotBase64;
+            previewImg.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
 
       // Validate inputs
       const validateCheckoutForm = () => {
@@ -600,12 +734,36 @@
         }
 
         const isCod = payCodOption.checked;
+        const isUpi = payUpiOption.checked;
         const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
 
-        // Unique Order ID generator
-        const mittiOrderId = "MF-" + Math.floor(100000 + Math.random() * 900000);
+        if (isUpi) {
+          // Validate UPI Transaction ID (12 digits)
+          const txnId = upiTxnInput.value.trim();
+          if (txnId.length !== 12 || isNaN(txnId)) {
+            alert("Please click 'I've Completed Payment' and enter a valid 12-digit UPI Transaction ID.");
+            upiTxnInput.focus();
+            return;
+          }
 
-        if (isCod) {
+          const orderPayload = {
+            orderId: mittiOrderId,
+            paymentMethod: "UPI",
+            upiTransactionId: txnId,
+            upiScreenshot: upiScreenshotBase64,
+            upiNotes: document.getElementById('upi-notes').value.trim(),
+            paymentStatus: "Pending Verification",
+            orderStatus: "Payment Verification Pending",
+            amount: grandTotal,
+            date: new Date().toLocaleString(),
+            customer: { name: custName, phone: custPhone, email: custEmail },
+            address: { house: houseNo, street: street, landmark: landmark, pin: pinCode, city: "New Delhi", state: "Delhi" },
+            items: cart
+          };
+
+          saveOrder(orderPayload);
+          window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
+        } else if (isCod) {
           // Complete direct COD Order
           const orderPayload = {
             orderId: mittiOrderId,
