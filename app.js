@@ -13,9 +13,9 @@ const PRODUCTS = [
     basePrice: 70,
     unit: "kg",
     sizes: [
-      { name: "1 kg (Trial)", value: "1kg", price: 70 },
-      { name: "5 kg (Family Pack)", value: "5kg", price: 350 },
-      { name: "10 kg (Value Pack)", value: "10kg", price: 690 }
+      { name: "1 kg (Trial)", value: "1kg", price: 70, mrp: 85 },
+      { name: "5 kg (Family Pack)", value: "5kg", price: 350, mrp: 400 },
+      { name: "10 kg (Value Pack)", value: "10kg", price: 690, mrp: 790 }
     ],
     image: "assets/multigrain_atta.jpg",
     badge: "100% Whole Grains",
@@ -38,9 +38,9 @@ const PRODUCTS = [
     basePrice: 80,
     unit: "kg",
     sizes: [
-      { name: "1 kg (Trial)", value: "1kg", price: 80 },
-      { name: "5 kg (Family Pack)", value: "5kg", price: 400 },
-      { name: "10 kg (Value Pack)", value: "10kg", price: 780 }
+      { name: "1 kg (Trial)", value: "1kg", price: 80, mrp: 95 },
+      { name: "5 kg (Family Pack)", value: "5kg", price: 400, mrp: 460 },
+      { name: "10 kg (Value Pack)", value: "10kg", price: 780, mrp: 890 }
     ],
     image: "assets/multigrain_atta.jpg",
     badge: "Fitness Choice",
@@ -63,9 +63,9 @@ const PRODUCTS = [
     basePrice: 80,
     unit: "kg",
     sizes: [
-      { name: "1 kg (Trial)", value: "1kg", price: 80 },
-      { name: "5 kg (Family Pack)", value: "5kg", price: 400 },
-      { name: "10 kg (Value Pack)", value: "10kg", price: 780 }
+      { name: "1 kg (Trial)", value: "1kg", price: 80, mrp: 95 },
+      { name: "5 kg (Family Pack)", value: "5kg", price: 400, mrp: 460 },
+      { name: "10 kg (Value Pack)", value: "10kg", price: 780, mrp: 890 }
     ],
     image: "assets/multigrain_atta.jpg",
     badge: "Weight Control",
@@ -88,9 +88,9 @@ const PRODUCTS = [
     basePrice: 80,
     unit: "kg",
     sizes: [
-      { name: "1 kg (Trial)", value: "1kg", price: 80 },
-      { name: "5 kg (Family Pack)", value: "5kg", price: 400 },
-      { name: "10 kg (Value Pack)", value: "10kg", price: 780 }
+      { name: "1 kg (Trial)", value: "1kg", price: 80, mrp: 95 },
+      { name: "5 kg (Family Pack)", value: "5kg", price: 400, mrp: 460 },
+      { name: "10 kg (Value Pack)", value: "10kg", price: 780, mrp: 890 }
     ],
     image: "assets/multigrain_atta.jpg",
     badge: "Sugar Conscious",
@@ -113,9 +113,9 @@ const PRODUCTS = [
     basePrice: 85,
     unit: "kg",
     sizes: [
-      { name: "1 kg (Trial)", value: "1kg", price: 85 },
-      { name: "5 kg (Family Pack)", value: "5kg", price: 425 },
-      { name: "10 kg (Value Pack)", value: "10kg", price: 830 }
+      { name: "1 kg (Trial)", value: "1kg", price: 85, mrp: 99 },
+      { name: "5 kg (Family Pack)", value: "5kg", price: 425, mrp: 490 },
+      { name: "10 kg (Value Pack)", value: "10kg", price: 830, mrp: 950 }
     ],
     image: "assets/multigrain_atta.jpg",
     badge: "Cardio Care",
@@ -138,9 +138,9 @@ const PRODUCTS = [
     basePrice: 80,
     unit: "kg",
     sizes: [
-      { name: "1 kg (Trial)", value: "1kg", price: 80 },
-      { name: "5 kg (Family Pack)", value: "5kg", price: 400 },
-      { name: "10 kg (Value Pack)", value: "10kg", price: 780 }
+      { name: "1 kg (Trial)", value: "1kg", price: 80, mrp: 95 },
+      { name: "5 kg (Family Pack)", value: "5kg", price: 400, mrp: 460 },
+      { name: "10 kg (Value Pack)", value: "10kg", price: 780, mrp: 890 }
     ],
     image: "assets/multigrain_atta.jpg",
     badge: "For Active Kids",
@@ -163,9 +163,9 @@ const PRODUCTS = [
     basePrice: 85,
     unit: "kg",
     sizes: [
-      { name: "1 kg (Trial)", value: "1kg", price: 85 },
-      { name: "5 kg (Family Pack)", value: "5kg", price: 425 },
-      { name: "10 kg (Value Pack)", value: "10kg", price: 830 }
+      { name: "1 kg (Trial)", value: "1kg", price: 85, mrp: 99 },
+      { name: "5 kg (Family Pack)", value: "5kg", price: 425, mrp: 490 },
+      { name: "10 kg (Value Pack)", value: "10kg", price: 830, mrp: 950 }
     ],
     image: "assets/multigrain_atta.jpg",
     badge: "Digestive Care",
@@ -190,9 +190,9 @@ const PRODUCTS = [
     basePrice: 55,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 55 },
-      { name: "5 kg", value: "5kg", price: 275 },
-      { name: "10 kg", value: "10kg", price: 540 }
+      { name: "1 kg", value: "1kg", price: 55, mrp: 65 },
+      { name: "5 kg", value: "5kg", price: 275, mrp: 320 },
+      { name: "10 kg", value: "10kg", price: 540, mrp: 620 }
     ],
     image: "assets/wheat_atta.jpg",
     badge: "Bestseller",
@@ -214,9 +214,9 @@ const PRODUCTS = [
     basePrice: 48,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 48 },
-      { name: "5 kg", value: "5kg", price: 240 },
-      { name: "10 kg", value: "10kg", price: 470 }
+      { name: "1 kg", value: "1kg", price: 48, mrp: 55 },
+      { name: "5 kg", value: "5kg", price: 240, mrp: 270 },
+      { name: "10 kg", value: "10kg", price: 470, mrp: 530 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Whole Wheat Grains",
@@ -236,9 +236,9 @@ const PRODUCTS = [
     basePrice: 70,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 70 },
-      { name: "5 kg", value: "5kg", price: 350 },
-      { name: "10 kg", value: "10kg", price: 690 }
+      { name: "1 kg", value: "1kg", price: 70, mrp: 80 },
+      { name: "5 kg", value: "5kg", price: 350, mrp: 395 },
+      { name: "10 kg", value: "10kg", price: 690, mrp: 780 }
     ],
     image: "assets/multigrain_atta.jpg",
     ingredients: "Wheat, Chana, Oats, Soybean, Jau",
@@ -258,8 +258,8 @@ const PRODUCTS = [
     basePrice: 130,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 130 },
-      { name: "5 kg", value: "5kg", price: 650 }
+      { name: "1 kg", value: "1kg", price: 130, mrp: 150 },
+      { name: "5 kg", value: "5kg", price: 650, mrp: 720 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Stone-Ground Chana Dal Grains",
@@ -279,8 +279,8 @@ const PRODUCTS = [
     basePrice: 110,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 110 },
-      { name: "5 kg", value: "5kg", price: 550 }
+      { name: "1 kg", value: "1kg", price: 110, mrp: 130 },
+      { name: "5 kg", value: "5kg", price: 550, mrp: 620 }
     ],
     image: "assets/wheat_atta.jpg",
     badge: "Bestseller",
@@ -302,8 +302,8 @@ const PRODUCTS = [
     basePrice: 50,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 50 },
-      { name: "5 kg", value: "5kg", price: 250 }
+      { name: "1 kg", value: "1kg", price: 50, mrp: 60 },
+      { name: "5 kg", value: "5kg", price: 250, mrp: 290 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Stone-Ground Pearl Millet (Bajra) Grains",
@@ -323,8 +323,8 @@ const PRODUCTS = [
     basePrice: 60,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 60 },
-      { name: "5 kg", value: "5kg", price: 300 }
+      { name: "1 kg", value: "1kg", price: 60, mrp: 70 },
+      { name: "5 kg", value: "5kg", price: 300, mrp: 340 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Stone-Ground Yellow Maize (Corn) Grains",
@@ -344,7 +344,7 @@ const PRODUCTS = [
     basePrice: 120,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 120 }
+      { name: "1 kg", value: "1kg", price: 120, mrp: 140 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Pure Soybean Grains",
@@ -364,7 +364,7 @@ const PRODUCTS = [
     basePrice: 280,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 280 }
+      { name: "1 kg", value: "1kg", price: 280, mrp: 320 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Pure Flaxseeds (Alsi)",
@@ -384,8 +384,8 @@ const PRODUCTS = [
     basePrice: 70,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 70 },
-      { name: "5 kg", value: "5kg", price: 350 }
+      { name: "1 kg", value: "1kg", price: 70, mrp: 80 },
+      { name: "5 kg", value: "5kg", price: 350, mrp: 390 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Premium Cracked Whole Wheat Grains",
@@ -405,8 +405,8 @@ const PRODUCTS = [
     basePrice: 60,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 60 },
-      { name: "5 kg", value: "5kg", price: 300 }
+      { name: "1 kg", value: "1kg", price: 60, mrp: 70 },
+      { name: "5 kg", value: "5kg", price: 300, mrp: 340 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Stone-Ground Barley (Jou) Grains",
@@ -426,8 +426,8 @@ const PRODUCTS = [
     basePrice: 60,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 60 },
-      { name: "5 kg", value: "5kg", price: 300 }
+      { name: "1 kg", value: "1kg", price: 60, mrp: 70 },
+      { name: "5 kg", value: "5kg", price: 300, mrp: 340 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Stone-Ground Sorghum (Jowar) Grains",
@@ -447,8 +447,8 @@ const PRODUCTS = [
     basePrice: 90,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 90 },
-      { name: "5 kg", value: "5kg", price: 450 }
+      { name: "1 kg", value: "1kg", price: 90, mrp: 100 },
+      { name: "5 kg", value: "5kg", price: 450, mrp: 490 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Stone-Ground Finger Millet (Ragi) Grains",
@@ -468,7 +468,7 @@ const PRODUCTS = [
     basePrice: 150,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 150 }
+      { name: "1 kg", value: "1kg", price: 150, mrp: 175 }
     ],
     image: "assets/wheat_atta.jpg",
     ingredients: "100% Pure Milled Oat Groats Grains",
@@ -488,8 +488,8 @@ const PRODUCTS = [
     basePrice: 130,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 130 },
-      { name: "5 kg", value: "5kg", price: 650 }
+      { name: "1 kg", value: "1kg", price: 130, mrp: 155 },
+      { name: "5 kg", value: "5kg", price: 650, mrp: 740 }
     ],
     image: "assets/hero_banner.jpg",
     ingredients: "100% Pure Aged Long-Grain Basmati Rice Grains",
@@ -509,7 +509,7 @@ const PRODUCTS = [
     basePrice: 160,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 160 }
+      { name: "1 kg", value: "1kg", price: 160, mrp: 185 }
     ],
     image: "assets/hero_banner.jpg",
     ingredients: "100% Organic Green Gram Grains",
@@ -531,8 +531,8 @@ const PRODUCTS = [
     basePrice: 360,
     unit: "L",
     sizes: [
-      { name: "1 Liter", value: "1L", price: 360 },
-      { name: "5 Liters (Value Pack)", value: "5L", price: 1750 }
+      { name: "1 Liter", value: "1L", price: 360, mrp: 420 },
+      { name: "5 Liters (Value Pack)", value: "5L", price: 1750, mrp: 2000 }
     ],
     image: "assets/mustard_oil.jpg",
     badge: "Bestseller",
@@ -555,8 +555,8 @@ const PRODUCTS = [
     basePrice: 260,
     unit: "L",
     sizes: [
-      { name: "1 Liter", value: "1L", price: 260 },
-      { name: "5 Liters (Value Pack)", value: "5L", price: 1250 }
+      { name: "1 Liter", value: "1L", price: 260, mrp: 310 },
+      { name: "5 Liters (Value Pack)", value: "5L", price: 1250, mrp: 1500 }
     ],
     image: "assets/mustard_oil.jpg",
     ingredients: "100% Cold-Pressed Black Mustard Seeds",
@@ -576,8 +576,8 @@ const PRODUCTS = [
     basePrice: 230,
     unit: "L",
     sizes: [
-      { name: "1 Liter", value: "1L", price: 230 },
-      { name: "5 Liters (Value Pack)", value: "5L", price: 1120 }
+      { name: "1 Liter", value: "1L", price: 230, mrp: 275 },
+      { name: "5 Liters (Value Pack)", value: "5L", price: 1120, mrp: 1300 }
     ],
     image: "assets/groundnut_oil.jpg",
     badge: "Newly Launched",
@@ -601,9 +601,9 @@ const PRODUCTS = [
     basePrice: 40,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 40 },
-      { name: "10 kg", value: "10kg", price: 400 },
-      { name: "50 kg (Bulk)", value: "50kg", price: 1950 }
+      { name: "1 kg", value: "1kg", price: 40, mrp: 40 },
+      { name: "10 kg", value: "10kg", price: 400, mrp: 400 },
+      { name: "50 kg (Bulk)", value: "50kg", price: 1950, mrp: 1950 }
     ],
     image: "assets/hero_banner.jpg",
     badge: "Mustard Oil Cake",
@@ -617,9 +617,9 @@ const PRODUCTS = [
     basePrice: 40,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 40 },
-      { name: "10 kg", value: "10kg", price: 400 },
-      { name: "50 kg (Bulk)", value: "50kg", price: 1950 }
+      { name: "1 kg", value: "1kg", price: 40, mrp: 40 },
+      { name: "10 kg", value: "10kg", price: 400, mrp: 400 },
+      { name: "50 kg (Bulk)", value: "50kg", price: 1950, mrp: 1950 }
     ],
     image: "assets/hero_banner.jpg",
     badge: "Mustard Oil Cake",
@@ -633,7 +633,7 @@ const PRODUCTS = [
     basePrice: 150,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 150 }
+      { name: "1 kg", value: "1kg", price: 150, mrp: 170 }
     ],
     image: "assets/hero_banner.jpg",
     ingredients: "100% Pure Fenugreek (Methi) Seeds Grains"
@@ -646,8 +646,8 @@ const PRODUCTS = [
     basePrice: 90,
     unit: "kg",
     sizes: [
-      { name: "1 kg", value: "1kg", price: 90 },
-      { name: "5 kg", value: "5kg", price: 450 }
+      { name: "1 kg", value: "1kg", price: 90, mrp: 105 },
+      { name: "5 kg", value: "5kg", price: 450, mrp: 500 }
     ],
     image: "assets/hero_banner.jpg",
     ingredients: "100% Pure Dried Green Field Peas (Ghat) Grains"
@@ -689,17 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const searchInput = document.getElementById('search-input');
   const searchClear = document.getElementById('search-clear');
-
-  // Modal Selectors
-  const modalOverlay = document.getElementById('product-modal-overlay');
-  const modalClose = document.getElementById('modal-close');
-  const modalImage = document.getElementById('modal-image');
-  const modalCategory = document.getElementById('modal-category');
-  const modalTitle = document.getElementById('modal-title');
-  const modalDescription = document.getElementById('modal-description');
-  const modalPaneDetails = document.getElementById('pane-details');
-  const modalPaneNutrition = document.getElementById('pane-nutrition');
-  const modalCheckoutSection = document.querySelector('.modal-checkout-section');
 
   // --- LOCAL STORAGE FUNCTIONS ---
   const loadCart = () => {
@@ -877,26 +866,29 @@ document.addEventListener('DOMContentLoaded', () => {
     statNumbers.forEach(num => observer.observe(num));
   }
 
-  // --- PRODUCT CARD HTML GENERATOR ---
+  // --- PRODUCT CARD HTML GENERATOR (UPDATED TO TAKE TO PRODUCT.HTML) ---
   const createProductCardHTML = (prod) => {
-    const defaultOption = prod.sizes[1] || prod.sizes[0];
+    const defaultOption = prod.sizes[0];
     const optionsHtml = prod.sizes.map(opt => {
-      const isSelected = opt.value === defaultOption.value ? 'selected' : '';
-      return `<option value="${opt.value}" data-price="${opt.price}" ${isSelected}>${opt.name} - ₹${opt.price}</option>`;
+      return `<option value="${opt.value}" data-price="${opt.price}" data-mrp="${opt.mrp || opt.price}">${opt.name} - ₹${opt.price}</option>`;
     }).join('');
 
     const badgeHtml = prod.badge ? `<span class="product-tag badge-${prod.badgeType || 'accent'} font-alt">${prod.badge}</span>` : '';
     const bubbleHtml = prod.infoBubble ? `<div class="info-bubble">${prod.infoBubble}</div>` : '';
 
     return `
-      <div class="product-image-container">
-        <img src="${prod.image}" alt="${prod.name}" class="product-image" loading="lazy">
-        ${badgeHtml}
-        ${bubbleHtml}
-      </div>
+      <a href="product.html?id=${prod.id}" class="product-card-media-link">
+        <div class="product-image-container">
+          <img src="${prod.image}" alt="${prod.name}" class="product-image" loading="lazy">
+          ${badgeHtml}
+          ${bubbleHtml}
+        </div>
+      </a>
       <div class="product-details">
         <div class="product-card-header">
-          <h3 class="product-title open-modal-trigger" data-product-id="${prod.id}">${prod.name}</h3>
+          <a href="product.html?id=${prod.id}" class="product-title-link">
+            <h3 class="product-title">${prod.name}</h3>
+          </a>
           <div class="product-rating"><i class="fa-solid fa-star"></i> 5.0</div>
         </div>
         <p class="product-description">${prod.description}</p>
@@ -909,12 +901,15 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div class="product-footer">
-          <div class="product-price">₹<span class="price-val" id="price-${prod.id}">${defaultOption.price}</span></div>
+          <div class="product-price">
+            ${defaultOption.mrp > defaultOption.price ? `<span class="product-mrp-strike" style="text-decoration: line-through; color: var(--color-text-muted); font-size: 0.9rem; margin-right: 8px;">₹${defaultOption.mrp}</span>` : ''}
+            ₹<span class="price-val" id="price-${prod.id}">${defaultOption.price}</span>
+          </div>
           <button class="btn btn-sm btn-primary add-to-cart-btn" 
                   data-id="${prod.id}" 
                   data-name="${prod.name}" 
                   data-image="${prod.image}">
-            <i class="fa-solid fa-cart-plus"></i> Add to Cart
+            <i class="fa-solid fa-cart-plus"></i> Add
           </button>
         </div>
       </div>
@@ -977,11 +972,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const select = e.target;
         const selectedOption = select.options[select.selectedIndex];
         const newPrice = selectedOption.getAttribute('data-price');
+        const newMrp = selectedOption.getAttribute('data-mrp');
         const productId = select.getAttribute('data-product-id');
         
         const priceDisplay = document.getElementById(`price-${productId}`);
         if (priceDisplay) {
           priceDisplay.textContent = newPrice;
+        }
+
+        // Dynamically update strike price in card if present
+        const footerPriceBlock = select.closest('.product-details').querySelector('.product-price');
+        if (footerPriceBlock) {
+          const strikePrice = footerPriceBlock.querySelector('.product-mrp-strike');
+          if (parseInt(newMrp) > parseInt(newPrice)) {
+            if (strikePrice) {
+              strikePrice.textContent = `₹${newMrp}`;
+              strikePrice.style.display = 'inline';
+            } else {
+              footerPriceBlock.insertAdjacentHTML('afterbegin', `<span class="product-mrp-strike" style="text-decoration: line-through; color: var(--color-text-muted); font-size: 0.9rem; margin-right: 8px;">₹${newMrp}</span>`);
+            }
+          } else if (strikePrice) {
+            strikePrice.style.display = 'none';
+          }
         }
       }
     });
@@ -1002,25 +1014,21 @@ document.addEventListener('DOMContentLoaded', () => {
         addToCart(id, name, image, size, price, btn);
       }
     });
-
-    // 3. Open detailed product specs modal
-    activeGridContainer.addEventListener('click', (e) => {
-      const trigger = e.target.closest('.open-modal-trigger');
-      if (trigger) {
-        const id = trigger.getAttribute('data-product-id');
-        const prod = PRODUCTS.find(p => p.id === id);
-        if (prod) openProductModal(prod);
-      }
-    });
   }
 
   // --- ADD TO CART UTILITY ---
-  const addToCart = (id, name, image, size, price, btnElement = null) => {
+  const addToCart = (id, name, image, size, price, qtyVal = 1, btnElement = null) => {
+    // Overloaded to handle quantity values directly
+    if (typeof qtyVal === 'object' && qtyVal !== null) {
+      btnElement = qtyVal;
+      qtyVal = 1;
+    }
+
     const existingItem = cart.find(item => item.id === id && item.size === size);
     if (existingItem) {
-      existingItem.quantity += 1;
+      existingItem.quantity += qtyVal;
     } else {
-      cart.push({ id, name, image, size, price, quantity: 1 });
+      cart.push({ id, name, image, size, price, quantity: qtyVal });
     }
 
     saveCart();
@@ -1041,138 +1049,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => toggleCartDrawer(true), 400);
   };
-
-  // --- PRODUCT SPECS MODAL ACTIONS ---
-  const openProductModal = (prod) => {
-    modalImage.src = prod.image;
-    modalImage.alt = prod.name;
-    
-    // Set text details
-    modalCategory.textContent = prod.category === 'atta-specialty' ? 'Goal-Based Atta' : 
-                               (prod.category === 'atta-grains' ? 'Chakki Flours & Grains' : 
-                               (prod.category === 'oils' ? 'Cold-Pressed Oils' : 'Khal & Seeds'));
-    modalTitle.textContent = prod.name;
-    modalDescription.textContent = prod.description;
-
-    // Build ingredients tab pane
-    modalPaneDetails.innerHTML = `
-      <p style="font-size: 0.95rem; margin-bottom: 12px; color: var(--color-primary); font-weight: 600;">
-        <i class="fa-solid fa-leaf"></i> Pure Ingredients:
-      </p>
-      <p style="margin-bottom: 16px;">${prod.ingredients || '100% natural, farm-sourced raw ingredients without refining or chemical washing.'}</p>
-      ${prod.benefits ? `
-      <p style="font-size: 0.95rem; margin-bottom: 12px; color: var(--color-primary); font-weight: 600;">
-        <i class="fa-solid fa-shield-heart"></i> Daily Health Benefits:
-      </p>
-      <p>${prod.benefits}</p>` : ''}
-    `;
-
-    // Build nutrition tab pane
-    if (prod.nutrition) {
-      let nutrItems = '';
-      for (const [key, value] of Object.entries(prod.nutrition)) {
-        const formattedKey = key.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
-        nutrItems += `
-          <div class="nutrition-item">
-            <span class="nutrition-label">${formattedKey}:</span>
-            <span class="nutrition-val">${value}</span>
-          </div>
-        `;
-      }
-      modalPaneNutrition.innerHTML = `
-        <p style="margin-bottom: 16px; font-weight: 600; color: var(--color-primary);">Nutritional Facts per 100g serving:</p>
-        <div class="nutrition-grid">${nutrItems}</div>
-      `;
-    } else {
-      modalPaneNutrition.innerHTML = `
-        <p>Nutritional charts are currently being certified. Like all raw staples, this product maintains its native high values of plant proteins, complex fiber, minerals, and healthy fats.</p>
-      `;
-    }
-
-    // Modal action buttons
-    // Generate weight selectors block
-    const defaultOption = prod.sizes[1] || prod.sizes[0];
-    const optionsHtml = prod.sizes.map(opt => {
-      const isSelected = opt.value === defaultOption.value ? 'selected' : '';
-      return `<option value="${opt.value}" data-price="${opt.price}" ${isSelected}>${opt.name} - ₹${opt.price}</option>`;
-    }).join('');
-
-    const modalActionSection = modalCheckoutSection.querySelector('.modal-actions') || document.createElement('div');
-    modalActionSection.className = 'modal-actions';
-    modalActionSection.style.display = 'flex';
-    modalActionSection.style.gap = '16px';
-    modalActionSection.style.marginTop = '16px';
-    modalActionSection.innerHTML = `
-      <select id="modal-size-select" class="product-size-select" style="max-width: 180px;">
-        ${optionsHtml}
-      </select>
-      <button class="btn btn-primary" id="modal-add-to-cart-btn" style="flex-grow: 1;">
-        <i class="fa-solid fa-cart-plus"></i> Add to Basket
-      </button>
-    `;
-    
-    // Insert selection tools in checkout block
-    if (!modalCheckoutSection.querySelector('.modal-actions')) {
-      modalCheckoutSection.insertBefore(modalActionSection, modalCheckoutSection.firstChild);
-    }
-
-    // Attach listeners inside modal actions
-    const modalSelect = document.getElementById('modal-size-select');
-    const modalAddBtn = document.getElementById('modal-add-to-cart-btn');
-
-    modalAddBtn.addEventListener('click', () => {
-      const selectedOption = modalSelect.options[modalSelect.selectedIndex];
-      const size = selectedOption.value;
-      const price = parseInt(selectedOption.getAttribute('data-price'));
-      
-      addToCart(prod.id, prod.name, prod.image, size, price, modalAddBtn);
-      
-      // Close modal popup
-      setTimeout(() => {
-        closeProductModal();
-      }, 800);
-    });
-
-    // Reset default active specification tab
-    document.querySelectorAll('.modal-tab').forEach(tab => {
-      tab.classList.toggle('active', tab.getAttribute('data-pane') === 'pane-details');
-    });
-    document.querySelectorAll('.modal-pane').forEach(pane => {
-      pane.classList.toggle('active', pane.id === 'pane-details');
-    });
-
-    // Open overlay
-    modalOverlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeProductModal = () => {
-    modalOverlay.classList.remove('open');
-    document.body.style.overflow = '';
-  };
-
-  if (modalClose) {
-    modalClose.addEventListener('click', closeProductModal);
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) closeProductModal();
-    });
-  }
-
-  // Specifications tabs listeners inside details modal
-  const modalTabsContainer = document.querySelector('.modal-tabs');
-  if (modalTabsContainer) {
-    modalTabsContainer.addEventListener('click', (e) => {
-      const tab = e.target.closest('.modal-tab');
-      if (tab) {
-        document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.modal-pane').forEach(p => p.classList.remove('active'));
-
-        tab.classList.add('active');
-        const paneId = tab.getAttribute('data-pane');
-        document.getElementById(paneId).classList.add('active');
-      }
-    });
-  }
 
   // --- SEARCH ENGINE INTERFACE ---
   if (searchInput) {
@@ -1228,9 +1104,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  cartToggle.addEventListener('click', () => toggleCartDrawer(true));
-  cartClose.addEventListener('click', () => toggleCartDrawer(false));
-  cartOverlay.addEventListener('click', () => toggleCartDrawer(false));
+  if (cartToggle) cartToggle.addEventListener('click', () => toggleCartDrawer(true));
+  if (cartClose) cartClose.addEventListener('click', () => toggleCartDrawer(false));
+  if (cartOverlay) cartOverlay.addEventListener('click', () => toggleCartDrawer(false));
   
   document.body.addEventListener('click', (e) => {
     if (e.target.classList.contains('close-cart-link')) {
@@ -1241,73 +1117,77 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- CART RENDER & QUANTITIES ---
   const updateCartUI = () => {
     const totalItemsCount = cart.reduce((total, item) => total + item.quantity, 0);
-    cartCount.textContent = totalItemsCount;
+    if (cartCount) cartCount.textContent = totalItemsCount;
     
     if (cart.length === 0) {
-      emptyCartState.style.display = 'flex';
-      cartItemsList.style.display = 'none';
-      cartFooter.style.display = 'none';
+      if (emptyCartState) emptyCartState.style.display = 'flex';
+      if (cartItemsList) cartItemsList.style.display = 'none';
+      if (cartFooter) cartFooter.style.display = 'none';
     } else {
-      emptyCartState.style.display = 'none';
-      cartItemsList.style.display = 'flex';
-      cartFooter.style.display = 'block';
+      if (emptyCartState) emptyCartState.style.display = 'none';
+      if (cartItemsList) cartItemsList.style.display = 'flex';
+      if (cartFooter) cartFooter.style.display = 'block';
     }
 
-    cartItemsList.innerHTML = '';
-    let subtotalValue = 0;
+    if (cartItemsList) {
+      cartItemsList.innerHTML = '';
+      let subtotalValue = 0;
 
-    cart.forEach(item => {
-      const itemSubtotal = item.price * item.quantity;
-      subtotalValue += itemSubtotal;
+      cart.forEach(item => {
+        const itemSubtotal = item.price * item.quantity;
+        subtotalValue += itemSubtotal;
 
-      const cartItemEl = document.createElement('li');
-      cartItemEl.className = 'cart-item';
-      cartItemEl.innerHTML = `
-        <img src="${item.image}" alt="${item.name}" class="cart-item-image">
-        <div class="cart-item-details">
-          <h4 class="cart-item-title">${item.name}</h4>
-          <span class="cart-item-meta">Size: ${item.size} • ₹${item.price} each</span>
-          <div class="cart-item-actions">
-            <div class="quantity-control">
-              <button class="quantity-btn decrease-qty" data-id="${item.id}" data-size="${item.size}">
-                <i class="fa-solid fa-minus"></i>
-              </button>
-              <span class="quantity-val">${item.quantity}</span>
-              <button class="quantity-btn increase-qty" data-id="${item.id}" data-size="${item.size}">
-                <i class="fa-solid fa-plus"></i>
-              </button>
+        const cartItemEl = document.createElement('li');
+        cartItemEl.className = 'cart-item';
+        cartItemEl.innerHTML = `
+          <img src="${item.image}" alt="${item.name}" class="cart-item-image">
+          <div class="cart-item-details">
+            <h4 class="cart-item-title">${item.name}</h4>
+            <span class="cart-item-meta">Size: ${item.size} • ₹${item.price} each</span>
+            <div class="cart-item-actions">
+              <div class="quantity-control">
+                <button class="quantity-btn decrease-qty" data-id="${item.id}" data-size="${item.size}">
+                  <i class="fa-solid fa-minus"></i>
+                </button>
+                <span class="quantity-val">${item.quantity}</span>
+                <button class="quantity-btn increase-qty" data-id="${item.id}" data-size="${item.size}">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+              <span class="cart-item-price">₹${itemSubtotal}</span>
             </div>
-            <span class="cart-item-price">₹${itemSubtotal}</span>
           </div>
-        </div>
-        <button class="remove-item-btn" data-id="${item.id}" data-size="${item.size}" aria-label="Remove item">
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
-      `;
-      cartItemsList.appendChild(cartItemEl);
-    });
+          <button class="remove-item-btn" data-id="${item.id}" data-size="${item.size}" aria-label="Remove item">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        `;
+        cartItemsList.appendChild(cartItemEl);
+      });
 
-    // Apply Coupon Code reductions if set
-    let finalSubtotal = subtotalValue;
-    if (discountPercentage > 0) {
-      const discount = Math.floor(subtotalValue * (discountPercentage / 100));
-      finalSubtotal = subtotalValue - discount;
-    }
+      // Apply Coupon Code reductions if set
+      let finalSubtotal = subtotalValue;
+      if (discountPercentage > 0) {
+        const discount = Math.floor(subtotalValue * (discountPercentage / 100));
+        finalSubtotal = subtotalValue - discount;
+      }
 
-    cartSubtotal.textContent = `₹${finalSubtotal}`;
+      if (cartSubtotal) cartSubtotal.textContent = `₹${finalSubtotal}`;
 
-    // Update Free Delivery Progress Bar (Threshold: ₹500)
-    const threshold = 500;
-    const progressPercent = Math.min((subtotalValue / threshold) * 100, 100);
-    cartProgressFill.style.width = `${progressPercent}%`;
-    
-    if (subtotalValue >= threshold) {
-      cartProgressText.innerHTML = `<i class="fa-solid fa-circle-check"></i> 🎉 Congrats! You've unlocked **Free Delivery**!`;
-      cartProgressFill.style.backgroundColor = '#214E34'; // Forest green
-    } else {
-      const gap = threshold - subtotalValue;
-      cartProgressText.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Add **₹${gap}** more for **Free Delivery**`;
-      cartProgressFill.style.backgroundColor = ''; // Reverts to default CSS Golden Accent
+      // Update Free Delivery Progress Bar (Threshold: ₹500)
+      const threshold = 500;
+      const progressPercent = Math.min((subtotalValue / threshold) * 100, 100);
+      if (cartProgressFill) cartProgressFill.style.width = `${progressPercent}%`;
+      
+      if (cartProgressText) {
+        if (subtotalValue >= threshold) {
+          cartProgressText.innerHTML = `<i class="fa-solid fa-circle-check"></i> 🎉 Congrats! You've unlocked **Free Delivery**!`;
+          if (cartProgressFill) cartProgressFill.style.backgroundColor = '#214E34'; // Forest green
+        } else {
+          const gap = threshold - subtotalValue;
+          cartProgressText.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Add **₹${gap}** more for **Free Delivery**`;
+          if (cartProgressFill) cartProgressFill.style.backgroundColor = ''; // Reverts to default CSS Golden Accent
+        }
+      }
     }
   };
 
@@ -1344,67 +1224,530 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
   };
 
-  cartItemsList.addEventListener('click', (e) => {
-    const increaseBtn = e.target.closest('.increase-qty');
-    const decreaseBtn = e.target.closest('.decrease-qty');
-    const removeBtn = e.target.closest('.remove-item-btn');
-    
-    if (increaseBtn) {
-      const id = increaseBtn.getAttribute('data-id');
-      const size = increaseBtn.getAttribute('data-size');
-      adjustQuantity(id, size, 1);
-    }
-    
-    if (decreaseBtn) {
-      const id = decreaseBtn.getAttribute('data-id');
-      const size = decreaseBtn.getAttribute('data-size');
-      adjustQuantity(id, size, -1);
-    }
-    
-    if (removeBtn) {
-      const id = removeBtn.getAttribute('data-id');
-      const size = removeBtn.getAttribute('data-size');
-      removeItem(id, size);
-    }
-  });
+  if (cartItemsList) {
+    cartItemsList.addEventListener('click', (e) => {
+      const increaseBtn = e.target.closest('.increase-qty');
+      const decreaseBtn = e.target.closest('.decrease-qty');
+      const removeBtn = e.target.closest('.remove-item-btn');
+      
+      if (increaseBtn) {
+        const id = increaseBtn.getAttribute('data-id');
+        const size = increaseBtn.getAttribute('data-size');
+        adjustQuantity(id, size, 1);
+      }
+      
+      if (decreaseBtn) {
+        const id = decreaseBtn.getAttribute('data-id');
+        const size = decreaseBtn.getAttribute('data-size');
+        adjustQuantity(id, size, -1);
+      }
+      
+      if (removeBtn) {
+        const id = removeBtn.getAttribute('data-id');
+        const size = removeBtn.getAttribute('data-size');
+        removeItem(id, size);
+      }
+    });
+  }
 
   // --- WHATSAPP CHECKOUT INTEGRATION ---
-  checkoutBtn.addEventListener('click', () => {
-    if (cart.length === 0) return;
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener('click', () => {
+      if (cart.length === 0) return;
 
-    const phoneNumber = "918595077263"; // Direct business WhatsApp
-    let message = `*Mitti Fresh Order Inquiry*\n`;
-    message += `------------------------------------\n`;
-    
-    let subtotalValue = 0;
-    cart.forEach((item, index) => {
-      const itemSubtotal = item.price * item.quantity;
-      subtotalValue += itemSubtotal;
-      message += `${index + 1}. *${item.name}* (${item.size})\n`;
-      message += `   Qty: ${item.quantity} x ₹${item.price} = *₹${itemSubtotal}*\n`;
+      const phoneNumber = "918595077263"; // Direct business WhatsApp
+      let message = `*Mitti Fresh Order Inquiry*\n`;
+      message += `------------------------------------\n`;
+      
+      let subtotalValue = 0;
+      cart.forEach((item, index) => {
+        const itemSubtotal = item.price * item.quantity;
+        subtotalValue += itemSubtotal;
+        message += `${index + 1}. *${item.name}* (${item.size})\n`;
+        message += `   Qty: ${item.quantity} x ₹${item.price} = *₹${itemSubtotal}*\n`;
+      });
+
+      message += `------------------------------------\n`;
+      
+      let finalSubtotal = subtotalValue;
+      if (discountPercentage > 0) {
+        const discount = Math.floor(subtotalValue * (discountPercentage / 100));
+        finalSubtotal = subtotalValue - discount;
+        message += `*Subtotal:* ₹${subtotalValue}\n`;
+        message += `*Coupon Code applied (PURE10):* -10% (-₹${discount})\n`;
+      }
+
+      const threshold = 500;
+      const shipping = subtotalValue >= threshold ? 'Free' : '₹50 (Coordinated via WhatsApp)';
+      message += `*Shipping:* ${shipping}\n`;
+      message += `*Total Order Value: ₹${finalSubtotal}*\n\n`;
+      message += `Please confirm availability and coordinate delivery/pick-up details for Dwarka Sector 28. Thank you!`;
+
+      const encodedText = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+
+      window.open(whatsappUrl, '_blank');
     });
+  }
 
-    message += `------------------------------------\n`;
-    
-    let finalSubtotal = subtotalValue;
-    if (discountPercentage > 0) {
-      const discount = Math.floor(subtotalValue * (discountPercentage / 100));
-      finalSubtotal = subtotalValue - discount;
-      message += `*Subtotal:* ₹${subtotalValue}\n`;
-      message += `*Coupon Code applied (PURE10):* -10% (-₹${discount})\n`;
+  // --- DEDICATED PRODUCT DETAILS PAGE RENDERER ---
+  const productDetailRoot = document.getElementById('product-detail-root');
+  if (productDetailRoot) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+    const prod = PRODUCTS.find(p => p.id === productId);
+
+    if (!prod) {
+      // Redirect to shop if product not found
+      productDetailRoot.innerHTML = `
+        <div class="no-results-state" style="text-align: center; padding: 100px 0;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; color: #E74C3C; margin-bottom: 16px;"></i>
+          <h3>Product Not Found</h3>
+          <p>The product you are looking for does not exist or has been removed.</p>
+          <a href="shop.html" class="btn btn-primary" style="margin-top: 20px;">Return to Shop</a>
+        </div>
+      `;
+    } else {
+      // Set page Title and Meta specifications
+      document.title = `${prod.name} — Mitti Fresh`;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', `${prod.description} Order fresh from Mitti Fresh Dwarka Sec 28, Delhi.`);
+      
+      const breadcrumbActive = document.getElementById('breadcrumb-active');
+      if (breadcrumbActive) breadcrumbActive.textContent = prod.name;
+
+      // Populate related products
+      const relatedProducts = PRODUCTS.filter(p => p.category === prod.category && p.id !== prod.id).slice(0, 4);
+      const backupRelated = PRODUCTS.filter(p => p.badgeType === 'bestseller' && p.id !== prod.id).slice(0, 4);
+      const selectedRelated = relatedProducts.length >= 2 ? relatedProducts : backupRelated;
+
+      let relatedHtml = '';
+      selectedRelated.forEach(rel => {
+        relatedHtml += `
+          <div class="product-card">
+            <a href="product.html?id=${rel.id}" class="product-card-media-link">
+              <div class="product-image-container">
+                <img src="${rel.image}" alt="${rel.name}" class="product-image" loading="lazy">
+              </div>
+            </a>
+            <div class="product-details">
+              <div class="product-card-header">
+                <a href="product.html?id=${rel.id}" class="product-title-link">
+                  <h3 class="product-title">${rel.name}</h3>
+                </a>
+              </div>
+              <p class="product-description" style="max-height: 40px; overflow: hidden;">${rel.description}</p>
+              <div class="product-footer" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(33, 78, 52, 0.05);">
+                <div class="product-price">₹${rel.sizes[0].price}</div>
+                <a href="product.html?id=${rel.id}" class="btn btn-sm btn-secondary">View Specs</a>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      // Construct nutrition facts rows
+      let nutrRows = '';
+      if (prod.nutrition) {
+        for (const [key, value] of Object.entries(prod.nutrition)) {
+          const formattedKey = key.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+          nutrRows += `
+            <tr>
+              <td class="bold-text">${formattedKey}</td>
+              <td>${value}</td>
+            </tr>
+          `;
+        }
+      } else {
+        nutrRows = `
+          <tr>
+            <td colspan="2">Nutritional facts are being certified. Retains all natural vitamins, complex dietary fiber, and healthy germ fats.</td>
+          </tr>
+        `;
+      }
+
+      // Check default size specs
+      let activeSizeIndex = 0;
+      let activeSize = prod.sizes[activeSizeIndex];
+      let activePrice = activeSize.price;
+      let activeMrp = activeSize.mrp || activePrice;
+      let savings = activeMrp - activePrice;
+      let savingsPercent = Math.round((savings / activeMrp) * 100);
+
+      // Render details page grid layout
+      productDetailRoot.innerHTML = `
+        <div class="product-detail-grid">
+          <!-- Left side: Images and Badges -->
+          <div class="product-gallery-section">
+            <div class="image-zoom-container" id="zoom-container">
+              <img src="${prod.image}" alt="${prod.name}" id="main-product-img">
+            </div>
+            
+            <div class="gallery-thumbnails">
+              <button class="gallery-thumbnail active" data-src="${prod.image}">
+                <img src="${prod.image}" alt="Primary view">
+              </button>
+              <button class="gallery-thumbnail" data-src="assets/grinding_live.jpg">
+                <img src="assets/grinding_live.jpg" alt="Milling closeup">
+              </button>
+              <button class="gallery-thumbnail" data-src="assets/hero_banner.jpg">
+                <img src="assets/hero_banner.jpg" alt="Grains sourcing">
+              </button>
+            </div>
+
+            <div class="product-badges-row">
+              <span class="product-tag badge-bestseller font-alt">✓ Freshly Milled</span>
+              <span class="product-tag badge-green font-alt">✓ Stone Chakki</span>
+              <span class="product-tag badge-accent font-alt">✓ Cold Pressed</span>
+              <span class="product-tag badge-new font-alt">✓ 100% Raw Pure</span>
+            </div>
+          </div>
+
+          <!-- Right side: Specifications metadata, Pricing, Purchase actions -->
+          <div class="product-meta-content">
+            <span class="product-meta-category">${prod.category === 'atta-specialty' ? 'Specialty Atta Blend' : 
+                                                 (prod.category === 'atta-grains' ? 'Chakki Flours & Grains' : 
+                                                 (prod.category === 'oils' ? 'Cold-Pressed Oil' : 'Cattle Feed & Extras'))}</span>
+            <h1 class="product-meta-title">${prod.name}</h1>
+            
+            <div class="product-meta-rating">
+              <div class="stars-row"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+              <span>5.0 (Google verified shop ratings)</span>
+            </div>
+
+            <p class="product-meta-desc">${prod.description}</p>
+
+            <!-- Interactive Pricing Section -->
+            <div class="product-pricing-wrapper">
+              <div class="pricing-block">
+                ${savings > 0 ? `<span class="mrp-strike-price" id="detail-mrp">₹${activeMrp}</span>` : ''}
+                <span class="offer-price-bold" id="detail-price">₹${activePrice}</span>
+              </div>
+              <span class="savings-badge-alert" id="detail-savings" style="${savings > 0 ? '' : 'display: none;'}">You Save ₹${savings} (${savingsPercent}%)</span>
+            </div>
+
+            <!-- Variant Selector -->
+            <div class="variants-selector-wrapper">
+              <h4 class="variants-title">Select Pack Size Variant:</h4>
+              <div class="variants-grid" id="variant-chips-container">
+                ${prod.sizes.map((size, index) => `
+                  <button class="variant-chip ${index === 0 ? 'active' : ''}" 
+                          data-index="${index}" 
+                          data-value="${size.value}" 
+                          data-price="${size.price}" 
+                          data-mrp="${size.mrp || size.price}">
+                    ${size.name}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Quantity Selector & Action buttons -->
+            <div class="quantity-selection-row">
+              <h4 class="variants-title" style="margin-bottom: 0;">Quantity:</h4>
+              <div class="quantity-adjuster">
+                <button class="qty-btn" id="qty-dec"><i class="fa-solid fa-minus"></i></button>
+                <span class="qty-val" id="qty-current-val">1</span>
+                <button class="qty-btn" id="qty-inc"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+
+            <!-- CTA Purchase Action Groups -->
+            <div class="purchase-buttons-group">
+              <button class="btn btn-secondary btn-large" id="buy-now-btn" style="background-color: var(--color-accent); border-color: var(--color-accent); color: var(--color-bg-white);">Buy Now</button>
+              <button class="btn btn-primary btn-large" id="add-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add to Basket</button>
+              <button class="btn btn-primary btn-large whatsapp-purchase-btn" id="whatsapp-purchase-btn">
+                <i class="fa-brands fa-whatsapp"></i> Order on WhatsApp
+              </button>
+            </div>
+
+            <!-- Inline Trust badges -->
+            <div class="trust-badges-grid">
+              <div class="trust-badge-item"><i class="fa-solid fa-wheat-awn"></i> ✓ Fresh Daily</div>
+              <div class="trust-badge-item"><i class="fa-solid fa-shield-halved"></i> ✓ No Chemicals</div>
+              <div class="trust-badge-item"><i class="fa-solid fa-mortar-pestle"></i> ✓ Stone Ground</div>
+              <div class="trust-badge-item"><i class="fa-solid fa-droplet"></i> ✓ Cold Pressed</div>
+              <div class="trust-badge-item"><i class="fa-solid fa-box-open"></i> ✓ Hygienic Pack</div>
+              <div class="trust-badge-item"><i class="fa-solid fa-truck-fast"></i> ✓ Fast Delivery</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Specifications Tab Sections -->
+        <div class="details-tabs-section">
+          <div class="details-tab-nav">
+            <button class="tab-nav-btn active" data-pane="tab-pane-desc">Description</button>
+            <button class="tab-nav-btn" data-pane="tab-pane-ingred">Ingredients</button>
+            <button class="tab-nav-btn" data-pane="tab-pane-nutrition">Nutrition facts</button>
+            <button class="tab-nav-btn" data-pane="tab-pane-benefits">Health Benefits</button>
+            <button class="tab-nav-btn" data-pane="tab-pane-storage">Storage & FAQs</button>
+          </div>
+          
+          <div class="tab-pane active" id="tab-pane-desc">
+            <p>${prod.description}</p>
+            <p style="margin-top: 16px;">Our stone-ground chakki flour is processed at slow speeds to ensure that grinding temperatures remain cool, locking in all vital wheat germ, healthy plant fats, fibers, and minerals. Similarly, cold-pressed oils are slowly wood-extracted beneath 45°C without toxic solvents, preserving their raw aroma, antioxidants, and nutritional structure.</p>
+          </div>
+          
+          <div class="tab-pane" id="tab-pane-ingred">
+            <p style="font-weight: 600; color: var(--color-primary); margin-bottom: 8px;">100% Purity Guarantee:</p>
+            <p>${prod.ingredients || '100% natural, single-source raw farm ingredients without any processing chemicals, bleaching, or additives.'}</p>
+          </div>
+          
+          <div class="tab-pane" id="tab-pane-nutrition">
+            <table class="nutrition-table-facts">
+              <thead>
+                <tr>
+                  <th>Nutritional Values</th>
+                  <th>Serving per 100g</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${nutrRows}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="tab-pane" id="tab-pane-benefits">
+            <p>${prod.benefits || 'Promotes daily energy levels, supports gut digestion, rich in essential dietary fibers, and provides heart-healthy micro-nutrients.'}</p>
+            <p style="margin-top: 16px;">By switching away from industrially refined packaged brands, you eliminate chemical bleaches, preservatives, and high-heat processing from your diet, allowing your family to absorb authentic, raw nutrition.</p>
+          </div>
+          
+          <div class="tab-pane" id="tab-pane-storage">
+            <p><strong>Storage Guidelines:</strong> Since our staples have zero artificial preservatives, we recommend storing them inside cool, dry areas in airtight containers. consume flour blends within 30-45 days of milling, and wood-pressed oils within 6 months of extraction.</p>
+            <p style="margin-top: 16px;"><strong>Delivery Areas:</strong> We deliver within 12-24 hours across Dwarka Sector 28 and surrounding sectors in Delhi NCR. Pick-up options are available directly from our Dwarka shop location.</p>
+          </div>
+        </div>
+
+        <!-- Why Choose Mitti Fresh Info cards -->
+        <section class="why-choose-section" style="padding: 40px 0; background-color: var(--color-bg-light); border-radius: var(--radius-premium); margin-bottom: 60px;">
+          <div class="section-header">
+            <span class="section-subtitle">Purity Standard</span>
+            <h2 class="section-title" style="font-size: 2.2rem;">Mitti Fresh vs Ordinary Store Brands</h2>
+          </div>
+          <div class="why-grid" style="padding: 0 32px; gap: 24px;">
+            <div class="why-card" style="background-color: var(--color-bg-white);">
+              <div class="why-icon-wrap"><i class="fa-solid fa-wheat-awn"></i></div>
+              <h3>Stone Chakki Ground</h3>
+              <p>Milled at slow speeds keeping grains cool. Preserves natural wheat germ, bran, and healthy dietary fibers.</p>
+            </div>
+            <div class="why-card" style="background-color: var(--color-bg-white);">
+              <div class="why-icon-wrap"><i class="fa-solid fa-droplet"></i></div>
+              <h3>Slow Wooden Kohlu</h3>
+              <p>Oils extracted under 45°C without solvent extraction chemicals. Intact aroma, color, and omega fatty acids.</p>
+            </div>
+            <div class="why-card" style="background-color: var(--color-bg-white);">
+              <div class="why-icon-wrap"><i class="fa-solid fa-eye"></i></div>
+              <h3>100% Transparency</h3>
+              <p>Watch us mill your grains and press your oils live right inside our physical Dwarka store, or request video updates.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Customer reviews block -->
+        <section class="reviews-section" style="padding: 40px 0; border-top: 1px solid rgba(33, 78, 52, 0.08); margin-bottom: 60px;">
+          <div class="section-header">
+            <span class="section-subtitle">Testimonials</span>
+            <h2 class="section-title" style="font-size: 2.2rem;">Customer Reviews</h2>
+          </div>
+          
+          <div class="photo-reviews-grid">
+            <div class="photo-review-card">
+              <img src="assets/grinding_live.jpg" alt="Customer review photo: Fresh Atta">
+            </div>
+            <div class="photo-review-card">
+              <img src="assets/mustard_oil.jpg" alt="Customer review photo: Mustard Oil">
+            </div>
+            <div class="photo-review-card">
+              <img src="assets/multigrain_atta.jpg" alt="Customer review photo: Atta Pack">
+            </div>
+            <div class="photo-review-card">
+              <img src="assets/groundnut_oil.jpg" alt="Customer review photo: Oil bottles">
+            </div>
+          </div>
+
+          <div class="reviews-slider" style="display: flex; flex-direction: column; gap: 24px; transform: none; width: 100%;">
+            <div class="review-slide" style="width: 100%; border: 1px solid rgba(33, 78, 52, 0.08); border-radius: var(--radius-premium); padding: 32px; background-color: var(--color-bg-white); box-shadow: var(--shadow-lux-sm);">
+              <div class="review-stars" style="margin-bottom: 12px;"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+              <p class="review-text" style="font-size: 1.05rem; line-height: 1.6; color: var(--color-text-muted);">"Highly recommend Mitti Fresh! The Sharbhati wheat flour is extremely fresh. The rotis are sweet and remain soft even hours after baking. Knowing it has no chemicals gives me absolute peace of mind."</p>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px;">
+                <div class="review-author" style="font-weight: 700; color: var(--color-primary);"><i class="fa-solid fa-circle-check"></i> Sunita Lochav</div>
+                <span class="review-verified-badge"><i class="fa-solid fa-shield-check"></i> Google Verified Buyer</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Related products section -->
+        <section class="related-section" style="border-top: 1px solid rgba(33, 78, 52, 0.08); padding-top: 48px;">
+          <h3 class="font-alt" style="font-size: 1.8rem; color: var(--color-primary); margin-bottom: 32px;">You May Also Like</h3>
+          <div class="product-grid" style="grid-template-columns: repeat(4, 1fr); gap: 24px;">
+            ${relatedHtml}
+          </div>
+        </section>
+      `;
+
+      // Set sticky purchase bar details
+      const stickyBar = document.getElementById('sticky-purchase-bar');
+      const stickyTitle = document.getElementById('sticky-title');
+      const stickyPrice = document.getElementById('sticky-price');
+      const stickyBuyNow = document.getElementById('sticky-buy-now');
+      const stickyAddCart = document.getElementById('sticky-add-cart');
+
+      if (stickyTitle) stickyTitle.textContent = prod.name;
+      if (stickyPrice) stickyPrice.textContent = `₹${activePrice}`;
+
+      // Variant Selector Click Handlers
+      const variantChipsContainer = document.getElementById('variant-chips-container');
+      if (variantChipsContainer) {
+        variantChipsContainer.addEventListener('click', (e) => {
+          const chip = e.target.closest('.variant-chip');
+          if (chip) {
+            document.querySelectorAll('.variant-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+
+            activeSizeIndex = parseInt(chip.getAttribute('data-index'));
+            activeSize = prod.sizes[activeSizeIndex];
+            activePrice = activeSize.price;
+            activeMrp = activeSize.mrp || activePrice;
+            savings = activeMrp - activePrice;
+            savingsPercent = Math.round((savings / activeMrp) * 100);
+
+            // Update details prices
+            const priceEl = document.getElementById('detail-price');
+            const mrpEl = document.getElementById('detail-mrp');
+            const savingsEl = document.getElementById('detail-savings');
+
+            if (priceEl) priceEl.textContent = `₹${activePrice}`;
+            if (mrpEl) mrpEl.textContent = `₹${activeMrp}`;
+            if (stickyPrice) stickyPrice.textContent = `₹${activePrice}`;
+
+            if (savingsEl) {
+              if (savings > 0) {
+                savingsEl.textContent = `You Save ₹${savings} (${savingsPercent}%)`;
+                savingsEl.style.display = 'inline-block';
+              } else {
+                savingsEl.style.display = 'none';
+              }
+            }
+          }
+        });
+      }
+
+      // Thumbnail Image Switcher Handlers
+      const thumbnailsContainer = document.querySelector('.gallery-thumbnails');
+      const mainImg = document.getElementById('main-product-img');
+      if (thumbnailsContainer && mainImg) {
+        thumbnailsContainer.addEventListener('click', (e) => {
+          const thumb = e.target.closest('.gallery-thumbnail');
+          if (thumb) {
+            document.querySelectorAll('.gallery-thumbnail').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+            mainImg.src = thumb.getAttribute('data-src');
+          }
+        });
+      }
+
+      // Main image magnification zoom handlers
+      const zoomContainer = document.getElementById('zoom-container');
+      if (zoomContainer && mainImg) {
+        zoomContainer.addEventListener('mousemove', (e) => {
+          const { left, top, width, height } = zoomContainer.getBoundingClientRect();
+          const x = ((e.clientX - left) / width) * 100;
+          const y = ((e.clientY - top) / height) * 100;
+          mainImg.style.transformOrigin = `${x}% ${y}%`;
+        });
+        zoomContainer.addEventListener('mouseleave', () => {
+          mainImg.style.transformOrigin = 'center center';
+        });
+      }
+
+      // Quantity Adjuster Handlers
+      const qtyCurrentVal = document.getElementById('qty-current-val');
+      let qtyVal = 1;
+
+      document.getElementById('qty-inc').addEventListener('click', () => {
+        qtyVal += 1;
+        qtyCurrentVal.textContent = qtyVal;
+      });
+
+      document.getElementById('qty-dec').addEventListener('click', () => {
+        if (qtyVal > 1) {
+          qtyVal -= 1;
+          qtyCurrentVal.textContent = qtyVal;
+        }
+      });
+
+      // Tab spec switches
+      const tabNav = document.querySelector('.details-tab-nav');
+      if (tabNav) {
+        tabNav.addEventListener('click', (e) => {
+          const btn = e.target.closest('.tab-nav-btn');
+          if (btn) {
+            document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+            btn.classList.add('active');
+            const paneId = btn.getAttribute('data-pane');
+            document.getElementById(paneId).classList.add('active');
+          }
+        });
+      }
+
+      // Add to cart click
+      const addCartBtn = document.getElementById('add-cart-btn');
+      addCartBtn.addEventListener('click', () => {
+        addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, qtyVal, addCartBtn);
+      });
+
+      // Buy Now click (Adds to cart & opens cart drawer instantly)
+      const buyNowBtn = document.getElementById('buy-now-btn');
+      buyNowBtn.addEventListener('click', () => {
+        addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, qtyVal);
+        setTimeout(() => toggleCartDrawer(true), 200);
+      });
+
+      // Sticky Buy Now click
+      if (stickyBuyNow) {
+        stickyBuyNow.addEventListener('click', () => {
+          addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, 1);
+          setTimeout(() => toggleCartDrawer(true), 200);
+        });
+      }
+
+      // Sticky Add to Cart click
+      if (stickyAddCart) {
+        stickyAddCart.addEventListener('click', () => {
+          addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, 1, stickyAddCart);
+        });
+      }
+
+      // Order on WhatsApp checkout link
+      const whatsappPurchaseBtn = document.getElementById('whatsapp-purchase-btn');
+      whatsappPurchaseBtn.addEventListener('click', () => {
+        const number = "918595077263";
+        const msg = `*Mitti Fresh Product Order Inquiry*\n` +
+                    `------------------------------------\n` +
+                    `*Product:* ${prod.name}\n` +
+                    `*Variant Size:* ${activeSize.name}\n` +
+                    `*Price per Unit:* ₹${activePrice} (MRP: ₹${activeMrp})\n` +
+                    `*Quantity Ordered:* ${qtyVal}\n` +
+                    `*Total Value:* *₹${activePrice * qtyVal}*\n` +
+                    `------------------------------------\n` +
+                    `Please check item availability and coordinate shipping/pickup options for Dwarka Sector 28. Thank you!`;
+        window.open(`https://wa.me/${number}?text=${encodeURIComponent(msg)}`, '_blank');
+      });
+
+      // Sticky bottom bar viewport scroll handler
+      window.addEventListener('scroll', () => {
+        const buyBtnRect = addCartBtn.getBoundingClientRect();
+        if (buyBtnRect.bottom < 0) {
+          stickyBar.classList.add('visible');
+        } else {
+          stickyBar.classList.remove('visible');
+        }
+      });
     }
-
-    const threshold = 500;
-    const shipping = subtotalValue >= threshold ? 'Free' : '₹50 (Coordinated via WhatsApp)';
-    message += `*Shipping:* ${shipping}\n`;
-    message += `*Total Order Value: ₹${finalSubtotal}*\n\n`;
-    message += `Please confirm availability and coordinate delivery/pick-up details for Dwarka Sector 28. Thank you!`;
-
-    const encodedText = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedText}`;
-
-    window.open(whatsappUrl, '_blank');
-  });
+  }
 
   // --- INITIALIZE CATALOG & CART ---
   renderProducts();
