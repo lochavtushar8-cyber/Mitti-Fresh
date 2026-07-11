@@ -75,9 +75,15 @@
 
   <!-- 1. Hero Section -->
   <section class="hero-section" id="home">
+    <div class="hero-video-bg-container">
+      <video autoplay muted loop playsinline class="hero-video-bg">
+        <source src="assets/hero_video.webm" type="video/webm">
+      </video>
+      <div class="hero-video-overlay"></div>
+    </div>
     <div class="hero-container">
       <div class="hero-content">
-        <span class="sub-badge">Freshness Redefined</span>
+        <span class="sub-badge">100% Pure & Stone-Ground</span>
         <h1 class="hero-title">Fresh Flour.<br>Ground Today.<br>Delivered Fresh.</h1>
         <p class="hero-description">Traditional stone grinding & cold-pressed oils crafted with complete transparency. Bringing unrefined, chemical-free nutrition back to your family.</p>
         <div class="hero-actions">
@@ -100,12 +106,7 @@
         </div>
       </div>
       <div class="hero-image-wrapper">
-        <div class="hero-image-card">
-          <img src="assets/hero_banner.jpg" alt="Earthy grains and fresh stone grinding mills" class="hero-image">
-          <div class="hero-image-overlay">
-            <span class="highlight-info"><i class="fa-solid fa-store"></i> Visit our Dwarka Sector 28 Shop</span>
-          </div>
-        </div>
+        <!-- Empty to allow background video visibility on the right side of the split layout -->
       </div>
     </div>
   </section>
