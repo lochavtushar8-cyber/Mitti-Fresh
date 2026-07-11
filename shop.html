@@ -19,7 +19,7 @@
 </head>
 <body>
 
-  <!-- Alert Banner -->
+  <!-- Alert Announcement Banner -->
   <div class="alert-banner" id="announcement-banner">
     <div class="alert-content">
       <i class="fa-solid fa-leaf alert-icon"></i>
@@ -27,7 +27,7 @@
     </div>
   </div>
 
-  <!-- Header -->
+  <!-- Header Section -->
   <header class="main-header" id="site-header">
     <div class="header-container">
       <a href="index.html" class="logo-area" aria-label="Mitti Fresh Home">
@@ -39,7 +39,8 @@
         <ul class="nav-links">
           <li><a href="index.html" class="nav-link">Home</a></li>
           <li><a href="shop.html" class="nav-link active">Shop</a></li>
-          <li><a href="index.html#our-story" class="nav-link">Our Story</a></li>
+          <li><a href="index.html#our-story" class="nav-link">About</a></li>
+          <li><a href="index.html#reviews" class="nav-link">Reviews</a></li>
           <li><a href="#contact" class="nav-link">Contact</a></li>
         </ul>
       </nav>
@@ -56,7 +57,7 @@
     </div>
   </header>
 
-  <!-- Mobile Nav Overlay -->
+  <!-- Mobile Navigation Overlay -->
   <div class="mobile-nav-overlay" id="mobile-menu">
     <div class="mobile-menu-content">
       <button class="mobile-close-btn" id="mobile-menu-close" aria-label="Close Mobile Menu">
@@ -65,18 +66,19 @@
       <ul class="mobile-nav-links">
         <li><a href="index.html" class="mobile-nav-link">Home</a></li>
         <li><a href="shop.html" class="mobile-nav-link">Shop</a></li>
-        <li><a href="index.html#our-story" class="mobile-nav-link">Our Story</a></li>
+        <li><a href="index.html#our-story" class="mobile-nav-link">About</a></li>
+        <li><a href="index.html#reviews" class="mobile-nav-link">Reviews</a></li>
         <li><a href="#contact" class="mobile-nav-link">Contact</a></li>
       </ul>
     </div>
   </div>
 
   <!-- Shop Header Section -->
-  <section class="hero-section" style="padding: 60px 0 40px; background: linear-gradient(180deg, rgba(250, 247, 242, 0.2) 0%, rgba(243, 236, 224, 0.3) 100%);">
+  <section class="hero-section" style="padding: 60px 0 40px; background-color: var(--color-secondary);">
     <div class="container text-center">
       <span class="sub-badge">Mitti Fresh Store</span>
       <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 12px;">Our Full Price Menu & Catalog</h1>
-      <p class="hero-description" style="margin: 0 auto; max-width: 650px;">Use filters or the search bar below to browse our fresh cold-pressed oils, goal-based flour formulations, and raw staples.</p>
+      <p class="hero-description" style="margin: 0 auto; max-width: 650px;">Use filters or the search bar below to browse our fresh cold-pressed oils, goal-based flour formulations, and raw grains.</p>
     </div>
   </section>
 
@@ -152,11 +154,21 @@
     </div>
     
     <div class="cart-body" id="cart-items-container">
+      <!-- Free Delivery Progress Bar -->
+      <div class="cart-progress-container">
+        <div class="cart-progress-desc" id="cart-progress-text">
+          <i class="fa-solid fa-truck-fast"></i> Add ₹500 more for Free Delivery
+        </div>
+        <div class="cart-progress-bg">
+          <div class="cart-progress-fill" id="cart-progress-fill"></div>
+        </div>
+      </div>
+
       <div class="empty-cart-state" id="empty-cart-state">
         <i class="fa-solid fa-bag-shopping empty-icon"></i>
         <h3>Your basket is empty</h3>
         <p>Browse our shop and add fresh staples to your cart!</p>
-        <a href="#shop" class="btn btn-accent btn-sm close-cart-link">Go to Shop</a>
+        <a href="shop.html" class="btn btn-accent btn-sm close-cart-link">Go to Shop</a>
       </div>
       <ul class="cart-items-list" id="cart-items-list">
         <!-- Rendered items in JavaScript -->
@@ -164,6 +176,12 @@
     </div>
 
     <div class="cart-footer" id="cart-footer">
+      <!-- Coupon Section -->
+      <div class="cart-coupon-section">
+        <input type="text" class="coupon-input" id="coupon-code" placeholder="Enter coupon code (e.g. PURE10)">
+        <button class="btn btn-sm btn-secondary" id="apply-coupon">Apply</button>
+      </div>
+
       <div class="cart-total-row">
         <span>Subtotal:</span>
         <span class="total-val" id="cart-subtotal">₹0</span>
@@ -175,7 +193,51 @@
     </div>
   </div>
 
-  <!-- Location Footer -->
+  <!-- Premium Product Details Modal -->
+  <div class="modal-overlay" id="product-modal-overlay">
+    <div class="modal-container" id="product-modal">
+      <button class="modal-close-btn" id="modal-close" aria-label="Close details"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-grid">
+        <div class="modal-gallery">
+          <img src="" alt="" class="modal-main-img" id="modal-image">
+        </div>
+        <div class="modal-content-area">
+          <span class="modal-category-tag" id="modal-category">Category</span>
+          <h2 class="modal-title" id="modal-title">Product Title</h2>
+          <p class="modal-desc" id="modal-description">Detailed description goes here.</p>
+          
+          <!-- Tabs -->
+          <div class="modal-tabs">
+            <button class="modal-tab active" data-pane="pane-details">Ingredients</button>
+            <button class="modal-tab" data-pane="pane-nutrition">Nutrition</button>
+            <button class="modal-tab" data-pane="pane-storage">Storage Tips</button>
+          </div>
+          
+          <!-- Tab Contents -->
+          <div class="modal-pane active" id="pane-details">
+            <p id="modal-pane-details-content">Ingredients details go here.</p>
+          </div>
+          <div class="modal-pane" id="pane-nutrition">
+            <div class="nutrition-grid" id="modal-pane-nutrition-content">
+              <!-- Dynamically rendered values -->
+            </div>
+          </div>
+          <div class="modal-pane" id="pane-storage">
+            <p>Keep in a cool, dry place inside an airtight container. Since our staples contain zero artificial preservatives, consume flours within 30-45 days and wood-pressed oils within 6 months of processing.</p>
+          </div>
+          
+          <!-- Checkout Action -->
+          <div class="modal-checkout-section">
+            <div class="modal-delivery-notice">
+              <i class="fa-solid fa-circle-check"></i> Standard Delivery: 12-24 hours in Dwarka | COD Available
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Section -->
   <footer class="site-footer" id="contact">
     <div class="container">
       <div class="footer-grid">
@@ -186,7 +248,7 @@
           <p class="brand-desc">Bringing traditional purity back into your kitchen. We specialize in organic cold-pressed oil extraction and stone-ground grains milled fresh daily in Dwarka, Delhi.</p>
           <div class="social-links">
             <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
-            <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://instagram.com" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
             <a href="https://wa.me/918595077263" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
           </div>
         </div>
@@ -197,7 +259,7 @@
             <li><a href="index.html">Home</a></li>
             <li><a href="shop.html">Shop Staples</a></li>
             <li><a href="index.html#our-story">Our Story</a></li>
-            <li><a href="#contact">Contact & Location</a></li>
+            <li><a href="index.html#reviews">Customer Reviews</a></li>
           </ul>
         </div>
 
