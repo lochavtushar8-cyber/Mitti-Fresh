@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mitti Fresh Store — Fresh Chakki Atta & Cold-Pressed Oils</title>
-  <meta name="description" content="Shop all 29 premium food staples from Mitti Fresh Dwarka Sector 28. Explore goal-based health flours, stone-ground grains, sattu, and wood-pressed oils.">
+  <title>About Mitti Fresh — Our Heritage, Grains & Process</title>
+  <meta name="description" content="Discover the story of Mitti Fresh (formerly Kisan Atta Chakki). Learn about our commitment to stone-ground flours, cold-pressed oils, and farm-fresh purity.">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,8 +38,8 @@
       <nav class="main-nav" aria-label="Main Navigation">
         <ul class="nav-links">
           <li><a href="index.html" class="nav-link">Home</a></li>
-          <li><a href="shop.html" class="nav-link active">Shop</a></li>
-          <li><a href="about.html" class="nav-link">About</a></li>
+          <li><a href="shop.html" class="nav-link">Shop</a></li>
+          <li><a href="about.html" class="nav-link active">About</a></li>
           <li><a href="index.html#reviews" class="nav-link">Reviews</a></li>
           <li><a href="#contact" class="nav-link">Contact</a></li>
         </ul>
@@ -73,73 +73,94 @@
     </div>
   </div>
 
-  <!-- Shop Header Section -->
+  <!-- About Header Section -->
   <section class="hero-section" style="padding: 60px 0 40px; background-color: var(--color-secondary);">
     <div class="container text-center">
-      <span class="sub-badge">Mitti Fresh Store</span>
-      <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 12px;">Our Full Price Menu & Catalog</h1>
-      <p class="hero-description" style="margin: 0 auto; max-width: 650px;">Use filters or the search bar below to browse our fresh cold-pressed oils, goal-based flour formulations, and raw grains.</p>
+      <span class="sub-badge">Our Story</span>
+      <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 12px;">About Mitti Fresh</h1>
+      <p class="hero-description" style="margin: 0 auto; max-width: 650px;">Learn about our traditional stone grinding mills, wood-pressed oil extraction Kohlus, and our commitment to chemical-free farm staples.</p>
     </div>
   </section>
 
-  <!-- Categories Section -->
-  <section class="categories-section" style="padding-top: 20px;">
+  <!-- Founder Story Section (Main About Us Content) -->
+  <section class="founder-section" id="our-story" style="background-color: var(--color-bg-white);">
     <div class="container">
-      <div class="category-grid" id="category-tabs">
-        <div class="category-card active" data-category="all" id="cat-all">
-          <div class="category-icon-wrap">
-            <i class="fa-solid fa-border-all"></i>
+      <div class="founder-layout">
+        <div class="founder-img-wrapper">
+          <div class="founder-img-card">
+            <img src="assets/founder.jpg" alt="Mitti Fresh Founder" class="founder-img">
           </div>
-          <h3 class="category-card-title">All Staples</h3>
+          <div class="founder-quote">
+            "Our wooden kohlus revolve slowly to extract oils at cool temperatures, guaranteeing every natural nutrient reaches your kitchen."
+          </div>
         </div>
-        <div class="category-card" data-category="atta-specialty" id="cat-atta-special">
-          <div class="category-icon-wrap">
-            <i class="fa-solid fa-bullseye"></i>
+        <div class="founder-text">
+          <span class="section-subtitle" style="text-align: left; margin-bottom: 8px;">Our Roots</span>
+          <h2 class="section-title" style="text-align: left; margin-bottom: 24px;">The Promise Behind Mitti Fresh</h2>
+          <p>For years, we operated in the community as <strong>Kisan Atta Chakki</strong>, serving families who valued the quality of fresh grain milling. As the market became flooded with bleached, store-shelf flours and highly refined, chemical-laden cooking oils, we realized our mission needed to expand.</p>
+          <p>Under our new identity as <strong>Mitti Fresh</strong>, we have committed ourselves to raising the standard of daily nutrition. We bring together organic farming sources, authentic wood-pressing Kohlus, and traditional stone wheel chakkis, combined with absolute hygiene and transparency.</p>
+          <p>Our promise to you is simple: we treat your family's food exactly like our own. No additives, no blending of cheaper seed cakes, and no compromising on quality. Visit us in Dwarka and taste the pure difference yourself.</p>
+          
+          <div class="founder-sig">
+            <h4>Tushar Lochav</h4>
+            <span>Founder, Mitti Fresh</span>
           </div>
-          <h3 class="category-card-title">Goal-Based Atta Blends</h3>
-        </div>
-        <div class="category-card" data-category="atta-grains" id="cat-atta-grain">
-          <div class="category-icon-wrap">
-            <i class="fa-solid fa-wheat-awn"></i>
-          </div>
-          <h3 class="category-card-title">Chakki Flours & Grains</h3>
-        </div>
-        <div class="category-card" data-category="oils" id="cat-oils">
-          <div class="category-icon-wrap">
-            <i class="fa-solid fa-droplet"></i>
-          </div>
-          <h3 class="category-card-title">Cold-Pressed Oils</h3>
-        </div>
-        <div class="category-card" data-category="khal-seeds" id="cat-khal">
-          <div class="category-icon-wrap">
-            <i class="fa-solid fa-cow"></i>
-          </div>
-          <h3 class="category-card-title">Khal & Seeds</h3>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Shop Grid Section -->
-  <section class="shop-section">
+  <!-- Why Choose Mitti Fresh Section (Moved to About page for clean homepage flow) -->
+  <section class="why-choose-section" style="background-color: var(--color-bg-light); border-top: 1px solid var(--color-secondary-dark); border-bottom: 1px solid var(--color-secondary-dark);">
     <div class="container">
-      <!-- Search Bar -->
-      <div class="search-section">
-        <div class="search-bar-wrapper">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="search-input" placeholder="Search for sattu, oats, mustard oil, basmati rice, besan...">
-          <button class="search-clear-btn" id="search-clear" aria-label="Clear Search" style="display: none;">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+      <div class="section-header">
+        <span class="section-subtitle">Our Quality Standard</span>
+        <h2 class="section-title">Why We Are Different</h2>
+        <p class="section-desc">We combine traditional Indian processing techniques with modern hygiene standards to give you authentic, chemical-free food ingredients.</p>
+      </div>
+      
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon-wrap"><i class="fa-solid fa-wheat-awn"></i></div>
+          <h3 class="why-card-title">Freshly Ground Daily</h3>
+          <p class="why-card-desc">We do not stock pre-ground flour for weeks. Every single bag is milled daily to ensure maximum nutrient preservation.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon-wrap"><i class="fa-solid fa-mortar-pestle"></i></div>
+          <h3 class="why-card-title">Traditional Stone Chakki</h3>
+          <p class="why-card-desc">Our slow-speed stone mills grind grain at low temperatures, locking in fibers, minerals, wheat bran, and wheat germ.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon-wrap"><i class="fa-solid fa-shield-halved"></i></div>
+          <h3 class="why-card-title">No Chemical Bleaching</h3>
+          <p class="why-card-desc">No additives, preservatives, bleach, or chemical extraction agents are ever allowed near our processing unit.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon-wrap"><i class="fa-solid fa-droplet"></i></div>
+          <h3 class="why-card-title">Cold Pressed Oils</h3>
+          <p class="why-card-desc">Our oils are extracted using slow revolving wooden kohlus under 45°C, keeping essential fatty acids and aroma intact.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon-wrap"><i class="fa-solid fa-seedling"></i></div>
+          <h3 class="why-card-title">Farm Fresh Grains</h3>
+          <p class="why-card-desc">We source high-grade grains (like MP Sharbhati Wheat) and premium oil seeds directly from verified local farms.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon-wrap"><i class="fa-solid fa-eye"></i></div>
+          <h3 class="why-card-title">Transparent Processing</h3>
+          <p class="why-card-desc">You are always welcome to watch us press your oils and mill your grains live right inside our physical store.</p>
         </div>
       </div>
+    </div>
+  </section>
 
-      <!-- Product Grid (Populated via JS) -->
-      <div class="product-grid" id="product-list">
-        <div class="loading-state">
-          <i class="fa-solid fa-circle-notch fa-spin"></i> Loading fresh staples...
-        </div>
-      </div>
+  <!-- CTA Section -->
+  <section class="banner-cta">
+    <div class="cta-overlay-pattern"></div>
+    <div class="container text-center relative-z">
+      <h2 class="cta-headline">Experience Pure Nutrition Delivered To Your Kitchen</h2>
+      <p class="cta-desc">Choose from our daily ground atta and aromatic wood-pressed oils. Simple order via WhatsApp and pick up at the store or get home delivery.</p>
+      <a href="shop.html" class="btn btn-accent btn-large">Browse Our Store</a>
     </div>
   </section>
 
@@ -190,50 +211,6 @@
       <button class="btn btn-primary checkout-btn" id="checkout-whatsapp">
         <i class="fa-brands fa-whatsapp"></i> Checkout via WhatsApp
       </button>
-    </div>
-  </div>
-
-  <!-- Premium Product Details Modal -->
-  <div class="modal-overlay" id="product-modal-overlay">
-    <div class="modal-container" id="product-modal">
-      <button class="modal-close-btn" id="modal-close" aria-label="Close details"><i class="fa-solid fa-xmark"></i></button>
-      <div class="modal-grid">
-        <div class="modal-gallery">
-          <img src="" alt="" class="modal-main-img" id="modal-image">
-        </div>
-        <div class="modal-content-area">
-          <span class="modal-category-tag" id="modal-category">Category</span>
-          <h2 class="modal-title" id="modal-title">Product Title</h2>
-          <p class="modal-desc" id="modal-description">Detailed description goes here.</p>
-          
-          <!-- Tabs -->
-          <div class="modal-tabs">
-            <button class="modal-tab active" data-pane="pane-details">Ingredients</button>
-            <button class="modal-tab" data-pane="pane-nutrition">Nutrition</button>
-            <button class="modal-tab" data-pane="pane-storage">Storage Tips</button>
-          </div>
-          
-          <!-- Tab Contents -->
-          <div class="modal-pane active" id="pane-details">
-            <p id="modal-pane-details-content">Ingredients details go here.</p>
-          </div>
-          <div class="modal-pane" id="pane-nutrition">
-            <div class="nutrition-grid" id="modal-pane-nutrition-content">
-              <!-- Dynamically rendered values -->
-            </div>
-          </div>
-          <div class="modal-pane" id="pane-storage">
-            <p>Keep in a cool, dry place inside an airtight container. Since our staples contain zero artificial preservatives, consume flours within 30-45 days and wood-pressed oils within 6 months of processing.</p>
-          </div>
-          
-          <!-- Checkout Action -->
-          <div class="modal-checkout-section">
-            <div class="modal-delivery-notice">
-              <i class="fa-solid fa-circle-check"></i> Standard Delivery: 12-24 hours in Dwarka | COD Available
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
