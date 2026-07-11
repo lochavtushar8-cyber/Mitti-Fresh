@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mitti Fresh — Pure, Fresh & Essential Food Staples</title>
+  <meta name="description" content="Kisan Atta Chakki is now Mitti Fresh. Experience the true taste of purity with our traditional cold-pressed oils and freshly milled stone-ground atta in Dwarka Sector 28, Delhi.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Alert Banner -->
+  <div class="alert-banner" id="announcement-banner">
+    <div class="alert-content">
+      <i class="fa-solid fa-leaf alert-icon"></i>
+      <span>Kisan Atta Chakki is now <strong>Mitti Fresh</strong> — Same Purity, New Identity!</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="main-header" id="site-header">
+    <div class="header-container">
+      <a href="#" class="logo-area" aria-label="Mitti Fresh Home">
+        <img src="assets/logo.jpg" alt="Mitti Fresh Logo" class="logo-img">
+        <span class="logo-text">Mitti <span class="logo-highlight">Fresh</span></span>
+      </a>
+      
+      <nav class="main-nav" aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#home" class="nav-link active">Home</a></li>
+          <li><a href="#shop" class="nav-link">Shop</a></li>
+          <li><a href="#our-story" class="nav-link">Our Story</a></li>
+          <li><a href="#contact" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button class="cart-trigger" id="cart-toggle" aria-label="Open Shopping Cart">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-badge" id="cart-count">0</span>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle Mobile Menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Nav Overlay -->
+  <div class="mobile-nav-overlay" id="mobile-menu">
+    <div class="mobile-menu-content">
+      <button class="mobile-close-btn" id="mobile-menu-close" aria-label="Close Mobile Menu">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <ul class="mobile-nav-links">
+        <li><a href="#home" class="mobile-nav-link">Home</a></li>
+        <li><a href="#shop" class="mobile-nav-link">Shop</a></li>
+        <li><a href="#our-story" class="mobile-nav-link">Our Story</a></li>
+        <li><a href="#contact" class="mobile-nav-link">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero-section" id="home">
+    <div class="hero-container">
+      <div class="hero-content">
+        <span class="sub-badge">100% Pure & Stone-Ground</span>
+        <h1 class="hero-title">Pure, Fresh & Essential Food Staples</h1>
+        <p class="hero-description">Bringing traditional, chemical-free cold-pressed oils and nutrient-rich stone-ground flours straight from the farm to your kitchen. Taste purity everyday.</p>
+        <div class="hero-actions">
+          <a href="#shop" class="btn btn-primary">Shop Now</a>
+          <a href="#our-story" class="btn btn-secondary">Our Story</a>
+        </div>
+        <div class="hero-features">
+          <div class="feature-badge">
+            <i class="fa-solid fa-circle-check"></i> Traditional Kohlus
+          </div>
+          <div class="feature-badge">
+            <i class="fa-solid fa-circle-check"></i> Zero Preservatives
+          </div>
+          <div class="feature-badge">
+            <i class="fa-solid fa-circle-check"></i> Milled Daily
+          </div>
+        </div>
+      </div>
+      <div class="hero-image-wrapper">
+        <div class="hero-image-card">
+          <img src="assets/hero_banner.jpg" alt="Pure ingredients collection" class="hero-image">
+          <div class="hero-image-overlay">
+            <span class="highlight-info"><i class="fa-solid fa-store"></i> Visit our Dwarka Sector 28 Shop</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories Section -->
+  <section class="categories-section">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-subtitle">Our Specialties</span>
+        <h2 class="section-title">Freshly Processed Categories</h2>
+        <p class="section-desc">Filter our catalog by category to explore our stone-ground wheat flour or chemical-free oils.</p>
+      </div>
+      <div class="category-grid">
+        <div class="category-card active" data-category="all" id="cat-all">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-border-all"></i>
+          </div>
+          <h3 class="category-card-title">All Staples</h3>
+        </div>
+        <div class="category-card" data-category="atta-grains" id="cat-atta">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-wheat-awn"></i>
+          </div>
+          <h3 class="category-card-title">Freshly Ground Atta & Grains</h3>
+        </div>
+        <div class="category-card" data-category="oils" id="cat-oils">
+          <div class="category-icon-wrap">
+            <i class="fa-solid fa-droplet"></i>
+          </div>
+          <h3 class="category-card-title">Pure Cold-Pressed Oils</h3>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shop Section -->
+  <section class="shop-section" id="shop">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-subtitle">Premium Selection</span>
+        <h2 class="section-title">Shop Our Pure Staples</h2>
+        <p class="section-desc">Select weight/volume and order freshly processed items directly via WhatsApp.</p>
+      </div>
+
+      <!-- Product Grid -->
+      <div class="product-grid" id="product-list">
+        <!-- Products will be dynamically populated or hardcoded for SEO & reliability -->
+        
+        <!-- Product 1: Premium Wheat Atta -->
+        <div class="product-card" data-category="atta-grains">
+          <div class="product-image-container">
+            <img src="assets/wheat_atta.jpg" alt="Premium Wheat Atta" class="product-image">
+            <span class="product-tag font-alt">Stone-Ground</span>
+          </div>
+          <div class="product-details">
+            <h3 class="product-title">Premium Wheat Atta</h3>
+            <p class="product-description">Slow milled in traditional stone grinders (chakkis) to retain natural wheat bran, germ, and high nutrition.</p>
+            
+            <div class="product-selector-group">
+              <label for="size-wheat" class="selector-label">Pack Size:</label>
+              <select id="size-wheat" class="product-size-select" data-product-id="wheat-atta">
+                <option value="5kg" data-price="275">5 kg - ₹275</option>
+                <option value="10kg" data-price="530" selected>10 kg - ₹530</option>
+                <option value="20kg" data-price="1020">20 kg - ₹1020</option>
+              </select>
+            </div>
+
+            <div class="product-footer">
+              <div class="product-price">₹<span class="price-val" id="price-wheat">530</span></div>
+              <button class="btn btn-sm btn-accent add-to-cart-btn" 
+                      data-id="wheat-atta" 
+                      data-name="Premium Wheat Atta" 
+                      data-image="assets/wheat_atta.jpg">
+                <i class="fa-solid fa-cart-plus"></i> Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 2: Multigrain Atta -->
+        <div class="product-card" data-category="atta-grains">
+          <div class="product-image-container">
+            <img src="assets/multigrain_atta.jpg" alt="Multigrain Atta" class="product-image">
+            <span class="product-tag font-alt">High Fiber</span>
+          </div>
+          <div class="product-details">
+            <h3 class="product-title">Multigrain Atta</h3>
+            <p class="product-description">Healthy mix of premium whole wheat, millets, oats, barley, and roasted chana. Ground fresh daily.</p>
+            
+            <div class="product-selector-group">
+              <label for="size-multi" class="selector-label">Pack Size:</label>
+              <select id="size-multi" class="product-size-select" data-product-id="multigrain-atta">
+                <option value="5kg" data-price="340" selected>5 kg - ₹340</option>
+                <option value="10kg" data-price="660">10 kg - ₹660</option>
+              </select>
+            </div>
+
+            <div class="product-footer">
+              <div class="product-price">₹<span class="price-val" id="price-multi">340</span></div>
+              <button class="btn btn-sm btn-accent add-to-cart-btn" 
+                      data-id="multigrain-atta" 
+                      data-name="Multigrain Atta" 
+                      data-image="assets/multigrain_atta.jpg">
+                <i class="fa-solid fa-cart-plus"></i> Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 3: Pure Mustard Oil -->
+        <div class="product-card" data-category="oils">
+          <div class="product-image-container">
+            <img src="assets/mustard_oil.jpg" alt="Pure Mustard Oil" class="product-image">
+            <span class="product-tag tag-green">Cold-Pressed</span>
+            <div class="info-bubble">Crafted from 3kg premium seeds per liter</div>
+          </div>
+          <div class="product-details">
+            <h3 class="product-title">Pure Mustard Oil</h3>
+            <p class="product-description">Traditionally extracted using slow-revolving wooden kohlus under low temperature to retain aromatic flavor and heart-healthy nutrients.</p>
+            
+            <div class="product-selector-group">
+              <label for="size-mustard" class="selector-label">Volume:</label>
+              <select id="size-mustard" class="product-size-select" data-product-id="mustard-oil">
+                <option value="1L" data-price="210" selected>1 Liter - ₹210</option>
+                <option value="5L" data-price="1025">5 Liters - ₹1025</option>
+              </select>
+            </div>
+
+            <div class="product-footer">
+              <div class="product-price">₹<span class="price-val" id="price-mustard">210</span></div>
+              <button class="btn btn-sm btn-accent add-to-cart-btn" 
+                      data-id="mustard-oil" 
+                      data-name="Pure Mustard Oil" 
+                      data-image="assets/mustard_oil.jpg">
+                <i class="fa-solid fa-cart-plus"></i> Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 4: Pure Groundnut Oil -->
+        <div class="product-card" data-category="oils">
+          <div class="product-image-container">
+            <img src="assets/groundnut_oil.jpg" alt="Pure Groundnut Oil" class="product-image">
+            <span class="product-tag tag-new">Newly Launched!</span>
+          </div>
+          <div class="product-details">
+            <h3 class="product-title">Pure Groundnut Oil</h3>
+            <p class="product-description">Unrefined, chemical-free oil pressed from select farm-fresh groundnuts. Ideal for daily cooking with a high smoke point.</p>
+            
+            <div class="product-selector-group">
+              <label for="size-groundnut" class="selector-label">Volume:</label>
+              <select id="size-groundnut" class="product-size-select" data-product-id="groundnut-oil">
+                <option value="1L" data-price="230" selected>1 Liter - ₹230</option>
+                <option value="5L" data-price="1120">5 Liters - ₹1120</option>
+              </select>
+            </div>
+
+            <div class="product-footer">
+              <div class="product-price">₹<span class="price-val" id="price-groundnut">230</span></div>
+              <button class="btn btn-sm btn-accent add-to-cart-btn" 
+                      data-id="groundnut-oil" 
+                      data-name="Pure Groundnut Oil" 
+                      data-image="assets/groundnut_oil.jpg">
+                <i class="fa-solid fa-cart-plus"></i> Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Story Section -->
+  <section class="story-section" id="our-story">
+    <div class="container">
+      <div class="story-layout">
+        <div class="story-text">
+          <span class="section-subtitle">Our Heritage</span>
+          <h2 class="section-title">From Kisan Atta Chakki to Mitti Fresh</h2>
+          <p>For years, we served our neighbors as <strong>Kisan Atta Chakki</strong>, dedicated to quality grain milling. Today, we are taking a leap forward to bring our commitment to unrefined, chemical-free nutrition to a wider audience under our new name: <strong>Mitti Fresh</strong>.</p>
+          <p>Our values remain exactly the same. We still believe that healthy living starts with pure ingredients. We extract our oils using traditional, cold-pressed wood pressing (Kohlu) which runs at low speeds and temperatures to guarantee no nutrients are lost. Our grains are stone-ground daily, maintaining the natural goodness of the grain.</p>
+          <div class="story-features-grid">
+            <div class="story-feat-item">
+              <div class="story-feat-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+              <div>
+                <h4>Zero Chemical Process</h4>
+                <p>Absolutely no bleach, refining agents, or added chemicals are used during extraction.</p>
+              </div>
+            </div>
+            <div class="story-feat-item">
+              <div class="story-feat-icon"><i class="fa-solid fa-eye"></i></div>
+              <div>
+                <h4>Total Transparency</h4>
+                <p>We welcome you to visit our physical store and witness the live milling of your staples.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="story-visual">
+          <div class="badge-round-wrap">
+            <div class="badge-round">
+              <span class="number">100%</span>
+              <span class="label">Pure & Natural</span>
+            </div>
+          </div>
+          <div class="visual-stack">
+            <div class="visual-card main-img-card">
+              <div class="card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+              <h3>Purity Guaranteed</h3>
+              <p>We test every batch of seeds and grain for organic quality before processing.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="banner-cta">
+    <div class="cta-overlay-pattern"></div>
+    <div class="container text-center relative-z">
+      <h2 class="cta-headline">Experience Pure Nutrition Delivered To Your Kitchen</h2>
+      <p class="cta-desc">Choose from our daily ground atta and aromatic wood-pressed oils. Simple order via WhatsApp and pick up at the store or get home delivery.</p>
+      <a href="#shop" class="btn btn-primary btn-large">Browse Our Store</a>
+    </div>
+  </section>
+
+  <!-- Shopping Cart Drawer (Slides from Right) -->
+  <div class="cart-drawer-overlay" id="cart-drawer-overlay"></div>
+  <div class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title">
+    <div class="cart-header">
+      <h2 id="cart-drawer-title" class="cart-drawer-title"><i class="fa-solid fa-basket-shopping"></i> Your Basket</h2>
+      <button class="cart-close-btn" id="cart-close" aria-label="Close Shopping Cart">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    
+    <div class="cart-body" id="cart-items-container">
+      <!-- Dynamic Cart Items go here -->
+      <div class="empty-cart-state" id="empty-cart-state">
+        <i class="fa-solid fa-bag-shopping empty-icon"></i>
+        <h3>Your basket is empty</h3>
+        <p>Browse our shop and add fresh staples to your cart!</p>
+        <a href="#shop" class="btn btn-accent btn-sm close-cart-link">Go to Shop</a>
+      </div>
+      <ul class="cart-items-list" id="cart-items-list">
+        <!-- Rendered items in JavaScript -->
+      </ul>
+    </div>
+
+    <div class="cart-footer" id="cart-footer">
+      <div class="cart-total-row">
+        <span>Subtotal:</span>
+        <span class="total-val" id="cart-subtotal">₹0</span>
+      </div>
+      <p class="checkout-notice"><i class="fa-solid fa-truck-fast"></i> Delivery or Pick-Up options coordinated via WhatsApp</p>
+      <button class="btn btn-primary checkout-btn" id="checkout-whatsapp">
+        <i class="fa-brands fa-whatsapp"></i> Checkout via WhatsApp
+      </button>
+    </div>
+  </div>
+
+  <!-- Location Footer -->
+  <footer class="site-footer" id="contact">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand-col">
+          <a href="#" class="footer-logo">
+            <span class="logo-text text-white">Mitti <span class="logo-highlight">Fresh</span></span>
+          </a>
+          <p class="brand-desc">Bringing traditional purity back into your kitchen. We specialize in organic cold-pressed oil extraction and stone-ground grains milled fresh daily in Dwarka, Delhi.</p>
+          <div class="social-links">
+            <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+            <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://wa.me/918595077263" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+          </div>
+        </div>
+        
+        <div class="footer-links-col">
+          <h3>Quick Links</h3>
+          <ul class="footer-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#shop">Shop Staples</a></li>
+            <li><a href="#our-story">Our Story</a></li>
+            <li><a href="#contact">Contact & Location</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-contact-col">
+          <h3>Contact Info</h3>
+          <ul class="contact-details">
+            <li>
+              <div class="icon-wrap"><i class="fa-solid fa-location-dot"></i></div>
+              <span class="detail-text"><strong>Mitti Fresh</strong>, Dwarka Sec 28, Delhi</span>
+            </li>
+            <li>
+              <div class="icon-wrap"><i class="fa-solid fa-phone"></i></div>
+              <span class="detail-text"><a href="tel:8595077263" class="phone-link">8595077263</a></span>
+            </li>
+            <li>
+              <div class="icon-wrap"><i class="fa-solid fa-clock"></i></div>
+              <span class="detail-text">Open Daily: 8:00 AM - 8:30 PM</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2026 Mitti Fresh. All rights reserved. Formerly Kisan Atta Chakki.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Custom Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
