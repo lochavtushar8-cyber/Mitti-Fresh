@@ -1722,6 +1722,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Expose methods for AI assistant integrations
+  window.addToCartExternal = addToCart;
+  window.toggleCartDrawerExternal = toggleCartDrawer;
+
   // --- INITIALIZE CATALOG & CART ---
   renderProducts();
   loadCart();
