@@ -1075,19 +1075,21 @@
       loadCheckoutCart();
       setupSavedAddresses();
 
-      // Mobile OS detector
+      // Mobile OS detector (handles iPad/iPhone requesting Desktop mode in Safari)
       const getMobileOS = () => {
         const userAgent = navigator.userAgent || navigator.vendor || window.opera;
         if (/android/i.test(userAgent)) return "android";
         if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return "ios";
+        // Detect iPad/iPhone requesting Desktop version
+        if (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) return "ios";
         return "desktop";
       };
 
-      // iOS UPI Modal trigger click interception
+      // iOS & Desktop UPI Modal trigger click interception
       if (btnOpenUpiApp) {
         btnOpenUpiApp.addEventListener('click', (e) => {
           const os = getMobileOS();
-          if (os === 'ios') {
+          if (os === 'ios' || os === 'desktop') {
             e.preventDefault();
             
             // Re-calculate live total
@@ -1103,7 +1105,7 @@
             const paytmLink = `paytmmp://pay?${baseQuery}`;
             const bhimLink = `upi://pay?${baseQuery}`;
             
-            // Fill iOS modal labels
+            // Fill iOS/Desktop modal labels
             document.getElementById('ios-modal-amount').textContent = formattedTotal;
             document.getElementById('ios-modal-order-id').textContent = mittiOrderId;
             
