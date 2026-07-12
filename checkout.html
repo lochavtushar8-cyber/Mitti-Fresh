@@ -933,30 +933,7 @@
         // Production Check
         const hasBackend = window.CONFIG.CREATE_ORDER_API !== "";
         
-        if (hasBackend) {
-          // 1. Production Mode: Fetch secure order ID from backend
-          placeOrderBtn.disabled = true;
-          placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Initializing Gateway...`;
-
-          fetch(window.CONFIG.CREATE_ORDER_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: orderId })
-          })
-          .then(res => res.json())
-          .then(data => {
-            const rzpOrderId = data.id; // order_id returned from Razorpay Server SDK
-            
-            // Open official checkout modal
-            launchRazorpayCheckoutModal(rzpOrderId, amount, name, phone, email, orderId);
-          })
-          .catch(err => {
-            console.error("Payment initialization failed", err);
-            window.location.href = `order-success.html?orderId=${orderId}&status=failed&error=GatewayInitializationError`;
-          });
-
-        } else {
-          // 2. Sandbox/Simulation Mode: Load virtual modal to allow testing
+        const runSandboxMode = () => {
           console.log("Mitti Fresh running in Razorpay Simulation Mode");
           placeOrderBtn.disabled = true;
           placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Launching Gateway...`;
@@ -994,6 +971,43 @@
               window.location.href = `order-success.html?orderId=${orderId}&status=failed&error=PaymentDeclined`;
             }
           }, 1200);
+        };
+
+        if (hasBackend) {
+          // 1. Production Mode: Fetch secure order ID from backend
+          placeOrderBtn.disabled = true;
+          placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Initializing Gateway...`;
+
+          fetch(window.CONFIG.CREATE_ORDER_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: orderId })
+          })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error("Server returned status " + res.status);
+            }
+            return res.json();
+          })
+          .then(data => {
+            if (!data || !data.id) {
+              throw new Error("Invalid order payload from backend.");
+            }
+            const rzpOrderId = data.id; // order_id returned from Razorpay Server SDK
+            
+            // Open official checkout modal
+            launchRazorpayCheckoutModal(rzpOrderId, amount, name, phone, email, orderId);
+          })
+          .catch(err => {
+            console.error("Payment initialization failed", err);
+            // Fall back to sandbox simulation if backend call failed
+            alert("Secure payment server is currently unreachable. Launching Sandbox simulation...");
+            runSandboxMode();
+          });
+
+        } else {
+          // 2. Sandbox/Simulation Mode: Load virtual modal to allow testing
+          runSandboxMode();
         }
       };
 
