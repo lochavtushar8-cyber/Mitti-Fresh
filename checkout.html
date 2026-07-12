@@ -1114,16 +1114,19 @@
       setupSavedAddresses();
 
       // Fetch dynamic configuration from server on load (Key ID only)
-      fetch("http://localhost:3000/api/config")
-        .then(res => res.json())
-        .then(data => {
-          if (data.razorpay_key_id) {
-            window.CONFIG.RAZORPAY_KEY_ID = data.razorpay_key_id;
-          }
-        })
-        .catch(err => {
-          console.warn("Could not fetch Razorpay key from backend, using default configuration key.");
-        });
+      const configUrl = (window.location.hostname === "lochavtushar8-cyber.github.io") ? "" : (window.location.protocol === "file:" ? "http://localhost:3000/api/config" : "/api/config");
+      if (configUrl) {
+        fetch(configUrl)
+          .then(res => res.json())
+          .then(data => {
+            if (data.razorpay_key_id) {
+              window.CONFIG.RAZORPAY_KEY_ID = data.razorpay_key_id;
+            }
+          })
+          .catch(err => {
+            console.warn("Could not fetch Razorpay key from backend, using default configuration key.");
+          });
+      }
 
       // Mobile OS detector (handles iPad/iPhone requesting Desktop mode in Safari)
       const getMobileOS = () => {
