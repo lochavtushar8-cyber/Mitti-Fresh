@@ -1104,6 +1104,8 @@
             const phonepeLink = `phonepe://pay?${baseQuery}`;
             const paytmLink = `paytmmp://pay?${baseQuery}`;
             const bhimLink = `upi://pay?${baseQuery}`;
+            const whatsappLink = `whatsapp://pay?${baseQuery}`;
+            const otherLink = `upi://pay?${baseQuery}`;
             
             // Fill iOS/Desktop modal labels
             document.getElementById('ios-modal-amount').textContent = formattedTotal;
@@ -1113,6 +1115,8 @@
             document.getElementById('ios-btn-phonepe').href = phonepeLink;
             document.getElementById('ios-btn-paytm').href = paytmLink;
             document.getElementById('ios-btn-bhim').href = bhimLink;
+            document.getElementById('ios-btn-whatsapp').href = whatsappLink;
+            document.getElementById('ios-btn-other').href = otherLink;
             
             // Set dynamic QR code fallback
             document.getElementById('ios-upi-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=` + encodeURIComponent(bhimLink);
@@ -1152,6 +1156,8 @@
         <a href="" id="ios-btn-phonepe" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-solid fa-mobile-screen-button"></i> PhonePe</a>
         <a href="" id="ios-btn-paytm" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-solid fa-wallet"></i> Paytm</a>
         <a href="" id="ios-btn-bhim" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-solid fa-building-columns"></i> BHIM</a>
+        <a href="" id="ios-btn-whatsapp" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 1.15rem;"></i> WhatsApp Pay</a>
+        <a href="" id="ios-btn-other" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-solid fa-qrcode"></i> Other UPI Apps</a>
       </div>
 
       <!-- QR and Manual Fallback -->
