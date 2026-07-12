@@ -417,6 +417,30 @@
       const screenshotInput = document.getElementById('upi-screenshot-file');
       const previewImg = document.getElementById('screenshot-preview-el');
 
+      // NPCI-Compliant UPI Link Generator & Validator
+      const generateUpiUri = (pa, pn, am, cu, tn) => {
+        if (!pa || !pa.includes('@')) {
+          throw new Error("Invalid Payee VPA.");
+        }
+        if (!pn) {
+          throw new Error("Invalid Payee Name.");
+        }
+        const parsedAmount = parseFloat(am);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+          throw new Error("Invalid Transaction Amount.");
+        }
+        
+        const formattedAmount = parsedAmount.toFixed(2);
+        const cleanNote = tn.replace(/[^a-zA-Z0-9]/g, '').substring(0, 80); // alphanumeric, max 80 chars
+        
+        const query = `pa=${encodeURIComponent(pa)}` +
+                      `&pn=${encodeURIComponent(pn)}` +
+                      `&am=${formattedAmount}` +
+                      `&cu=${encodeURIComponent(cu || 'INR')}` +
+                      `&tn=${encodeURIComponent(cleanNote)}`;
+        return `upi://pay?${query}`;
+      };
+
       // Load cart data from LocalStorage
       const loadCheckoutCart = () => {
         const savedCart = localStorage.getItem('mitti_fresh_cart');
@@ -591,12 +615,14 @@
         }
 
         // 4. Update UPI dynamic pay link
-        const formattedTotal = parseFloat(grandTotal).toFixed(2);
-        const payeeNameEncoded = encodeURIComponent("Tushar Singh Lochav");
-        const noteEncoded = encodeURIComponent(`Order-${mittiOrderId}`);
-        const upiLink = `upi://pay?pa=lochavtushar8-1@oksbi&pn=${payeeNameEncoded}&am=${formattedTotal}&cu=INR&tn=${noteEncoded}`;
+        let upiLink = "";
+        try {
+          upiLink = generateUpiUri("lochavtushar8-1@oksbi", "Tushar Singh Lochav", grandTotal, "INR", mittiOrderId);
+        } catch (err) {
+          console.error("UPI generation failed", err);
+        }
 
-        if (btnOpenUpiApp) {
+        if (btnOpenUpiApp && upiLink) {
           btnOpenUpiApp.href = upiLink;
         }
       };
@@ -681,12 +707,14 @@
         if (isHidden) {
           // Generate QR code dynamically ONLY when user explicitly asks for fallback QR
           const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
-          const formattedTotal = parseFloat(grandTotal).toFixed(2);
-          const payeeNameEncoded = encodeURIComponent("Tushar Singh Lochav");
-          const noteEncoded = encodeURIComponent(`Order-${mittiOrderId}`);
-          const upiLink = `upi://pay?pa=lochavtushar8-1@oksbi&pn=${payeeNameEncoded}&am=${formattedTotal}&cu=INR&tn=${noteEncoded}`;
+          let upiLink = "";
+          try {
+            upiLink = generateUpiUri("lochavtushar8-1@oksbi", "Tushar Singh Lochav", grandTotal, "INR", mittiOrderId);
+          } catch (err) {
+            console.error("UPI generation failed", err);
+          }
           
-          if (upiQrImage) {
+          if (upiQrImage && upiLink) {
             upiQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=` + encodeURIComponent(upiLink);
           }
           upiQrFallbackContainer.style.display = 'block';
@@ -1093,12 +1121,19 @@
           
           // Re-calculate live total
           const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
-          const formattedTotal = parseFloat(grandTotal).toFixed(2);
-          const payeeNameEncoded = encodeURIComponent("Tushar Singh Lochav");
-          const noteEncoded = encodeURIComponent(`Order-${mittiOrderId}`);
           
-          // Build App deep links based on detected OS
-          const baseQuery = `pa=lochavtushar8-1@oksbi&pn=${payeeNameEncoded}&am=${formattedTotal}&cu=INR&tn=${noteEncoded}`;
+          let upiLink = "";
+          try {
+            upiLink = generateUpiUri("lochavtushar8-1@oksbi", "Tushar Singh Lochav", grandTotal, "INR", mittiOrderId);
+          } catch (err) {
+            console.error("UPI link validation failed", err);
+            alert("UPI Payment Generation Failed: " + err.message);
+            return;
+          }
+          
+          // Build App deep links based on validated base query parameters
+          const baseQuery = upiLink.split('?')[1];
+          const formattedTotal = parseFloat(grandTotal).toFixed(2);
           
           let gpayLink, phonepeLink, paytmLink, bhimLink, whatsappLink, otherLink;
           
