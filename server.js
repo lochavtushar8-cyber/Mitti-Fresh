@@ -18,7 +18,13 @@ const db = require('./db');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;// Serve static frontend files from the root directory
+app.use(express.static(__dirname));
+
+// Route to serve the main homepage
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Enable CORS and body parsers
 app.use(cors());
