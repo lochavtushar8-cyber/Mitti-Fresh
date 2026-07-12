@@ -391,31 +391,8 @@
           <!-- SVG Sales Trends Graph -->
           <div class="checkout-card" style="flex: 2; min-width: 320px; background-color: #FFF; padding: 24px;">
             <h3 style="margin-top: 0; margin-bottom: 20px;"><i class="fa-solid fa-chart-column"></i> Weekly Sales Performance</h3>
-            <div style="height: 200px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding-top: 20px; border-bottom: 2px solid rgba(0,0,0,0.06); border-left: 2px solid rgba(0,0,0,0.06); padding-left: 10px; padding-bottom: 4px;">
-              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
-                <div style="width: 70%; background-color: var(--color-primary); height: 40%; border-radius: 4px 4px 0 0; margin-top: auto; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 0.75rem; font-weight: 700;">₹4k</div>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px;">Mon</span>
-              </div>
-              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
-                <div style="width: 70%; background-color: var(--color-primary); height: 65%; border-radius: 4px 4px 0 0; margin-top: auto; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 0.75rem; font-weight: 700;">₹6.5k</div>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px;">Tue</span>
-              </div>
-              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
-                <div style="width: 70%; background-color: var(--color-primary); height: 30%; border-radius: 4px 4px 0 0; margin-top: auto; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 0.75rem; font-weight: 700;">₹3k</div>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px;">Wed</span>
-              </div>
-              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
-                <div style="width: 70%; background-color: var(--color-primary); height: 85%; border-radius: 4px 4px 0 0; margin-top: auto; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 0.75rem; font-weight: 700;">₹8.5k</div>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px;">Thu</span>
-              </div>
-              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
-                <div style="width: 70%; background-color: var(--color-primary); height: 50%; border-radius: 4px 4px 0 0; margin-top: auto; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 0.75rem; font-weight: 700;">₹5k</div>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px;">Fri</span>
-              </div>
-              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
-                <div style="width: 70%; background-color: var(--color-accent); height: 95%; border-radius: 4px 4px 0 0; margin-top: auto; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 0.75rem; font-weight: 700;">₹9.8k</div>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px;">Sat</span>
-              </div>
+            <div id="weekly-sales-chart-container" style="height: 200px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding-top: 20px; border-bottom: 2px solid rgba(0,0,0,0.06); border-left: 2px solid rgba(0,0,0,0.06); padding-left: 10px; padding-bottom: 4px;">
+              <!-- Rendered dynamically in calculateStats() -->
             </div>
           </div>
           
@@ -1945,6 +1922,67 @@
         document.getElementById('stat-orders-today').textContent = todayOrdersCount;
         document.getElementById('stat-revenue-monthly').textContent = `₹${totalRevenue}`;
         document.getElementById('stat-low-stock').textContent = lowStockCount;
+
+        // Render dynamic Weekly Sales Chart
+        const renderWeeklySalesChart = () => {
+          const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          
+          // Build the last 7 days in order (ending with today)
+          const last7Days = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            last7Days.push({
+              dateString: d.toLocaleDateString(),
+              dayLabel: days[d.getDay()],
+              sales: 0
+            });
+          }
+
+          // Aggregate orders by date string
+          orders.forEach(o => {
+            if (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified') {
+              const oDate = o.date ? o.date.split(',')[0].trim() : "";
+              const match = last7Days.find(day => {
+                if (day.dateString === oDate) return true;
+                // Match prefix (e.g. 7/13/2026 matches 07/13/2026 or 7/13/2026)
+                const parts1 = day.dateString.split('/');
+                const parts2 = oDate.split('/');
+                if (parts1.length === 3 && parts2.length === 3) {
+                  return parseInt(parts1[0]) === parseInt(parts2[0]) &&
+                         parseInt(parts1[1]) === parseInt(parts2[1]) &&
+                         parseInt(parts1[2]) === parseInt(parts2[2]);
+                }
+                return false;
+              });
+              if (match) {
+                match.sales += parseFloat(o.amount) || 0;
+              }
+            }
+          });
+
+          // Find max sales to scale the heights
+          const maxSales = Math.max(...last7Days.map(d => d.sales), 100);
+
+          // Render the bars HTML
+          const container = document.getElementById('weekly-sales-chart-container');
+          if (container) {
+            container.innerHTML = last7Days.map((day, idx) => {
+              const pct = Math.max(10, Math.min(100, (day.sales / maxSales) * 90));
+              const isToday = idx === 6;
+              const barColor = isToday ? 'var(--color-accent)' : 'var(--color-primary)';
+              const textColor = isToday ? 'var(--color-primary)' : '#FFF';
+              const formattedVal = day.sales >= 1000 ? `₹${(day.sales/1000).toFixed(1)}k` : `₹${day.sales.toFixed(0)}`;
+              return `
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
+                  <div style="width: 70%; background-color: ${barColor}; height: ${pct}%; border-radius: 4px 4px 0 0; margin-top: auto; display: flex; align-items: center; justify-content: center; color: ${textColor}; font-size: 0.75rem; font-weight: 700; min-height: 25px;">${formattedVal}</div>
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px;">${day.dayLabel}</span>
+                </div>
+              `;
+            }).join('');
+          }
+        };
+        renderWeeklySalesChart();
 
         // Badges sidebar unread counts
         const orderBadge = document.getElementById('sidebar-order-badge');
