@@ -1144,9 +1144,9 @@
   </script>
 
   <!-- iOS UPI Modal -->
-  <div class="admin-modal-overlay" id="ios-upi-modal" style="display: none; align-items: center; justify-content: center; z-index: 999; backdrop-filter: blur(4px);">
-    <div class="admin-modal" style="max-width: 420px; padding: 24px; text-align: center; border-radius: var(--radius-sm); border: 1px solid rgba(33,78,52,0.12);">
-      <button class="modal-close-btn" id="btn-close-ios-modal" style="top: 15px; right: 15px; font-size: 1.8rem; background: none; border: none; color: var(--color-text-muted); cursor: pointer;">&times;</button>
+  <div class="admin-modal-overlay" id="ios-upi-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(4px);">
+    <div class="admin-modal" style="background-color: #FFF; border-radius: var(--radius-sm); width: 90%; max-width: 420px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative; text-align: center; border: 1px solid rgba(33,78,52,0.12);">
+      <button class="modal-close-btn" id="btn-close-ios-modal" style="position: absolute; top: 15px; right: 15px; font-size: 1.8rem; background: none; border: none; color: var(--color-text-muted); cursor: pointer; line-height: 1;">&times;</button>
       <h3 style="margin-top: 0; color: var(--color-primary); font-family: var(--font-secondary); font-size: 1.3rem;"><i class="fa-solid fa-mobile-screen"></i> Pay via UPI</h3>
       <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 16px; line-height: 1.4;">Select your installed UPI app to pay <strong>₹<span id="ios-modal-amount">0.00</span></strong> for Order <strong><span id="ios-modal-order-id">N/A</span></strong>.</p>
       
