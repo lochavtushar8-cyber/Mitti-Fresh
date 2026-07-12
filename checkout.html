@@ -1085,45 +1085,66 @@
         return "desktop";
       };
 
-      // iOS & Desktop UPI Modal trigger click interception
+      // UPI Modal trigger click interception (shows modal for all platforms for max compatibility)
       if (btnOpenUpiApp) {
         btnOpenUpiApp.addEventListener('click', (e) => {
+          e.preventDefault();
           const os = getMobileOS();
-          if (os === 'ios' || os === 'desktop') {
-            e.preventDefault();
-            
-            // Re-calculate live total
-            const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
-            const formattedTotal = parseFloat(grandTotal).toFixed(2);
-            const payeeNameEncoded = encodeURIComponent("Tushar Singh Lochav");
-            const noteEncoded = encodeURIComponent(`Order-${mittiOrderId}`);
-            
-            // Build App deep links
-            const baseQuery = `pa=lochavtushar8-1@oksbi&pn=${payeeNameEncoded}&am=${formattedTotal}&cu=INR&tn=${noteEncoded}`;
-            const gpayLink = `gpay://upi/pay?${baseQuery}`;
-            const phonepeLink = `phonepe://pay?${baseQuery}`;
-            const paytmLink = `paytmmp://pay?${baseQuery}`;
-            const bhimLink = `upi://pay?${baseQuery}`;
-            const whatsappLink = `whatsapp://pay?${baseQuery}`;
-            const otherLink = `upi://pay?${baseQuery}`;
-            
-            // Fill iOS/Desktop modal labels
-            document.getElementById('ios-modal-amount').textContent = formattedTotal;
-            document.getElementById('ios-modal-order-id').textContent = mittiOrderId;
-            
-            document.getElementById('ios-btn-gpay').href = gpayLink;
-            document.getElementById('ios-btn-phonepe').href = phonepeLink;
-            document.getElementById('ios-btn-paytm').href = paytmLink;
-            document.getElementById('ios-btn-bhim').href = bhimLink;
-            document.getElementById('ios-btn-whatsapp').href = whatsappLink;
-            document.getElementById('ios-btn-other').href = otherLink;
-            
-            // Set dynamic QR code fallback
-            document.getElementById('ios-upi-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=` + encodeURIComponent(bhimLink);
-            
-            // Open Modal
-            document.getElementById('ios-upi-modal').style.display = 'flex';
+          
+          // Re-calculate live total
+          const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
+          const formattedTotal = parseFloat(grandTotal).toFixed(2);
+          const payeeNameEncoded = encodeURIComponent("Tushar Singh Lochav");
+          const noteEncoded = encodeURIComponent(`Order-${mittiOrderId}`);
+          
+          // Build App deep links based on detected OS
+          const baseQuery = `pa=lochavtushar8-1@oksbi&pn=${payeeNameEncoded}&am=${formattedTotal}&cu=INR&tn=${noteEncoded}`;
+          
+          let gpayLink, phonepeLink, paytmLink, bhimLink, whatsappLink, otherLink;
+          
+          if (os === 'android') {
+            // Android uses Intent schemes to reliably prompt the chooser or open native applications in Chrome
+            gpayLink = `intent://pay?${baseQuery}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end;`;
+            phonepeLink = `intent://pay?${baseQuery}#Intent;scheme=upi;package=com.phonepe.app;end;`;
+            paytmLink = `intent://pay?${baseQuery}#Intent;scheme=upi;package=net.one97.paytm;end;`;
+            bhimLink = `intent://pay?${baseQuery}#Intent;scheme=upi;package=in.org.npci.upiapp;end;`;
+            whatsappLink = `intent://pay?${baseQuery}#Intent;scheme=upi;package=com.whatsapp;end;`;
+            otherLink = `intent://pay?${baseQuery}#Intent;scheme=upi;end;`;
+          } else if (os === 'ios') {
+            // iOS custom URL schemes
+            gpayLink = `gpay://upi/pay?${baseQuery}`;
+            phonepeLink = `phonepe://pay?${baseQuery}`;
+            paytmLink = `paytmmp://pay?${baseQuery}`;
+            bhimLink = `upi://pay?${baseQuery}`;
+            whatsappLink = `whatsapp://pay?${baseQuery}`;
+            otherLink = `upi://pay?${baseQuery}`;
+          } else {
+            // Desktop/Generic fallback links
+            gpayLink = `upi://pay?${baseQuery}`;
+            phonepeLink = `upi://pay?${baseQuery}`;
+            paytmLink = `upi://pay?${baseQuery}`;
+            bhimLink = `upi://pay?${baseQuery}`;
+            whatsappLink = `upi://pay?${baseQuery}`;
+            otherLink = `upi://pay?${baseQuery}`;
           }
+          
+          // Fill modal labels
+          document.getElementById('ios-modal-amount').textContent = formattedTotal;
+          document.getElementById('ios-modal-order-id').textContent = mittiOrderId;
+          
+          document.getElementById('ios-btn-gpay').href = gpayLink;
+          document.getElementById('ios-btn-phonepe').href = phonepeLink;
+          document.getElementById('ios-btn-paytm').href = paytmLink;
+          document.getElementById('ios-btn-bhim').href = bhimLink;
+          document.getElementById('ios-btn-whatsapp').href = whatsappLink;
+          document.getElementById('ios-btn-other').href = otherLink;
+          
+          // Set dynamic QR code fallback
+          const qrData = `upi://pay?${baseQuery}`;
+          document.getElementById('ios-upi-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=` + encodeURIComponent(qrData);
+          
+          // Open Modal
+          document.getElementById('ios-upi-modal').style.display = 'flex';
         });
       }
 
