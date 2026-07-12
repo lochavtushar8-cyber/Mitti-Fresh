@@ -928,51 +928,70 @@
         localStorage.removeItem('mitti_fresh_cart');
       };
 
+      // Direct Razorpay checkout (Frontend-only flow used when backend is offline or static)
+      const launchRazorpayDirectCheckout = (amount, name, phone, email, mittiOrderId) => {
+        console.log("Launching direct Razorpay Checkout using Key ID:", window.CONFIG.RAZORPAY_KEY_ID);
+        placeOrderBtn.disabled = true;
+        placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Launching Gateway...`;
+
+        const options = {
+          "key": window.CONFIG.RAZORPAY_KEY_ID,
+          "amount": amount * 100, // in paise
+          "currency": "INR",
+          "name": "Mitti Fresh",
+          "description": "Premium Grains & Oils Order (Direct)",
+          "image": "assets/logo.jpg",
+          "handler": function (response) {
+            // Record order directly to LocalStorage
+            const orderPayload = {
+              orderId: mittiOrderId,
+              razorpayPaymentId: response.razorpay_payment_id,
+              paymentStatus: "Paid",
+              orderStatus: "Pending",
+              amount: amount,
+              date: new Date().toLocaleString(),
+              customer: { name, phone, email },
+              address: {
+                house: document.getElementById('addr-house').value,
+                street: document.getElementById('addr-street').value,
+                landmark: document.getElementById('addr-landmark').value,
+                pin: document.getElementById('addr-pin').value,
+                city: "New Delhi", state: "Delhi"
+              },
+              items: cart,
+              paymentMethod: "Razorpay"
+            };
+            saveOrder(orderPayload);
+            window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
+          },
+          "prefill": {
+            "name": name,
+            "email": email,
+            "contact": "+91" + phone
+          },
+          "theme": {
+            "color": "#214E34"
+          },
+          "modal": {
+            "ondismiss": function() {
+              placeOrderBtn.disabled = false;
+              placeOrderBtn.innerHTML = `<i class="fa-solid fa-lock"></i> Pay Securely via Razorpay`;
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response){
+          window.location.href = `order-success.html?orderId=${mittiOrderId}&status=failed&error=${response.error.code}`;
+        });
+        rzp.open();
+      };
+
       // Razorpay checkout integration
       const initializeRazorpayPayment = (orderId, amount, name, phone, email) => {
         // Production Check
         const hasBackend = window.CONFIG.CREATE_ORDER_API !== "";
         
-        const runSandboxMode = () => {
-          console.log("Mitti Fresh running in Razorpay Simulation Mode");
-          placeOrderBtn.disabled = true;
-          placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Launching Gateway...`;
-
-          setTimeout(() => {
-            // Emulate Razorpay popup window
-            const userChoice = confirm(`[Razorpay Sandbox Gateway Simulation]\n\nOrder Total: ₹${amount}\nOrder ID: ${orderId}\n\nClick OK to simulate SUCCESSFUL payment.\nClick CANCEL to simulate FAILED payment.`);
-            
-            if (userChoice) {
-              const mockPaymentId = "pay_sim_" + Math.random().toString(36).substring(2, 10).toUpperCase();
-              
-              const orderPayload = {
-                orderId: orderId,
-                razorpayOrderId: "order_sim_" + Math.floor(100000 + Math.random() * 900000),
-                razorpayPaymentId: mockPaymentId,
-                paymentStatus: "Paid",
-                orderStatus: "Pending",
-                amount: amount,
-                date: new Date().toLocaleString(),
-                customer: { name, phone, email },
-                address: {
-                  house: document.getElementById('addr-house').value,
-                  street: document.getElementById('addr-street').value,
-                  landmark: document.getElementById('addr-landmark').value,
-                  pin: document.getElementById('addr-pin').value,
-                  city: "New Delhi", state: "Delhi"
-                },
-                items: cart
-              };
-
-              saveOrder(orderPayload);
-              window.location.href = `order-success.html?orderId=${orderId}&paymentId=${mockPaymentId}&status=success`;
-            } else {
-              // Redirect to failure
-              window.location.href = `order-success.html?orderId=${orderId}&status=failed&error=PaymentDeclined`;
-            }
-          }, 1200);
-        };
-
         if (hasBackend) {
           // 1. Production Mode: Fetch secure order ID from backend
           placeOrderBtn.disabled = true;
@@ -999,15 +1018,13 @@
             launchRazorpayCheckoutModal(rzpOrderId, amount, name, phone, email, orderId);
           })
           .catch(err => {
-            console.error("Payment initialization failed", err);
-            // Fall back to sandbox simulation if backend call failed
-            alert("Secure payment server is currently unreachable. Launching Sandbox simulation...");
-            runSandboxMode();
+            console.warn("Payment server unreachable, launching direct checkout mode:", err);
+            launchRazorpayDirectCheckout(amount, name, phone, email, orderId);
           });
 
         } else {
-          // 2. Sandbox/Simulation Mode: Load virtual modal to allow testing
-          runSandboxMode();
+          // 2. Static Site Fallback: Open Razorpay checkout directly
+          launchRazorpayDirectCheckout(amount, name, phone, email, orderId);
         }
       };
 
