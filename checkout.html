@@ -907,22 +907,55 @@
           });
         } else if (isCod) {
           // Complete direct COD Order
+          placeOrderBtn.disabled = true;
+          placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Submitting...`;
+
           const orderPayload = {
             orderId: mittiOrderId,
-            razorpayOrderId: "",
-            razorpayPaymentId: "COD",
-            paymentStatus: "Pending", // Cash collected at door
-            orderStatus: "Pending",
             amount: grandTotal,
-            date: new Date().toLocaleString(),
             customer: { name: custName, phone: custPhone, email: custEmail },
             address: { house: houseNo, street: street, landmark: landmark, pin: pinCode, city: "New Delhi", state: "Delhi" },
             items: cart
           };
 
-          saveOrder(orderPayload);
-          // Redirect to order success page
-          window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=COD&status=success`;
+          fetch(window.getApiEndpoint('/api/submit-cod-order'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
+          })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error("Server returned status " + res.status);
+            }
+            return res.json();
+          })
+          .then(data => {
+            const finalPayload = {
+              ...orderPayload,
+              paymentMethod: "COD",
+              razorpayOrderId: "",
+              razorpayPaymentId: "COD",
+              paymentStatus: "Pending",
+              orderStatus: "Pending",
+              date: new Date().toLocaleString()
+            };
+            saveOrder(finalPayload);
+            window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=COD&status=success`;
+          })
+          .catch(err => {
+            console.warn("COD server submission failed, falling back to LocalStorage:", err);
+            const finalPayload = {
+              ...orderPayload,
+              paymentMethod: "COD",
+              razorpayOrderId: "",
+              razorpayPaymentId: "COD",
+              paymentStatus: "Pending",
+              orderStatus: "Pending",
+              date: new Date().toLocaleString()
+            };
+            saveOrder(finalPayload);
+            window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=COD&status=success`;
+          });
         } else {
           // Initialize Razorpay Payment Gateway Flow
           initializeRazorpayPayment(mittiOrderId, grandTotal, custName, custPhone, custEmail);

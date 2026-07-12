@@ -422,6 +422,47 @@ app.post('/api/submit-upi-payment', (req, res) => {
   });
 });
 
+// 6. COD ORDER SUBMITTER
+app.post('/api/submit-cod-order', (req, res) => {
+  try {
+    const { orderId, amount, customer, address, items } = req.body;
+    
+    if (!orderId || !amount || !customer || !address || !items) {
+      return res.status(400).json({ error: "Missing required order submission fields." });
+    }
+
+    const newOrder = {
+      orderId,
+      paymentMethod: "COD",
+      razorpayOrderId: "",
+      razorpayPaymentId: "COD",
+      paymentStatus: "Pending", // Cash collected at door
+      orderStatus: "Pending",
+      amount: parseFloat(amount),
+      date: new Date().toLocaleString(),
+      customer: customer || {},
+      address: address || {},
+      items: items || []
+    };
+
+    db.insert('orders', newOrder);
+
+    // Deduct inventory
+    items.forEach(item => {
+      const prod = db.findOne('products', { name: item.name });
+      if (prod) {
+        const newStock = Math.max(0, prod.stock - item.quantity);
+        db.update('products', { id: prod.id }, { stock: newStock });
+      }
+    });
+
+    return res.status(200).json({ status: "success", orderId });
+  } catch (error) {
+    console.error("COD order submission error:", error);
+    return res.status(500).json({ error: "Failed to submit COD order." });
+  }
+});
+
 // Update Order / Payment Status (Admin console)
 app.post('/api/update-order-status', (req, res) => {
   const { orderId, orderStatus, paymentStatus, trackingRef, shippingCarrier } = req.body;
