@@ -77,6 +77,13 @@ const logAction = (user, action, details) => {
    REST API ROUTES
    ========================================================================== */
 
+// 0. CONFIG ROUTE (Expose Key ID only, never Key Secret)
+app.get('/api/config', (req, res) => {
+  return res.json({
+    razorpay_key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder'
+  });
+});
+
 // 1. AUTHENTICATION ROUTE
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
@@ -207,6 +214,41 @@ app.get('/api/orders/:orderId', (req, res) => {
     return res.status(404).json({ error: "Order not found." });
   }
   return res.json(order);
+});
+
+// Create Razorpay Order
+app.post('/api/create-order', (req, res) => {
+  try {
+    const { amount, currency, receipt } = req.body;
+
+    if (!amount || amount < 100) {
+      return res.status(400).json({ error: "Invalid amount. Minimum amount is 100 paise." });
+    }
+    if (!currency) {
+      return res.status(400).json({ error: "Currency is required." });
+    }
+    if (!receipt) {
+      return res.status(400).json({ error: "Receipt is required." });
+    }
+
+    const options = {
+      amount: parseInt(amount), // in paise
+      currency: currency || "INR",
+      receipt: receipt
+    };
+
+    razorpay.orders.create(options, (err, order) => {
+      if (err) {
+        console.error("Razorpay order creation error:", err);
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ error: err.description || "Razorpay API error" });
+      }
+      return res.status(200).json(order);
+    });
+  } catch (error) {
+    console.error("Create order controller error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // Unified Razorpay Checkout Verification route

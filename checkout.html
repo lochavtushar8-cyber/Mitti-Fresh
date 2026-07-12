@@ -1012,7 +1012,17 @@
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              mitti_order_id: mittiOrderId
+              mitti_order_id: mittiOrderId,
+              amount: amount,
+              customer: { name, phone, email },
+              address: {
+                house: document.getElementById('addr-house').value,
+                street: document.getElementById('addr-street').value,
+                landmark: document.getElementById('addr-landmark').value,
+                pin: document.getElementById('addr-pin').value,
+                city: "New Delhi", state: "Delhi"
+              },
+              items: cart
             };
 
             // Verify signature on backend
@@ -1102,6 +1112,18 @@
       // Run
       loadCheckoutCart();
       setupSavedAddresses();
+
+      // Fetch dynamic configuration from server on load (Key ID only)
+      fetch("http://localhost:3000/api/config")
+        .then(res => res.json())
+        .then(data => {
+          if (data.razorpay_key_id) {
+            window.CONFIG.RAZORPAY_KEY_ID = data.razorpay_key_id;
+          }
+        })
+        .catch(err => {
+          console.warn("Could not fetch Razorpay key from backend, using default configuration key.");
+        });
 
       // Mobile OS detector (handles iPad/iPhone requesting Desktop mode in Safari)
       const getMobileOS = () => {

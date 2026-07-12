@@ -2,14 +2,24 @@
    Mitti Fresh - Payment Gateway Configuration
    ========================================================================== */
 
+const getApiEndpoint = (path) => {
+  if (window.location.hostname === "lochavtushar8-cyber.github.io") {
+    return ""; // Force offline LocalStorage simulation on static GitHub Pages
+  }
+  if (window.location.protocol === "file:") {
+    return "http://localhost:3000" + path; // Local testing via file protocol
+  }
+  return path; // Relative URL when served by Node/Express server
+};
+
 const CONFIG = {
   // Official Razorpay credentials placeholder
-  // Change to your live Key ID from Razorpay dashboard when deploying to production
+  // Dynamically fetched from backend /api/config; falls back to placeholder if backend is offline
   RAZORPAY_KEY_ID: "rzp_test_placeholder",
 
-  // Production endpoints for secure backend integration (empty strings default to sandbox/simulation)
-  CREATE_ORDER_API: "http://localhost:3000/api/create-order",
-  VERIFY_PAYMENT_API: "http://localhost:3000/api/verify-payment",
+  // Production endpoints resolved dynamically
+  CREATE_ORDER_API: getApiEndpoint("/api/create-order"),
+  VERIFY_PAYMENT_API: getApiEndpoint("/api/verify-payment"),
 
   // Cash on Delivery parameters
   COD_ELIGIBLE_PINS: ["110078", "110075", "110059", "110045", "110077", "110076", "110043"], // Dwarka and surrounding sectors
