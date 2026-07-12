@@ -26,6 +26,38 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Clean URLs routes for static pages
+app.get('/collections/staples', (req, res) => {
+  res.sendFile(path.join(__dirname, 'shop.html'));
+});
+app.get('/checkout', (req, res) => {
+  res.sendFile(path.join(__dirname, 'checkout.html'));
+});
+app.get('/about', (req, res) => {
+  res.sendFile(path.join(__dirname, 'about.html'));
+});
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'privacy.html'));
+});
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'terms.html'));
+});
+app.get('/shipping', (req, res) => {
+  res.sendFile(path.join(__dirname, 'shipping.html'));
+});
+app.get('/refund', (req, res) => {
+  res.sendFile(path.join(__dirname, 'refund.html'));
+});
+app.get('/product', (req, res) => {
+  res.sendFile(path.join(__dirname, 'product.html'));
+});
+app.get('/order-success', (req, res) => {
+  res.sendFile(path.join(__dirname, 'order-success.html'));
+});
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 // Enable CORS and body parsers
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));

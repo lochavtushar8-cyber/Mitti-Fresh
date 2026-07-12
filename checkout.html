@@ -30,17 +30,17 @@
   <!-- Header Section -->
   <header class="main-header scrolled" id="site-header" style="position: sticky; top: 0;">
     <div class="header-container">
-      <a href="index.html" class="logo-area" aria-label="Mitti Fresh Home">
+      <a href="/" class="logo-area" aria-label="Mitti Fresh Home">
         <img src="assets/logo.jpg" alt="Mitti Fresh Logo" class="logo-img">
         <span class="logo-text">Mitti <span class="logo-highlight">Fresh</span></span>
       </a>
       
       <nav class="main-nav" aria-label="Main Navigation">
         <ul class="nav-links">
-          <li><a href="index.html" class="nav-link">Home</a></li>
-          <li><a href="shop.html" class="nav-link">Shop</a></li>
-          <li><a href="about.html" class="nav-link">About</a></li>
-          <li><a href="index.html#reviews" class="nav-link">Reviews</a></li>
+          <li><a href="/" class="nav-link">Home</a></li>
+          <li><a href="/collections/staples" class="nav-link">Shop</a></li>
+          <li><a href="/about" class="nav-link">About</a></li>
+          <li><a href="/#reviews" class="nav-link">Reviews</a></li>
           <li><a href="#contact" class="nav-link">Contact</a></li>
         </ul>
       </nav>
@@ -58,8 +58,8 @@
   <div class="breadcrumbs-container" style="background-color: var(--color-bg-light); padding: 16px 0; border-bottom: 1px solid rgba(33, 78, 52, 0.05);">
     <div class="container">
       <div class="breadcrumbs-links" style="font-size: 0.9rem; color: var(--color-text-muted);">
-        <a href="index.html" style="color: var(--color-primary); font-weight: 500;">Home</a> / 
-        <a href="shop.html" style="color: var(--color-primary); font-weight: 500;">Shop</a> / 
+        <a href="/" style="color: var(--color-primary); font-weight: 500;">Home</a> / 
+        <a href="/collections/staples" style="color: var(--color-primary); font-weight: 500;">Shop</a> / 
         <span style="color: var(--color-text-dark);">Checkout Process</span>
       </div>
     </div>
@@ -328,22 +328,22 @@
         <div class="footer-links-col">
           <h3>Quick Links</h3>
           <ul class="footer-links">
-            <li><a href="index.html">Home</a></li>
-            <li><a href="shop.html">Shop Staples</a></li>
-            <li><a href="about.html">Our Story</a></li>
-            <li><a href="index.html#reviews">Customer Reviews</a></li>
+            <li><a href="/">Home</a></li>
+            <li><a href="/collections/staples">Shop Staples</a></li>
+            <li><a href="/about">Our Story</a></li>
+            <li><a href="/#reviews">Customer Reviews</a></li>
           </ul>
         </div>
 
         <div class="footer-links-col">
           <h3>Legal & Support</h3>
           <ul class="footer-links">
-            <li><a href="about.html">About Us</a></li>
-            <li><a href="index.html#contact">Contact Us</a></li>
-            <li><a href="privacy.html">Privacy Policy</a></li>
-            <li><a href="terms.html">Terms & Conditions</a></li>
-            <li><a href="shipping.html">Shipping & Delivery</a></li>
-            <li><a href="refund.html">Refund & Cancellation</a></li>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/#contact">Contact Us</a></li>
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms & Conditions</a></li>
+            <li><a href="/shipping">Shipping & Delivery</a></li>
+            <li><a href="/refund">Refund & Cancellation</a></li>
           </ul>
         </div>
 
@@ -458,7 +458,7 @@
         const savedCart = localStorage.getItem('mitti_fresh_cart');
         if (!savedCart || JSON.parse(savedCart).length === 0) {
           alert('Your basket is empty. Returning to shop.');
-          window.location.href = 'shop.html';
+          window.location.href = "/collections/staples";
           return;
         }
         cart = JSON.parse(savedCart);
@@ -862,7 +862,7 @@
               items: cart
             };
             saveOrder(orderPayload);
-            window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
+            window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
           })
           .catch(err => {
             console.warn("UPI server submission failed, falling back to LocalStorage:", err);
@@ -895,7 +895,7 @@
                 items: cart
               };
               saveOrder(orderPayload);
-              window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
+              window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
             } else {
               // Real validation error returned by the server, alert the customer to fix it
               alert(`Payment Details Submission Failed: ${err.message || err}`);
@@ -920,7 +920,7 @@
 
           saveOrder(orderPayload);
           // Redirect to order success page
-          window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=COD&status=success`;
+          window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=COD&status=success`;
         } else {
           // Initialize Razorpay Payment Gateway Flow
           initializeRazorpayPayment(mittiOrderId, grandTotal, custName, custPhone, custEmail);
@@ -974,7 +974,7 @@
               paymentMethod: "Razorpay"
             };
             saveOrder(orderPayload);
-            window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
+            window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
           },
           "prefill": {
             "name": name,
@@ -994,7 +994,7 @@
 
         const rzp = new Razorpay(options);
         rzp.on('payment.failed', function (response){
-          window.location.href = `order-success.html?orderId=${mittiOrderId}&status=failed&error=${response.error.code}`;
+          window.location.href = `/order-success?orderId=${mittiOrderId}&status=failed&error=${response.error.code}`;
         });
         rzp.open();
       };
@@ -1096,9 +1096,9 @@
                   items: cart
                 };
                 saveOrder(orderPayload);
-                window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
+                window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
               } else {
-                window.location.href = `order-success.html?orderId=${mittiOrderId}&status=failed&error=VerificationFailed`;
+                window.location.href = `/order-success?orderId=${mittiOrderId}&status=failed&error=VerificationFailed`;
               }
             })
             .catch(err => {
@@ -1123,7 +1123,7 @@
                 items: cart
               };
               saveOrder(orderPayload);
-              window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
+              window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
             });
           },
           "prefill": {
@@ -1147,7 +1147,7 @@
 
         const rzp = new Razorpay(options);
         rzp.on('payment.failed', function (response){
-          window.location.href = `order-success.html?orderId=${mittiOrderId}&status=failed&error=${response.error.code}`;
+          window.location.href = `/order-success?orderId=${mittiOrderId}&status=failed&error=${response.error.code}`;
         });
         rzp.open();
       };

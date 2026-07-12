@@ -644,7 +644,7 @@
       } else {
         appendMessage("We mill fresh wheat grains on traditional stone grinders! You can inspect the live milling process online by clicking below:", "received");
       }
-      appendMessage(`<a href="index.html#live-stream" class="ai-chip ai-chip-accent" target="_blank"><i class="fa-solid fa-play"></i> Watch Live Stream</a>`);
+      appendMessage(`<a href="/#live-stream" class="ai-chip ai-chip-accent" target="_blank"><i class="fa-solid fa-play"></i> Watch Live Stream</a>`);
       return;
     }
 
@@ -852,7 +852,7 @@
 
   // Header quick actions button click handler events
   document.getElementById("ai-action-shop").addEventListener("click", () => {
-    window.location.href = "shop.html";
+    window.location.href = "/collections/staples";
   });
   document.getElementById("ai-action-track").addEventListener("click", () => {
     toggleChat(false);
@@ -864,7 +864,7 @@
     }, 500);
   });
   document.getElementById("ai-action-grind").addEventListener("click", () => {
-    window.location.href = "index.html#live-stream";
+    window.location.href = "/#live-stream";
   });
   document.getElementById("ai-action-whatsapp").addEventListener("click", () => {
     window.open("https://wa.me/918595077263?text=Hi%20Mitti%20Fresh!%20I%20need%20help%20completing%20my%20order.", "_blank");

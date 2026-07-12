@@ -877,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bubbleHtml = prod.infoBubble ? `<div class="info-bubble">${prod.infoBubble}</div>` : '';
 
     return `
-      <a href="product.html?id=${prod.id}" class="product-card-media-link">
+      <a href="/product?id=${prod.id}" class="product-card-media-link">
         <div class="product-image-container">
           <img src="${prod.image}" alt="${prod.name}" class="product-image" loading="lazy">
           ${badgeHtml}
@@ -886,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>
       <div class="product-details">
         <div class="product-card-header">
-          <a href="product.html?id=${prod.id}" class="product-title-link">
+          <a href="/product?id=${prod.id}" class="product-title-link">
             <h3 class="product-title">${prod.name}</h3>
           </a>
           <div class="product-rating"><i class="fa-solid fa-star"></i> 5.0</div>
@@ -1259,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("Your basket is empty!");
         return;
       }
-      window.location.href = 'checkout.html';
+      window.location.href = "/checkout";
     });
   }
 
@@ -1277,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; color: #E74C3C; margin-bottom: 16px;"></i>
           <h3>Product Not Found</h3>
           <p>The product you are looking for does not exist or has been removed.</p>
-          <a href="shop.html" class="btn btn-primary" style="margin-top: 20px;">Return to Shop</a>
+          <a href="/collections/staples" class="btn btn-primary" style="margin-top: 20px;">Return to Shop</a>
         </div>
       `;
     } else {
@@ -1298,21 +1298,21 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedRelated.forEach(rel => {
         relatedHtml += `
           <div class="product-card">
-            <a href="product.html?id=${rel.id}" class="product-card-media-link">
+            <a href="/product?id=${rel.id}" class="product-card-media-link">
               <div class="product-image-container">
                 <img src="${rel.image}" alt="${rel.name}" class="product-image" loading="lazy">
               </div>
             </a>
             <div class="product-details">
               <div class="product-card-header">
-                <a href="product.html?id=${rel.id}" class="product-title-link">
+                <a href="/product?id=${rel.id}" class="product-title-link">
                   <h3 class="product-title">${rel.name}</h3>
                 </a>
               </div>
               <p class="product-description" style="max-height: 40px; overflow: hidden;">${rel.description}</p>
               <div class="product-footer" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(33, 78, 52, 0.05);">
                 <div class="product-price">₹${rel.sizes[0].price}</div>
-                <a href="product.html?id=${rel.id}" class="btn btn-sm btn-secondary">View Specs</a>
+                <a href="/product?id=${rel.id}" class="btn btn-sm btn-secondary">View Specs</a>
               </div>
             </div>
           </div>
