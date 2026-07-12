@@ -800,11 +800,16 @@
           .catch(err => {
             console.warn("UPI server submission failed, falling back to LocalStorage:", err);
             
-            // Check if it's a network reachability error (e.g. Failed to fetch / CORS / Offline)
-            const isNetworkError = err.message.toLowerCase().includes("fetch") || 
-                                   err.message.toLowerCase().includes("network") || 
-                                   err.message.toLowerCase().includes("cors") ||
-                                   err.message.toLowerCase().includes("failed");
+            // Extract error message safely
+            const errMsg = (err && err.message) ? String(err.message).toLowerCase() : "";
+            
+            // Check if it's a network reachability error (Failed to fetch, CORS, offline, or blank error object)
+            const isNetworkError = !errMsg ||
+                                   errMsg.includes("fetch") || 
+                                   errMsg.includes("network") || 
+                                   errMsg.includes("cors") ||
+                                   errMsg.includes("failed") ||
+                                   errMsg.includes("typeerror");
 
             if (isNetworkError) {
               // Silently fall back to LocalStorage write so customer can complete purchase!
@@ -826,7 +831,7 @@
               window.location.href = `order-success.html?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
             } else {
               // Real validation error returned by the server, alert the customer to fix it
-              alert(`Payment Details Submission Failed: ${err.message}`);
+              alert(`Payment Details Submission Failed: ${err.message || err}`);
               placeOrderBtn.disabled = false;
               placeOrderBtn.innerHTML = `<i class="fa-solid fa-square-check"></i> Place Order`;
             }
