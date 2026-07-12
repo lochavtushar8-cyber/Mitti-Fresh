@@ -1074,8 +1074,99 @@
       // Run
       loadCheckoutCart();
       setupSavedAddresses();
+
+      // Mobile OS detector
+      const getMobileOS = () => {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        if (/android/i.test(userAgent)) return "android";
+        if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return "ios";
+        return "desktop";
+      };
+
+      // iOS UPI Modal trigger click interception
+      if (btnOpenUpiApp) {
+        btnOpenUpiApp.addEventListener('click', (e) => {
+          const os = getMobileOS();
+          if (os === 'ios') {
+            e.preventDefault();
+            
+            // Re-calculate live total
+            const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
+            const formattedTotal = parseFloat(grandTotal).toFixed(2);
+            const payeeNameEncoded = encodeURIComponent("Tushar Singh Lochav");
+            const noteEncoded = encodeURIComponent(`Order-${mittiOrderId}`);
+            
+            // Build App deep links
+            const baseQuery = `pa=lochavtushar8-1@oksbi&pn=${payeeNameEncoded}&am=${formattedTotal}&cu=INR&tn=${noteEncoded}`;
+            const gpayLink = `gpay://upi/pay?${baseQuery}`;
+            const phonepeLink = `phonepe://pay?${baseQuery}`;
+            const paytmLink = `paytmmp://pay?${baseQuery}`;
+            const bhimLink = `upi://pay?${baseQuery}`;
+            
+            // Fill iOS modal labels
+            document.getElementById('ios-modal-amount').textContent = formattedTotal;
+            document.getElementById('ios-modal-order-id').textContent = mittiOrderId;
+            
+            document.getElementById('ios-btn-gpay').href = gpayLink;
+            document.getElementById('ios-btn-phonepe').href = phonepeLink;
+            document.getElementById('ios-btn-paytm').href = paytmLink;
+            document.getElementById('ios-btn-bhim').href = bhimLink;
+            
+            // Set dynamic QR code fallback
+            document.getElementById('ios-upi-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=` + encodeURIComponent(bhimLink);
+            
+            // Open Modal
+            document.getElementById('ios-upi-modal').style.display = 'flex';
+          }
+        });
+      }
+
+      // Close iOS modal
+      document.getElementById('btn-close-ios-modal').addEventListener('click', () => {
+        document.getElementById('ios-upi-modal').style.display = 'none';
+      });
+
+      // iOS Copy UPI ID
+      document.getElementById('ios-btn-copy').addEventListener('click', () => {
+        navigator.clipboard.writeText("lochavtushar8-1@oksbi").then(() => {
+          const btn = document.getElementById('ios-btn-copy');
+          btn.textContent = "Copied!";
+          setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+        });
+      });
     });
   </script>
+
+  <!-- iOS UPI Modal -->
+  <div class="admin-modal-overlay" id="ios-upi-modal" style="display: none; align-items: center; justify-content: center; z-index: 999; backdrop-filter: blur(4px);">
+    <div class="admin-modal" style="max-width: 420px; padding: 24px; text-align: center; border-radius: var(--radius-sm); border: 1px solid rgba(33,78,52,0.12);">
+      <button class="modal-close-btn" id="btn-close-ios-modal" style="top: 15px; right: 15px; font-size: 1.8rem; background: none; border: none; color: var(--color-text-muted); cursor: pointer;">&times;</button>
+      <h3 style="margin-top: 0; color: var(--color-primary); font-family: var(--font-secondary); font-size: 1.3rem;"><i class="fa-solid fa-mobile-screen"></i> Pay via UPI</h3>
+      <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 16px; line-height: 1.4;">Select your installed UPI app to pay <strong>₹<span id="ios-modal-amount">0.00</span></strong> for Order <strong><span id="ios-modal-order-id">N/A</span></strong>.</p>
+      
+      <!-- App Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+        <a href="" id="ios-btn-gpay" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-brands fa-google-pay" style="font-size: 1.5rem;"></i> Google Pay</a>
+        <a href="" id="ios-btn-phonepe" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-solid fa-mobile-screen-button"></i> PhonePe</a>
+        <a href="" id="ios-btn-paytm" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-solid fa-wallet"></i> Paytm</a>
+        <a href="" id="ios-btn-bhim" class="btn btn-secondary" style="height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0;"><i class="fa-solid fa-building-columns"></i> BHIM</a>
+      </div>
+
+      <!-- QR and Manual Fallback -->
+      <div style="border-top: 1px solid rgba(0,0,0,0.06); padding-top: 16px; margin-top: 10px;">
+        <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 12px; line-height: 1.4;">If the app does not open automatically, scan the QR code below or copy the UPI ID to pay manually in your app.</p>
+        <div style="border: 1px solid rgba(33,78,52,0.1); padding: 8px; border-radius: var(--radius-sm); background-color: #FFF; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; box-shadow: var(--shadow-lux-sm);">
+          <img id="ios-upi-qr" src="" alt="UPI QR Code" style="width: 124px; height: 124px; display: block;">
+        </div>
+        
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <code style="font-family: monospace; font-size: 0.85rem; color: var(--color-primary); background-color: var(--color-bg-light); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(33,78,52,0.08);">lochavtushar8-1@oksbi</code>
+          <button type="button" class="btn btn-secondary btn-sm" id="ios-btn-copy" style="padding: 4px 8px; font-size: 0.75rem; height: auto;">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="ai-assistant.js"></script>
 </body>
 </html>
