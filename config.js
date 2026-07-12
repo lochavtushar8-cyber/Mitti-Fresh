@@ -11,6 +11,7 @@ const getApiEndpoint = (path) => {
   }
   return path; // Relative URL when served by Node/Express server
 };
+window.getApiEndpoint = getApiEndpoint;
 
 const CONFIG = {
   // Official Razorpay credentials placeholder

@@ -223,7 +223,7 @@ app.get('/api/orders/:orderId', (req, res) => {
 });
 
 // Create Razorpay Order
-app.post('/api/create-order', (req, res) => {
+const createOrderController = (req, res) => {
   try {
     const { amount, currency, receipt } = req.body;
 
@@ -255,7 +255,9 @@ app.post('/api/create-order', (req, res) => {
     console.error("Create order controller error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-});
+};
+app.post('/api/create-order', createOrderController);
+app.post('/create-order', createOrderController);
 
 // Unified Razorpay Checkout Verification route
 app.post('/api/verify-payment', (req, res) => {

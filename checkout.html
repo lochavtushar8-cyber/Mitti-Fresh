@@ -335,6 +335,18 @@
           </ul>
         </div>
 
+        <div class="footer-links-col">
+          <h3>Legal & Support</h3>
+          <ul class="footer-links">
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="index.html#contact">Contact Us</a></li>
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms & Conditions</a></li>
+            <li><a href="shipping.html">Shipping & Delivery</a></li>
+            <li><a href="refund.html">Refund & Cancellation</a></li>
+          </ul>
+        </div>
+
         <div class="footer-contact-col">
           <h3>Contact Info</h3>
           <ul class="contact-details">
@@ -824,7 +836,7 @@
           placeOrderBtn.disabled = true;
           placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Submitting...`;
 
-          fetch("http://localhost:3000/api/submit-upi-payment", {
+          fetch(window.getApiEndpoint('/api/submit-upi-payment'), {
             method: "POST",
             body: formData
           })
@@ -997,7 +1009,7 @@
           placeOrderBtn.disabled = true;
           placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Initializing Gateway...`;
 
-          fetch(window.CONFIG.CREATE_ORDER_API, {
+          fetch(window.getApiEndpoint('/create-order'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: orderId })
@@ -1145,7 +1157,7 @@
       setupSavedAddresses();
 
       // Fetch dynamic configuration from server on load (Key ID only)
-      const configUrl = (window.location.hostname === "lochavtushar8-cyber.github.io") ? "" : (window.location.protocol === "file:" ? "http://localhost:3000/api/config" : "/api/config");
+      const configUrl = window.getApiEndpoint('/api/config');
       if (configUrl) {
         fetch(configUrl)
           .then(res => res.json())

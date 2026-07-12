@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product Details — Mitti Fresh</title>
-  <meta name="description" content="Shop fresh stone-ground flours and cold-pressed oils. Milled daily & delivered fresh.">
+  <title>Refund & Cancellation Policy — Mitti Fresh</title>
+  <meta name="description" content="Read the Refund and Cancellation Policy of Mitti Fresh. Understand guidelines for order cancellation, hygiene rules, and how we process refunds to your original payment method.">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,7 @@
 </head>
 <body>
 
-  <!-- Alert Announcement Banner -->
+  <!-- Announcement Banner -->
   <div class="alert-banner" id="announcement-banner">
     <div class="alert-content">
       <i class="fa-solid fa-leaf alert-icon"></i>
@@ -73,91 +73,52 @@
     </div>
   </div>
 
-  <!-- Breadcrumbs navigation -->
-  <div class="breadcrumbs-container" style="background-color: var(--color-bg-light); padding: 16px 0; border-bottom: 1px solid rgba(33, 78, 52, 0.05);">
-    <div class="container">
-      <div class="breadcrumbs-links" style="font-size: 0.9rem; color: var(--color-text-muted);">
-        <a href="index.html" style="color: var(--color-primary); font-weight: 500;">Home</a> / 
-        <a href="shop.html" style="color: var(--color-primary); font-weight: 500;">Shop</a> / 
-        <span id="breadcrumb-active" style="color: var(--color-text-dark);">Product details</span>
-      </div>
+  <!-- Page Banner -->
+  <section class="hero-section" style="padding: 60px 0 40px; background-color: var(--color-secondary);">
+    <div class="container text-center">
+      <span class="sub-badge">Legal</span>
+      <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 12px; font-family: var(--font-secondary);">Refund & Cancellation</h1>
+      <p class="hero-description" style="margin: 0 auto; max-width: 650px;">Learn about rules for cancelling orders and refund processing timelines for flours and other edible kitchen products.</p>
     </div>
-  </div>
+  </section>
 
-  <!-- Dedicated Product details page content -->
-  <main class="product-page-wrapper" style="padding: 60px 0;">
-    <div class="container" id="product-detail-root">
-      <!-- Loaded dynamically via JS using URL ID query -->
-      <div class="loading-state" style="text-align: center; padding: 100px 0;">
-        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3rem; color: var(--color-primary); margin-bottom: 16px;"></i>
-        <h3>Loading Product Specifications...</h3>
-      </div>
-    </div>
-  </main>
+  <!-- Content Section -->
+  <section class="policy-content-section" style="padding: 80px 0; background-color: var(--color-bg-white);">
+    <div class="container" style="max-width: 800px; margin: 0 auto; padding: 0 20px; line-height: 1.8; color: var(--color-text-main);">
+      <p style="margin-bottom: 24px;">At <strong>Mitti Fresh</strong>, we strive to deliver the highest quality food staples. Please read our guidelines regarding order cancellations, hygiene rules, and refund processing timelines.</p>
 
-  <!-- Sticky Purchase Bar (Appears on scroll) -->
-  <div class="sticky-purchase-bar" id="sticky-purchase-bar">
-    <div class="container sticky-bar-flex">
-      <div class="sticky-bar-info">
-        <h4 id="sticky-title">Product Name</h4>
-        <span class="sticky-price" id="sticky-price">₹0</span>
-      </div>
-      <div class="sticky-bar-actions">
-        <button class="btn btn-secondary btn-sm" id="sticky-buy-now">Buy Now</button>
-        <button class="btn btn-primary btn-sm" id="sticky-add-cart"><i class="fa-solid fa-bag-shopping"></i> Add to Cart</button>
-      </div>
-    </div>
-  </div>
+      <h3 style="color: var(--color-primary); font-family: var(--font-secondary); font-size: 1.5rem; margin-top: 40px; margin-bottom: 16px;">1. Order Cancellations</h3>
+      <p style="margin-bottom: 20px;">You may cancel your order at any time **prior to its dispatch** from our milling facility. To request a cancellation:</p>
+      <ul style="margin-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+        <li>Please contact us immediately on WhatsApp at <strong>8595077263</strong> with your Order ID.</li>
+        <li>Once an order is marked as *Dispatched* or *Out for Delivery*, we cannot cancel the order.</li>
+      </ul>
 
-  <!-- Shopping Cart Drawer (Slides from Right) -->
-  <div class="cart-drawer-overlay" id="cart-drawer-overlay"></div>
-  <div class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title">
-    <div class="cart-header">
-      <h2 id="cart-drawer-title" class="cart-drawer-title"><i class="fa-solid fa-basket-shopping"></i> Your Basket</h2>
-      <button class="cart-close-btn" id="cart-close" aria-label="Close Shopping Cart">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-    
-    <div class="cart-body" id="cart-items-container">
-      <!-- Free Delivery Progress Bar -->
-      <div class="cart-progress-container">
-        <div class="cart-progress-desc" id="cart-progress-text">
-          <i class="fa-solid fa-truck-fast"></i> Add ₹500 more for Free Delivery
-        </div>
-        <div class="cart-progress-bg">
-          <div class="cart-progress-fill" id="cart-progress-fill"></div>
-        </div>
-      </div>
+      <h3 style="color: var(--color-primary); font-family: var(--font-secondary); font-size: 1.5rem; margin-top: 40px; margin-bottom: 16px;">2. Returns & Hygiene Rules</h3>
+      <p style="margin-bottom: 20px;">Since we deal in food staples (stone-ground wheat, multigrain flour, cold-pressed oils, grains, and dosa batters), **we do not accept returns on opened packets or used products** due to safety, health, and hygiene standards.</p>
+      <p style="margin-bottom: 20px;">However, returns or replacements are fully eligible if:</p>
+      <ul style="margin-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+        <li>The packet was damaged or torn during transit.</li>
+        <li>You received the wrong item or weight variant.</li>
+      </ul>
+      <p style="margin-bottom: 20px;">Please share a clear photograph of the damaged or incorrect item with our support team within **24 hours** of delivery to process a replacement or refund.</p>
 
-      <div class="empty-cart-state" id="empty-cart-state">
-        <i class="fa-solid fa-bag-shopping empty-icon"></i>
-        <h3>Your basket is empty</h3>
-        <p>Browse our shop and add fresh staples to your cart!</p>
-        <a href="shop.html" class="btn btn-accent btn-sm close-cart-link">Go to Shop</a>
-      </div>
-      <ul class="cart-items-list" id="cart-items-list">
-        <!-- Rendered items in JavaScript -->
+      <h3 style="color: var(--color-primary); font-family: var(--font-secondary); font-size: 1.5rem; margin-top: 40px; margin-bottom: 16px;">3. Refund Processing Timelines</h3>
+      <p style="margin-bottom: 20px;">For all eligible cancellations or returns, once approved by our auditing team in Dwarka:</p>
+      <ul style="margin-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+        <li>Approved refunds will take **5-7 business days** to process and transfer back to the customer's original payment method (bank account, card, or UPI VPA).</li>
+        <li>For Cash on Delivery orders, we will request your UPI ID or bank account details to transfer the refund directly within the same timeline.</li>
+      </ul>
+
+      <h3 style="color: var(--color-primary); font-family: var(--font-secondary); font-size: 1.5rem; margin-top: 40px; margin-bottom: 16px;">4. Contact Support</h3>
+      <p style="margin-bottom: 20px;">If you have any questions or would like to submit a cancellation/refund request, reach out to our team at:</p>
+      <ul style="margin-left: 20px; margin-bottom: 20px; list-style-type: none; padding-left: 0;">
+        <li>📍 <strong>Production Facility:</strong> Dwarka Sector 28, Delhi</li>
+        <li>📞 <strong>WhatsApp Support:</strong> 8595077263</li>
+        <li>✉️ <strong>Email Support:</strong> support@mittifresh.in</li>
       </ul>
     </div>
-
-    <div class="cart-footer" id="cart-footer">
-      <!-- Coupon Section -->
-      <div class="cart-coupon-section">
-        <input type="text" class="coupon-input" id="coupon-code" placeholder="Enter coupon code (e.g. PURE10)">
-        <button class="btn btn-sm btn-secondary" id="apply-coupon">Apply</button>
-      </div>
-
-      <div class="cart-total-row">
-        <span>Subtotal:</span>
-        <span class="total-val" id="cart-subtotal">₹0</span>
-      </div>
-      <p class="checkout-notice"><i class="fa-solid fa-truck-fast"></i> Delivery or Pick-Up options coordinated via WhatsApp</p>
-      <button class="btn btn-primary checkout-btn" id="checkout-whatsapp">
-        <i class="fa-brands fa-whatsapp"></i> Checkout via WhatsApp
-      </button>
-    </div>
-  </div>
+  </section>
 
   <!-- Footer Section -->
   <footer class="site-footer" id="contact">
@@ -167,7 +128,7 @@
           <a href="#" class="footer-logo">
             <span class="logo-text text-white">Mitti <span class="logo-highlight">Fresh</span></span>
           </a>
-          <p class="brand-desc">Bringing traditional purity back into your kitchen. We specialize in organic cold-pressed oil extraction and stone-ground grains milled fresh daily in Dwarka, Delhi.</p>
+          <p class="brand-desc">Bringing traditional purity back into your kitchen. We specialize in organic cold-pressed oil extraction and stone-ground flours milled fresh daily in Dwarka, Delhi.</p>
           <div class="social-links">
             <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
             <a href="https://instagram.com" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
@@ -193,7 +154,7 @@
             <li><a href="privacy.html">Privacy Policy</a></li>
             <li><a href="terms.html">Terms & Conditions</a></li>
             <li><a href="shipping.html">Shipping & Delivery</a></li>
-            <li><a href="refund.html">Refund & Cancellation</a></li>
+            <li><a href="refund.html" class="active">Refund & Cancellation</a></li>
           </ul>
         </div>
 
@@ -222,7 +183,7 @@
     </div>
   </footer>
 
-  <!-- Custom Scripts -->
+  <!-- Shopping Cart Sidebar, Modal, AI Assistant Scripts -->
   <script src="app.js"></script>
   <script src="ai-assistant.js"></script>
 </body>

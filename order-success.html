@@ -155,7 +155,8 @@
       const errorCode = urlParams.get('error');
 
       // Load order info from server first, fall back to LocalStorage cache
-      fetch(`http://localhost:3000/api/orders/${orderId}`)
+      const orderUrl = (window.location.protocol === "file:") ? `http://localhost:3000/api/orders/${orderId}` : `/api/orders/${orderId}`;
+      fetch(orderUrl)
         .then(res => {
           if (!res.ok) throw new Error("Order not found on server");
           return res.json();
