@@ -16,7 +16,7 @@ window.getApiEndpoint = getApiEndpoint;
 const CONFIG = {
   // Official Razorpay credentials placeholder
   // Dynamically fetched from backend /api/config; falls back to correct test key if backend is offline
-  RAZORPAY_KEY_ID: "rzp_test_TCfj3VGXEFbwIf",
+  RAZORPAY_KEY_ID: "rzp_test_TCiy2iwbfm1FJW",
 
   // Production endpoints resolved dynamically
   CREATE_ORDER_API: getApiEndpoint("/api/create-order"),
