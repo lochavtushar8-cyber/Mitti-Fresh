@@ -995,6 +995,8 @@
   <!-- Core Scripts -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // Resolve API base path dynamically
+      const API_BASE = window.location.protocol === "file:" ? API_BASE + "" : "";
       // Audio notification player
       const notifSound = document.getElementById('notif-sound-el');
       const triggerSound = () => {
@@ -1045,7 +1047,7 @@
       // Synchronize Data (Fetch API with local localStorage backup fallback)
       const syncData = () => {
         // Fetch Settings
-        fetch("http://localhost:3000/api/settings")
+        fetch(API_BASE + "/api/settings")
           .then(res => res.json())
           .then(data => { settings = data; loadSettingsUI(); })
           .catch(() => {
@@ -1064,7 +1066,7 @@
           });
 
         // Fetch Products
-        fetch("http://localhost:3000/api/products")
+        fetch(API_BASE + "/api/products")
           .then(res => res.json())
           .then(data => { products = data; renderProducts(); renderInventory(); })
           .catch(() => {
@@ -1081,7 +1083,7 @@
           });
 
         // Fetch Categories
-        fetch("http://localhost:3000/api/categories")
+        fetch(API_BASE + "/api/categories")
           .then(res => res.json())
           .then(data => { categories = data; renderCategories(); })
           .catch(() => {
@@ -1097,7 +1099,7 @@
           });
 
         // Fetch Orders
-        fetch("http://localhost:3000/api/orders")
+        fetch(API_BASE + "/api/orders")
           .then(res => res.json())
           .then(data => { orders = data; renderOrders(); renderUpiAuditor(); calculateStats(); })
           .catch(() => {
@@ -1108,7 +1110,7 @@
           });
 
         // Fetch Coupons
-        fetch("http://localhost:3000/api/coupons")
+        fetch(API_BASE + "/api/coupons")
           .then(res => res.json())
           .then(data => { coupons = data; renderCoupons(); })
           .catch(() => {
@@ -1123,7 +1125,7 @@
           });
 
         // Fetch Reviews
-        fetch("http://localhost:3000/api/reviews")
+        fetch(API_BASE + "/api/reviews")
           .then(res => res.json())
           .then(data => { reviews = data; renderReviews(); })
           .catch(() => {
@@ -1138,7 +1140,7 @@
           });
 
         // Fetch Logs
-        fetch("http://localhost:3000/api/logs")
+        fetch(API_BASE + "/api/logs")
           .then(res => res.json())
           .then(data => { logs = data; renderLogs(); })
           .catch(() => {
@@ -1194,7 +1196,7 @@
           PAN: document.getElementById('setting-pan').value
         };
 
-        fetch("http://localhost:3000/api/settings", {
+        fetch(API_BASE + "/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updated)
@@ -1211,7 +1213,7 @@
         const pinString = document.getElementById('settings-pincodes-input').value;
         const pinsArr = pinString.split(',').map(p => p.trim()).filter(p => p.length > 0);
         
-        fetch("http://localhost:3000/api/settings", {
+        fetch(API_BASE + "/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ serviceablePincodes: pinsArr })
@@ -1232,7 +1234,7 @@
           codConvenienceFee: parseInt(document.getElementById('settings-shipping-cod').value)
         };
         
-        fetch("http://localhost:3000/api/settings", {
+        fetch(API_BASE + "/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ shippingRules: rules })
@@ -1272,7 +1274,7 @@
       // Expose globally for onclick actions
       window.deleteProduct = (id) => {
         if (!confirm("Are you sure you want to delete this product?")) return;
-        fetch(`http://localhost:3000/api/products/${id}`, { method: "DELETE" })
+        fetch(`${API_BASE}/api/products/${id}`, { method: "DELETE" })
           .then(() => { alert("Product deleted!"); syncData(); })
           .catch(() => {
             const list = products.filter(p => p.id !== id);
@@ -1287,7 +1289,7 @@
         if (!prod) return;
         const duplicated = { ...prod, id: "", name: `${prod.name} (Copy)`, SKU: `${prod.SKU}-COPY` };
         
-        fetch("http://localhost:3000/api/products", {
+        fetch(API_BASE + "/api/products", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(duplicated)
@@ -1352,7 +1354,7 @@
 
         if (id) {
           // Update
-          fetch(`http://localhost:3000/api/products/${id}`, {
+          fetch(`${API_BASE}/api/products/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -1370,7 +1372,7 @@
           });
         } else {
           // Insert
-          fetch("http://localhost:3000/api/products", {
+          fetch(API_BASE + "/api/products", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -1425,7 +1427,7 @@
         const slug = name.toLowerCase().replace(/ /g, '-');
         const newCat = { id: "CAT-" + Math.floor(100 + Math.random()*900), name, slug, featured: true };
         
-        fetch("http://localhost:3000/api/categories", {
+        fetch(API_BASE + "/api/categories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newCat)
@@ -1462,7 +1464,7 @@
         if (idx !== -1) {
           const newStock = Math.max(0, products[idx].stock + change);
           
-          fetch(`http://localhost:3000/api/products/${id}`, {
+          fetch(`${API_BASE}/api/products/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ stock: newStock })
@@ -1531,7 +1533,7 @@
           }
         ];
         
-        fetch("http://localhost:3000/api/orders") // test if server is online
+        fetch(API_BASE + "/api/orders") // test if server is online
           .then(() => {
             // Write to server...
             alert("Seeding done! Verify order lists.");
@@ -1647,7 +1649,7 @@
         const shippingCarrier = document.getElementById('order-carrier-input').value;
         const trackingRef = document.getElementById('order-tracking-input').value;
 
-        fetch("http://localhost:3000/api/update-order-status", {
+        fetch(API_BASE + "/api/update-order-status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ orderId, orderStatus, shippingCarrier, trackingRef })
@@ -1712,7 +1714,7 @@
         const paymentStatus = result === 'Verified' ? 'Verified' : 'Rejected';
         const orderStatus = result === 'Verified' ? 'Confirmed' : 'Cancelled';
 
-        fetch("http://localhost:3000/api/update-order-status", {
+        fetch(API_BASE + "/api/update-order-status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ orderId: id, paymentStatus, orderStatus })
@@ -1796,7 +1798,7 @@
       window.deleteCoupon = (id) => {
         if (!confirm("Are you sure?")) return;
         
-        fetch(`http://localhost:3000/api/coupons/${id}`, { method: "DELETE" })
+        fetch(`${API_BASE}/api/coupons/${id}`, { method: "DELETE" })
           .then(() => { syncData(); })
           .catch(() => {
             const list = coupons.filter(c => c.id !== id);
@@ -1821,7 +1823,7 @@
           expiry: "2026-12-31"
         };
 
-        fetch("http://localhost:3000/api/coupons", {
+        fetch(API_BASE + "/api/coupons", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newCoupon)
@@ -1853,7 +1855,7 @@
       };
 
       window.moderateReview = (id, status) => {
-        fetch(`http://localhost:3000/api/reviews/${id}/moderate`, {
+        fetch(`${API_BASE}/api/reviews/${id}/moderate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status })
