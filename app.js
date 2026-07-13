@@ -1525,11 +1525,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
       }
 
-      // Check default size specs
+      // Log the product object to the console to verify dynamic fields
+      console.log("Mitti Fresh loaded product details schema:", prod);
+
+      // Check default size specs with secure fallback property maps
       let activeSizeIndex = 0;
       let activeSize = prod.sizes[activeSizeIndex];
-      let activePrice = activeSize.selling_price;
-      let activeMrp = activeSize.mrp;
+      let activePrice = activeSize.sellingPrice || activeSize.selling_price || activeSize.price || 0;
+      let activeMrp = activeSize.mrp || activeSize.originalPrice || activeSize.original_price || activePrice || 0;
       let savings = activeMrp - activePrice;
       let savingsPercent = Math.round((savings / activeMrp) * 100);
 
@@ -1770,8 +1773,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             activeSizeIndex = parseInt(chip.getAttribute('data-index'));
             activeSize = prod.sizes[activeSizeIndex];
-            activePrice = activeSize.selling_price;
-            activeMrp = activeSize.mrp;
+            activePrice = activeSize.sellingPrice || activeSize.selling_price || activeSize.price || 0;
+            activeMrp = activeSize.mrp || activeSize.originalPrice || activeSize.original_price || activePrice || 0;
             savings = activeMrp - activePrice;
             savingsPercent = Math.round((savings / activeMrp) * 100);
 
