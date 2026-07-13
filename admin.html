@@ -332,6 +332,9 @@
         <li class="sidebar-item" data-tab="tab-settings">
           <a><i class="fa-solid fa-sliders"></i> Store Settings</a>
         </li>
+        <li class="sidebar-item" data-tab="tab-homepage">
+          <a><i class="fa-solid fa-house-chimney"></i> Homepage Hero</a>
+        </li>
       </ul>
       
       <div class="sidebar-footer">
@@ -873,6 +876,75 @@
         </form>
       </section>
 
+      <!-- TAB: HOMEPAGE HERO CONFIGURATION -->
+      <section class="tab-panel" id="tab-homepage">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+          <div>
+            <h1 class="font-alt" style="font-size: 2.2rem; color: var(--color-primary); margin: 0;">Homepage Settings</h1>
+            <p style="color: var(--color-text-muted); margin: 4px 0 0 0;">Manage your website's main hero title, descriptions, promotion banners, and testimonials list.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-save-homepage">Save Homepage Config</button>
+        </div>
+
+        <div class="admin-card">
+          <form id="homepage-config-form">
+            <h3 style="color: var(--color-primary); border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 8px; margin-top: 0; margin-bottom: 20px;">Hero Section Setup</h3>
+            <div class="row" style="margin-bottom: 16px;">
+              <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Hero Main Title Headline</label>
+              <input type="text" id="hp-hero-title" class="form-control" style="width:100%; box-sizing:border-box;" required>
+            </div>
+            <div class="row" style="margin-bottom: 16px;">
+              <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Hero Subtitle Description</label>
+              <textarea id="hp-hero-subtitle" class="form-control" rows="3" style="width:100%; box-sizing:border-box;" required></textarea>
+            </div>
+            
+            <h3 style="color: var(--color-primary); border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 8px; margin-top: 30px; margin-bottom: 20px;">Promo Announcement Banner</h3>
+            <div class="row" style="margin-bottom: 16px;">
+              <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Banner Alert Text Message</label>
+              <input type="text" id="hp-banner-text" class="form-control" style="width:100%; box-sizing:border-box;" required>
+            </div>
+
+            <h3 style="color: var(--color-primary); border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 8px; margin-top: 30px; margin-bottom: 20px;">Customer Testimonial Reviews</h3>
+            
+            <div style="background: rgba(0,0,0,0.02); padding: 16px; border-radius: 6px; margin-bottom: 20px;">
+              <h4 style="margin-top:0; color:#333;">Testimonial Slide #1</h4>
+              <div class="grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom: 12px;">
+                <div>
+                  <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Customer Name</label>
+                  <input type="text" id="hp-test1-name" class="form-control" style="width:100%; box-sizing:border-box;" required>
+                </div>
+                <div>
+                  <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Customer Role / Location</label>
+                  <input type="text" id="hp-test1-role" class="form-control" style="width:100%; box-sizing:border-box;" required>
+                </div>
+              </div>
+              <div class="row">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Review Text Description</label>
+                <textarea id="hp-test1-text" class="form-control" rows="2" style="width:100%; box-sizing:border-box;" required></textarea>
+              </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.02); padding: 16px; border-radius: 6px;">
+              <h4 style="margin-top:0; color:#333;">Testimonial Slide #2</h4>
+              <div class="grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom: 12px;">
+                <div>
+                  <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Customer Name</label>
+                  <input type="text" id="hp-test2-name" class="form-control" style="width:100%; box-sizing:border-box;" required>
+                </div>
+                <div>
+                  <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Customer Role / Location</label>
+                  <input type="text" id="hp-test2-role" class="form-control" style="width:100%; box-sizing:border-box;" required>
+                </div>
+              </div>
+              <div class="row">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600;">Review Text Description</label>
+                <textarea id="hp-test2-text" class="form-control" rows="2" style="width:100%; box-sizing:border-box;" required></textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -1212,8 +1284,79 @@
             renderLogs();
           });
 
+        // Fetch Homepage Hero settings
+        fetch(API_BASE + "/api/homepage")
+          .then(res => res.json())
+          .then(data => { homepageConfig = data; loadHomepageUI(); })
+          .catch(() => {
+            homepageConfig = JSON.parse(localStorage.getItem('mitti_fresh_homepage') || '{}');
+            loadHomepageUI();
+          });
+
         renderEmployees();
       };
+
+      // HOMEPAGE HERO BINDINGS & LOGIC
+      let homepageConfig = {};
+      
+      const loadHomepageUI = () => {
+        document.getElementById('hp-hero-title').value = (homepageConfig.hero && homepageConfig.hero.title) || "";
+        document.getElementById('hp-hero-subtitle').value = (homepageConfig.hero && homepageConfig.hero.subtitle) || "";
+        document.getElementById('hp-banner-text').value = homepageConfig.bannerText || "";
+        
+        if (homepageConfig.testimonials && homepageConfig.testimonials[0]) {
+          document.getElementById('hp-test1-name').value = homepageConfig.testimonials[0].name || "";
+          document.getElementById('hp-test1-role').value = homepageConfig.testimonials[0].role || "";
+          document.getElementById('hp-test1-text').value = homepageConfig.testimonials[0].text || "";
+        }
+        if (homepageConfig.testimonials && homepageConfig.testimonials[1]) {
+          document.getElementById('hp-test2-name').value = homepageConfig.testimonials[1].name || "";
+          document.getElementById('hp-test2-role').value = homepageConfig.testimonials[1].role || "";
+          document.getElementById('hp-test2-text').value = homepageConfig.testimonials[1].text || "";
+        }
+      };
+
+      document.getElementById('btn-save-homepage').addEventListener('click', () => {
+        const payload = {
+          hero: {
+            title: document.getElementById('hp-hero-title').value,
+            subtitle: document.getElementById('hp-hero-subtitle').value
+          },
+          bannerText: document.getElementById('hp-banner-text').value,
+          testimonials: [
+            {
+              name: document.getElementById('hp-test1-name').value,
+              role: document.getElementById('hp-test1-role').value,
+              text: document.getElementById('hp-test1-text').value
+            },
+            {
+              name: document.getElementById('hp-test2-name').value,
+              role: document.getElementById('hp-test2-role').value,
+              text: document.getElementById('hp-test2-text').value
+            }
+          ]
+        };
+
+        fetch(API_BASE + "/api/homepage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+        .then(res => {
+          if (res.ok) {
+            alert("Homepage configurations saved to server!");
+            syncData();
+          } else {
+            throw new Error("Failed to save homepage settings");
+          }
+        })
+        .catch(err => {
+          console.warn("Offline fallback caching homepage config", err);
+          localStorage.setItem('mitti_fresh_homepage', JSON.stringify(payload));
+          alert("Homepage configurations cached offline!");
+          syncData();
+        });
+      });
 
       // 1. SETTINGS PANEL LOGIC
       const loadSettingsUI = () => {

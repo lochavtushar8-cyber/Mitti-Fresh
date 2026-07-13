@@ -736,15 +736,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hpRes = await fetch(window.getApiEndpoint('/api/homepage'));
     if (hpRes.ok) {
       const hp = await hpRes.json();
-      if (hp && hp.hero) {
-        const heroTitle = document.querySelector('.hero-section h1');
-        const heroSubtitle = document.querySelector('.hero-section p');
-        if (heroTitle) heroTitle.textContent = hp.hero.title;
-        if (heroSubtitle) heroSubtitle.textContent = hp.hero.subtitle;
+      if (hp) {
+        if (hp.hero) {
+          const heroTitle = document.querySelector('.hero-section h1');
+          const heroSubtitle = document.querySelector('.hero-section p');
+          if (heroTitle) heroTitle.textContent = hp.hero.title;
+          if (heroSubtitle) heroSubtitle.textContent = hp.hero.subtitle;
+        }
+        
+        if (hp.bannerText) {
+          const alertSpan = document.querySelector('#announcement-banner span');
+          if (alertSpan) {
+            alertSpan.textContent = hp.bannerText;
+          }
+        }
+        
+        if (hp.testimonials && hp.testimonials.length > 0) {
+          const reviewsContainer = document.getElementById('reviews-slider');
+          if (reviewsContainer) {
+            reviewsContainer.innerHTML = hp.testimonials.map(t => `
+              <div class="review-slide">
+                <div class="review-stars">
+                  <i class="fa-solid fa-star"></i>
+                  <i class="fa-solid fa-star"></i>
+                  <i class="fa-solid fa-star"></i>
+                  <i class="fa-solid fa-star"></i>
+                  <i class="fa-solid fa-star"></i>
+                </div>
+                <p class="review-text">"${t.text}"</p>
+                <div class="review-author"><i class="fa-solid fa-circle-check"></i> ${t.name}</div>
+                <div class="review-location">${t.role}</div>
+              </div>
+            `).join('');
+            
+            // Reinitialize review slider with new dynamic slides
+            if (window.initReviewsSlider) {
+              window.initReviewsSlider();
+            }
+          }
+        }
       }
     }
   } catch (err) {
-    console.warn("Offline homepage config fallback");
+    console.warn("Offline homepage config fallback", err);
   }
   let cart = [];
   let currentCategory = 'all';
@@ -850,73 +884,94 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // --- REVIEWS TESTIMONIAL SLIDER ---
-  const reviewsSlider = document.getElementById('reviews-slider');
-  const prevBtn = document.getElementById('rev-prev');
-  const nextBtn = document.getElementById('rev-next');
-  const dotsContainer = document.getElementById('reviews-dots');
+  window.initReviewsSlider = () => {
+    const reviewsSlider = document.getElementById('reviews-slider');
+    const prevBtn = document.getElementById('rev-prev');
+    const nextBtn = document.getElementById('rev-next');
+    const dotsContainer = document.getElementById('reviews-dots');
 
-  if (reviewsSlider && prevBtn && nextBtn && dotsContainer) {
-    const slides = document.querySelectorAll('.review-slide');
-    let currentIndex = 0;
-    let slideInterval;
-
-    // Create Navigation Dots
-    slides.forEach((_, index) => {
-      const dot = document.createElement('div');
-      dot.className = `reviews-dot ${index === 0 ? 'active' : ''}`;
-      dot.setAttribute('data-index', index);
-      dotsContainer.appendChild(dot);
-    });
-
-    const updateSlider = (index) => {
-      currentIndex = index;
-      reviewsSlider.style.transform = `translateX(-${currentIndex * 100}%)`;
+    if (reviewsSlider && prevBtn && nextBtn && dotsContainer) {
+      // Clear old dots first
+      dotsContainer.innerHTML = "";
       
-      // Update active dot
-      document.querySelectorAll('.reviews-dot').forEach((dot, idx) => {
-        dot.classList.toggle('active', idx === currentIndex);
+      const slides = reviewsSlider.querySelectorAll('.review-slide');
+      if (slides.length === 0) return;
+      
+      let currentIndex = 0;
+      let slideInterval;
+
+      // Create Navigation Dots
+      slides.forEach((_, index) => {
+        const dot = document.createElement('div');
+        dot.className = `reviews-dot ${index === 0 ? 'active' : ''}`;
+        dot.setAttribute('data-index', index);
+        dotsContainer.appendChild(dot);
       });
-    };
 
-    const nextSlide = () => {
-      let index = (currentIndex + 1) % slides.length;
-      updateSlider(index);
-    };
+      const updateSlider = (index) => {
+        currentIndex = index;
+        reviewsSlider.style.transform = `translateX(-${currentIndex * 100}%)`;
+        
+        // Update active dot
+        dotsContainer.querySelectorAll('.reviews-dot').forEach((dot, idx) => {
+          dot.classList.toggle('active', idx === currentIndex);
+        });
+      };
 
-    const prevSlide = () => {
-      let index = (currentIndex - 1 + slides.length) % slides.length;
-      updateSlider(index);
-    };
-
-    nextBtn.addEventListener('click', () => {
-      nextSlide();
-      resetInterval();
-    });
-
-    prevBtn.addEventListener('click', () => {
-      prevSlide();
-      resetInterval();
-    });
-
-    dotsContainer.addEventListener('click', (e) => {
-      if (e.target.classList.contains('reviews-dot')) {
-        const index = parseInt(e.target.getAttribute('data-index'));
+      const nextSlide = () => {
+        let index = (currentIndex + 1) % slides.length;
         updateSlider(index);
+      };
+
+      const prevSlide = () => {
+        let index = (currentIndex - 1 + slides.length) % slides.length;
+        updateSlider(index);
+      };
+
+      // Clone listeners to avoid duplicate click handlers if re-initialized
+      const newPrevBtn = prevBtn.cloneNode(true);
+      const newNextBtn = nextBtn.cloneNode(true);
+      prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+      nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+
+      newNextBtn.addEventListener('click', () => {
+        nextSlide();
         resetInterval();
-      }
-    });
+      });
 
-    const startInterval = () => {
-      slideInterval = setInterval(nextSlide, 6000);
-    };
+      newPrevBtn.addEventListener('click', () => {
+        prevSlide();
+        resetInterval();
+      });
 
-    const resetInterval = () => {
-      clearInterval(slideInterval);
+      // Re-bind dots container click handler
+      const newDotsContainer = dotsContainer.cloneNode(true);
+      dotsContainer.parentNode.replaceChild(newDotsContainer, dotsContainer);
+
+      newDotsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('reviews-dot')) {
+          const index = parseInt(e.target.getAttribute('data-index'));
+          updateSlider(index);
+          resetInterval();
+        }
+      });
+
+      const startInterval = () => {
+        clearInterval(slideInterval);
+        slideInterval = setInterval(nextSlide, 6000);
+      };
+
+      const resetInterval = () => {
+        clearInterval(slideInterval);
+        startInterval();
+      };
+
       startInterval();
-    };
+    }
+  };
 
-    startInterval();
-  }
+  // Initial call with hardcoded html slides
+  window.initReviewsSlider();
 
   // --- STATS NUMBERS COUNT-UP ANIMATION ---
   const statNumbers = document.querySelectorAll('.stat-number');
