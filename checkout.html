@@ -467,51 +467,75 @@
         renderOrderSummary();
       };
 
-      // Auto-fill saved addresses from LocalStorage
+      // Auto-fill saved addresses from LocalStorage or logged-in session
       const setupSavedAddresses = () => {
-        const savedAddrs = localStorage.getItem('mitti_fresh_saved_addresses');
         const savedAddrsCard = document.getElementById('saved-addresses-card');
         const savedAddrsList = document.getElementById('saved-addresses-list');
         
-        if (savedAddrs) {
-          try {
-            const addrs = JSON.parse(savedAddrs);
-            if (addrs.length > 0) {
-              savedAddrsCard.style.display = 'block';
-              savedAddrsList.innerHTML = addrs.map((addr, idx) => `
-                <div class="saved-address-chip" data-index="${idx}" style="padding: 12px; border: 1px solid rgba(33, 78, 52, 0.12); border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition-fast); background-color: var(--color-bg-white); font-size: 0.9rem;">
-                  <strong style="color: var(--color-primary);">${addr.name}</strong> • ${addr.phone}<br>
-                  <span style="color: var(--color-text-muted); font-size: 0.85rem;">${addr.house}, ${addr.street}, ${addr.city} - ${addr.pin}</span>
-                </div>
-              `).join('');
-
-              // Address click listener
-              savedAddrsList.addEventListener('click', (e) => {
-                const chip = e.target.closest('.saved-address-chip');
-                if (chip) {
-                  const idx = parseInt(chip.getAttribute('data-index'));
-                  const selected = addrs[idx];
-                  
-                  document.getElementById('cust-name').value = selected.name;
-                  document.getElementById('cust-phone').value = selected.phone;
-                  document.getElementById('cust-email').value = selected.email;
-                  document.getElementById('addr-house').value = selected.house;
-                  document.getElementById('addr-street').value = selected.street;
-                  document.getElementById('addr-landmark').value = selected.landmark || '';
-                  document.getElementById('addr-pin').value = selected.pin;
-                  
-                  // Trigger PIN verification
-                  verifyPinEligibility(selected.pin);
-                  
-                  // Visual feedback
-                  document.querySelectorAll('.saved-address-chip').forEach(c => c.style.borderColor = 'rgba(33, 78, 52, 0.12)');
-                  chip.style.borderColor = 'var(--color-accent)';
-                }
-              });
-            }
-          } catch(e) {
-            console.error("Error reading addresses", e);
+        let addrs = [];
+        const loggedIn = window.getLoggedInCustomer();
+        if (loggedIn) {
+          // Pre-fill profile
+          document.getElementById('cust-name').value = loggedIn.name || '';
+          document.getElementById('cust-phone').value = loggedIn.phone || '';
+          document.getElementById('cust-email').value = loggedIn.email || '';
+          
+          if (loggedIn.addresses && loggedIn.addresses.length > 0) {
+            addrs = loggedIn.addresses.map(a => ({
+              name: loggedIn.name,
+              phone: loggedIn.phone,
+              email: loggedIn.email,
+              house: a.house,
+              street: a.street,
+              landmark: a.landmark || '',
+              pin: a.pin,
+              city: a.city || 'New Delhi',
+              state: a.state || 'Delhi'
+            }));
           }
+        } else {
+          const savedLocal = localStorage.getItem('mitti_fresh_saved_addresses');
+          if (savedLocal) {
+            try {
+              addrs = JSON.parse(savedLocal);
+            } catch(e) {}
+          }
+        }
+
+        if (addrs.length > 0) {
+          savedAddrsCard.style.display = 'block';
+          savedAddrsList.innerHTML = addrs.map((addr, idx) => `
+            <div class="saved-address-chip" data-index="${idx}" style="padding: 12px; border: 1px solid rgba(33, 78, 52, 0.12); border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition-fast); background-color: var(--color-bg-white); font-size: 0.9rem;">
+              <strong style="color: var(--color-primary);">${addr.name}</strong> • ${addr.phone}<br>
+              <span style="color: var(--color-text-muted); font-size: 0.85rem;">${addr.house}, ${addr.street}, ${addr.city} - ${addr.pin}</span>
+            </div>
+          `).join('');
+
+          // Address click listener
+          savedAddrsList.addEventListener('click', (e) => {
+            const chip = e.target.closest('.saved-address-chip');
+            if (chip) {
+              const idx = parseInt(chip.getAttribute('data-index'));
+              const selected = addrs[idx];
+              
+              document.getElementById('cust-name').value = selected.name;
+              document.getElementById('cust-phone').value = selected.phone;
+              document.getElementById('cust-email').value = selected.email;
+              document.getElementById('addr-house').value = selected.house;
+              document.getElementById('addr-street').value = selected.street;
+              document.getElementById('addr-landmark').value = selected.landmark || '';
+              document.getElementById('addr-pin').value = selected.pin;
+              
+              // Trigger PIN verification
+              verifyPinEligibility(selected.pin);
+              
+              // Visual feedback
+              document.querySelectorAll('.saved-address-chip').forEach(c => c.style.borderColor = 'rgba(33, 78, 52, 0.12)');
+              chip.style.borderColor = 'var(--color-accent)';
+            }
+          });
+        } else {
+          savedAddrsCard.style.display = 'none';
         }
       };
 
@@ -581,15 +605,18 @@
       const calculateTotals = () => {
         // 1. Coupon Discount calculation
         discountAmount = 0;
-        if (appliedCoupon === 'WELCOME10') {
-          discountAmount = Math.round(subtotal * 0.10);
-        } else if (appliedCoupon === 'SAVE100') {
-          discountAmount = subtotal >= 500 ? 100 : 0;
+        if (appliedCoupon) {
+          if (appliedCoupon.type === 'Percentage') {
+            discountAmount = Math.round(subtotal * (appliedCoupon.discountVal / 100));
+          } else if (appliedCoupon.type === 'Flat') {
+            discountAmount = appliedCoupon.discountVal;
+          }
         }
 
         // 2. Shipping calculation
         const threshold = window.CONFIG.FREE_DELIVERY_MIN;
-        if (subtotal >= threshold || appliedCoupon === 'FREEDELIVERY') {
+        const isFreeShippingCoupon = appliedCoupon && appliedCoupon.type === 'Free Shipping';
+        if (subtotal >= threshold || isFreeShippingCoupon) {
           shippingCharge = 0;
         } else {
           shippingCharge = 50;
@@ -614,7 +641,7 @@
         // Show/hide discount rows
         if (discountAmount > 0) {
           sumDiscount.textContent = `-₹${discountAmount}`;
-          couponLabel.textContent = appliedCoupon;
+          couponLabel.textContent = appliedCoupon.code;
           couponRow.style.display = 'flex';
         } else {
           couponRow.style.display = 'none';
@@ -642,23 +669,30 @@
       };
 
       // Coupon application
-      applyCouponBtn.addEventListener('click', () => {
+      applyCouponBtn.addEventListener('click', async () => {
         const code = couponInput.value.trim().toUpperCase();
-        if (code === 'WELCOME10') {
-          appliedCoupon = 'WELCOME10';
-          alert('Promo applied successfully: 10% discount subtracted.');
-        } else if (code === 'SAVE100') {
-          if (subtotal >= 500) {
-            appliedCoupon = 'SAVE100';
-            alert('Promo applied successfully: ₹100 flat discount subtracted.');
+        if (code.length === 0) return;
+        
+        try {
+          const res = await fetch(window.getApiEndpoint('/api/coupons'));
+          if (res.ok) {
+            const dbCoupons = await res.json();
+            const coupon = dbCoupons.find(c => c.code === code);
+            if (coupon) {
+              if (subtotal >= coupon.minOrder) {
+                appliedCoupon = coupon;
+                alert(`Promo applied successfully: ${coupon.type === 'Percentage' ? coupon.discountVal + '% discount' : '₹' + coupon.discountVal + ' flat discount'} subtracted.`);
+              } else {
+                alert(`Coupon "${code}" is only valid for orders of ₹${coupon.minOrder} and above.`);
+              }
+            } else {
+              alert('Invalid promo code.');
+            }
           } else {
-            alert('SAVE100 is only valid for orders of ₹500 and above.');
+            alert('Coupon service is offline.');
           }
-        } else if (code === 'FREEDELIVERY') {
-          appliedCoupon = 'FREEDELIVERY';
-          alert('Promo applied successfully: Free Delivery unlocked.');
-        } else if (code.length > 0) {
-          alert('Invalid promo code. Try WELCOME10, SAVE100, or FREEDelivery.');
+        } catch (e) {
+          alert('Coupon service is offline.');
         }
         calculateTotals();
       });
@@ -769,42 +803,83 @@
         return true;
       };
 
+      const validateStockAndPricing = async () => {
+        try {
+          const res = await fetch(window.getApiEndpoint('/api/products'));
+          if (!res.ok) return true;
+          const dbProducts = await res.json();
+          
+          for (let item of cart) {
+            const dbVar = dbProducts.find(p => p.SKU === item.sku || p.name === item.name);
+            if (!dbVar) {
+              alert(`Product "${item.name}" is no longer available in the catalog. Please modify your basket.`);
+              return false;
+            }
+            if (dbVar.stock < item.quantity) {
+              alert(`Sorry, "${item.name}" is out of stock or has insufficient inventory. Available: ${dbVar.stock}, Requested: ${item.quantity}.`);
+              return false;
+            }
+            if (dbVar.sellingPrice !== item.price) {
+              alert(`Pricing for "${item.name}" has been updated. Recalculating details. Please review and try again.`);
+              item.price = dbVar.sellingPrice;
+              localStorage.setItem('mitti_fresh_cart', JSON.stringify(cart));
+              renderOrderSummary();
+              return false;
+            }
+          }
+          return true;
+        } catch (e) {
+          console.warn("Stock verification offline fallback", e);
+          return true;
+        }
+      };
+
       // Form submission / Payment Execution
       placeOrderBtn.addEventListener('click', (e) => {
         e.preventDefault();
         
         if (!validateCheckoutForm()) return;
 
-        const custName = document.getElementById('cust-name').value;
-        const custPhone = document.getElementById('cust-phone').value;
-        const custEmail = document.getElementById('cust-email').value;
-        const houseNo = document.getElementById('addr-house').value;
-        const street = document.getElementById('addr-street').value;
-        const landmark = document.getElementById('addr-landmark').value;
-        const pinCode = document.getElementById('addr-pin').value;
+        placeOrderBtn.disabled = true;
+        placeOrderBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying inventory...`;
 
-        // Optionally save address to profile
-        if (document.getElementById('save-address-chk').checked) {
-          let saved = [];
-          try {
-            saved = JSON.parse(localStorage.getItem('mitti_fresh_saved_addresses') || '[]');
-          } catch(e) {}
-          
-          // Avoid duplicate addresses
-          const duplicate = saved.find(s => s.house === houseNo && s.pin === pinCode);
-          if (!duplicate) {
-            saved.push({
-              name: custName, phone: custPhone, email: custEmail,
-              house: houseNo, street: street, landmark: landmark,
-              city: "New Delhi", state: "Delhi", pin: pinCode
-            });
-            localStorage.setItem('mitti_fresh_saved_addresses', JSON.stringify(saved));
+        validateStockAndPricing().then(isValid => {
+          if (!isValid) {
+            placeOrderBtn.disabled = false;
+            placeOrderBtn.innerHTML = `<i class="fa-solid fa-square-check"></i> Place Order`;
+            return;
           }
-        }
 
-        const isCod = payCodOption.checked;
-        const isUpi = payUpiOption.checked;
-        const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
+          const custName = document.getElementById('cust-name').value;
+          const custPhone = document.getElementById('cust-phone').value;
+          const custEmail = document.getElementById('cust-email').value;
+          const houseNo = document.getElementById('addr-house').value;
+          const street = document.getElementById('addr-street').value;
+          const landmark = document.getElementById('addr-landmark').value;
+          const pinCode = document.getElementById('addr-pin').value;
+
+          // Optionally save address to profile
+          if (document.getElementById('save-address-chk').checked) {
+            let saved = [];
+            try {
+              saved = JSON.parse(localStorage.getItem('mitti_fresh_saved_addresses') || '[]');
+            } catch(e) {}
+            
+            // Avoid duplicate addresses
+            const duplicate = saved.find(s => s.house === houseNo && s.pin === pinCode);
+            if (!duplicate) {
+              saved.push({
+                name: custName, phone: custPhone, email: custEmail,
+                house: houseNo, street: street, landmark: landmark,
+                city: "New Delhi", state: "Delhi", pin: pinCode
+              });
+              localStorage.setItem('mitti_fresh_saved_addresses', JSON.stringify(saved));
+            }
+          }
+
+          const isCod = payCodOption.checked;
+          const isUpi = payUpiOption.checked;
+          const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
 
         if (isUpi) {
           // Validate UPI Transaction ID (12 digits)
@@ -960,6 +1035,7 @@
           // Initialize Razorpay Payment Gateway Flow
           initializeRazorpayPayment(mittiOrderId, grandTotal, custName, custPhone, custEmail);
         }
+        });
       });
 
       // Write order payload to local database (LocalStorage simulation for dynamic retrieval)
@@ -1047,7 +1123,7 @@
           fetch(window.getApiEndpoint('/create-order'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: orderId })
+            body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: orderId, items: cart })
           })
           .then(res => {
             if (!res.ok) {
@@ -1190,6 +1266,7 @@
       // Run
       loadCheckoutCart();
       setupSavedAddresses();
+      setTimeout(setupSavedAddresses, 600); // Delayed secondary check for active session updates
 
       // Fetch dynamic configuration from server on load (Key ID only)
       const configUrl = window.getApiEndpoint('/api/config');
@@ -1203,6 +1280,38 @@
           })
           .catch(err => {
             console.warn("Could not fetch Razorpay key from backend, using default configuration key.");
+          });
+      }
+
+      // Fetch dynamic settings from server on load
+      const settingsUrl = window.getApiEndpoint('/api/settings');
+      if (settingsUrl) {
+        fetch(settingsUrl)
+          .then(res => res.json())
+          .then(data => {
+            const settingsList = Array.isArray(data) ? data : [data];
+            if (settingsList.length > 0) {
+              const dbSettings = settingsList[0];
+              // Update settings config
+              if (dbSettings.upiId) {
+                // Set the default payment recipient properties
+                window.CONFIG.UPI_ID = dbSettings.upiId;
+              }
+              if (dbSettings.shippingRules) {
+                window.CONFIG.FREE_DELIVERY_MIN = dbSettings.shippingRules.freeShippingThreshold || 500;
+                window.CONFIG.COD_CHARGE = dbSettings.shippingRules.codConvenienceFee || 50;
+              }
+              if (dbSettings.serviceablePincodes && dbSettings.serviceablePincodes.length > 0) {
+                window.CONFIG.COD_ELIGIBLE_PINS = dbSettings.serviceablePincodes;
+              }
+              
+              // Recalculate invoice details and addresses lists using fetched settings rules
+              calculateTotals();
+              setupSavedAddresses();
+            }
+          })
+          .catch(err => {
+            console.warn("Could not load dynamic settings, using default configurations.", err);
           });
       }
 
@@ -1334,6 +1443,7 @@
     </div>
   </div>
 
+  <script src="user-account.js"></script>
   <script src="ai-assistant.js"></script>
 </body>
 </html>

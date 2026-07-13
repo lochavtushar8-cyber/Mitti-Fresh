@@ -2,8 +2,8 @@
    Mitti Fresh - Dynamic Application Script
    ========================================================================== */
 
-// --- PRODUCT DATABASE ---
-const PRODUCTS = [
+// --- PRODUCT DATABASE (FALLBACK MOCK BACKUP) ---
+const STATIC_BACKUP_PRODUCTS = [
   // Goal-Based Atta Blends
   {
     id: "multigrain-atta-special",
@@ -654,8 +654,94 @@ const PRODUCTS = [
   }
 ];
 
+// Dynamic PRODUCTS holder
+let PRODUCTS = [];
+
+// Rebuild frontend catalog structure from database variants
+const rebuildCatalog = (dbProducts) => {
+  const catalogMap = {};
+  
+  const reverseCategoryMap = (cat) => {
+    switch (cat) {
+      case 'Wheat Atta': return 'atta-traditional';
+      case 'Multigrain Atta': return 'atta-specialty';
+      case 'Cold Pressed Oil': return 'oils';
+      case 'Gram Flour & Grains': return 'atta-grains';
+      default: return 'atta-grains';
+    }
+  };
+
+  dbProducts.forEach(item => {
+    const parts = item.slug.split('-');
+    const sizeValue = parts[parts.length - 1]; // "1kg"
+    const baseId = parts.slice(0, -1).join('-'); // "multigrain-atta-special"
+    
+    const actualBaseId = baseId || item.slug;
+    const actualSizeVal = baseId ? sizeValue : (item.weight || "1 unit");
+
+    if (!catalogMap[actualBaseId]) {
+      catalogMap[actualBaseId] = {
+        id: actualBaseId,
+        name: item.name.replace(/\s*\([^)]*\)\s*$/, '').trim(), // Strip " (5kg)" suffix
+        category: reverseCategoryMap(item.category),
+        description: item.shortDescription || item.fullDescription || "",
+        basePrice: item.sellingPrice,
+        unit: item.weight ? item.weight.replace(/[\d\s]/g, '') : "kg",
+        sizes: [],
+        image: item.image,
+        ingredients: item.ingredients || "",
+        benefits: item.benefits || "",
+        nutrition: item.nutrition || null,
+        badge: item.badge || "",
+        badgeType: item.badgeType || ""
+      };
+    }
+    
+    catalogMap[actualBaseId].sizes.push({
+      name: item.weight || actualSizeVal,
+      value: actualSizeVal,
+      price: item.sellingPrice,
+      mrp: item.MRP || item.sellingPrice,
+      stock: item.stock,
+      sku: item.SKU,
+      dbId: item.id
+    });
+  });
+
+  return Object.values(catalogMap);
+};
+
 // --- APP INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load products list from backend dynamically
+  try {
+    const res = await fetch(window.getApiEndpoint('/api/products'));
+    if (res.ok) {
+      const dbProducts = await res.json();
+      PRODUCTS = rebuildCatalog(dbProducts);
+    } else {
+      PRODUCTS = rebuildCatalog(STATIC_BACKUP_PRODUCTS);
+    }
+  } catch (err) {
+    console.warn("Offline fallback, loading static catalog:", err);
+    PRODUCTS = rebuildCatalog(STATIC_BACKUP_PRODUCTS);
+  }
+
+  // Load dynamic homepage config on homepage
+  try {
+    const hpRes = await fetch(window.getApiEndpoint('/api/homepage'));
+    if (hpRes.ok) {
+      const hp = await hpRes.json();
+      if (hp && hp.hero) {
+        const heroTitle = document.querySelector('.hero-section h1');
+        const heroSubtitle = document.querySelector('.hero-section p');
+        if (heroTitle) heroTitle.textContent = hp.hero.title;
+        if (heroSubtitle) heroSubtitle.textContent = hp.hero.subtitle;
+      }
+    }
+  } catch (err) {
+    console.warn("Offline homepage config fallback");
+  }
   let cart = [];
   let currentCategory = 'all';
   let currentSearchQuery = '';
@@ -870,7 +956,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const createProductCardHTML = (prod) => {
     const defaultOption = prod.sizes[0];
     const optionsHtml = prod.sizes.map(opt => {
-      return `<option value="${opt.value}" data-price="${opt.price}" data-mrp="${opt.mrp || opt.price}">${opt.name} - ₹${opt.price}</option>`;
+      const isOutOfStock = opt.stock === 0;
+      const stockText = isOutOfStock ? ' (Out of Stock)' : '';
+      return `<option value="${opt.value}" data-price="${opt.price}" data-mrp="${opt.mrp || opt.price}" data-stock="${opt.stock}" ${isOutOfStock ? 'style="color:#CB4335"' : ''}>${opt.name} - ₹${opt.price}${stockText}</option>`;
     }).join('');
 
     const badgeHtml = prod.badge ? `<span class="product-tag badge-${prod.badgeType || 'accent'} font-alt">${prod.badge}</span>` : '';
@@ -908,10 +996,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn btn-sm btn-primary add-to-cart-btn" 
                   data-id="${prod.id}" 
                   data-name="${prod.name}" 
-                  data-image="${prod.image}">
-            <i class="fa-solid fa-cart-plus"></i> Add
+                  data-image="${prod.image}"
+                  ${defaultOption.stock === 0 ? 'disabled style="background:#CCC; border-color:#CCC; cursor:not-allowed"' : ''}>
+            ${defaultOption.stock === 0 ? 'Out of Stock' : '<i class="fa-solid fa-cart-plus"></i> Add'}
           </button>
-        </div>
+        </div></div>
       </div>
     `;
   };
@@ -973,6 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedOption = select.options[select.selectedIndex];
         const newPrice = selectedOption.getAttribute('data-price');
         const newMrp = selectedOption.getAttribute('data-mrp');
+        const newStock = parseInt(selectedOption.getAttribute('data-stock') || '0');
         const productId = select.getAttribute('data-product-id');
         
         const priceDisplay = document.getElementById(`price-${productId}`);
@@ -993,6 +1083,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           } else if (strikePrice) {
             strikePrice.style.display = 'none';
+          }
+        }
+
+        // Disable Add button if selected option has zero stock
+        const buyBtn = select.closest('.product-details').querySelector('.add-to-cart-btn');
+        if (buyBtn) {
+          if (newStock === 0) {
+            buyBtn.disabled = true;
+            buyBtn.style.background = '#CCC';
+            buyBtn.style.borderColor = '#CCC';
+            buyBtn.style.cursor = 'not-allowed';
+            buyBtn.innerHTML = 'Out of Stock';
+          } else {
+            buyBtn.disabled = false;
+            buyBtn.style.background = '';
+            buyBtn.style.borderColor = '';
+            buyBtn.style.cursor = '';
+            buyBtn.innerHTML = '<i class="fa-solid fa-cart-plus"></i> Add';
           }
         }
       }
@@ -1427,8 +1535,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <!-- CTA Purchase Action Groups -->
             <div class="purchase-buttons-group">
-              <button class="btn btn-secondary btn-large" id="buy-now-btn" style="background-color: var(--color-accent); border-color: var(--color-accent); color: var(--color-bg-white);">Buy Now</button>
-              <button class="btn btn-primary btn-large" id="add-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add to Basket</button>
+              <button class="btn btn-secondary btn-large" id="buy-now-btn" ${activeSize.stock === 0 ? 'disabled style="background:#CCC; border-color:#CCC; cursor:not-allowed"' : ''}>
+                ${activeSize.stock === 0 ? 'Out of Stock' : 'Buy Now'}
+              </button>
+              <button class="btn btn-primary btn-large" id="add-cart-btn" ${activeSize.stock === 0 ? 'disabled style="background:#CCC; border-color:#CCC; cursor:not-allowed"' : ''}>
+                ${activeSize.stock === 0 ? 'Out of Stock' : '<i class="fa-solid fa-cart-plus"></i> Add to Basket'}
+              </button>
               <button class="btn btn-primary btn-large whatsapp-purchase-btn" id="whatsapp-purchase-btn">
                 <i class="fa-brands fa-whatsapp"></i> Order on WhatsApp
               </button>
@@ -1602,6 +1714,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 savingsEl.style.display = 'none';
               }
             }
+
+            // Update stock feedback
+            const addCartBtn = document.getElementById('add-cart-btn');
+            const buyNowBtn = document.getElementById('buy-now-btn');
+            const isOut = activeSize.stock === 0;
+
+            [addCartBtn, buyNowBtn, stickyAddCart, stickyBuyNow].forEach(btn => {
+              if (btn) {
+                btn.disabled = isOut;
+                btn.style.background = isOut ? '#CCC' : '';
+                btn.style.borderColor = isOut ? '#CCC' : '';
+                btn.style.cursor = isOut ? 'not-allowed' : '';
+                if (btn === addCartBtn || btn === stickyAddCart) {
+                  btn.innerHTML = isOut ? 'Out of Stock' : '<i class="fa-solid fa-cart-plus"></i> Add to Basket';
+                } else if (btn === buyNowBtn || btn === stickyBuyNow) {
+                  btn.textContent = isOut ? 'Out of Stock' : 'Buy Now';
+                }
+              }
+            });
           }
         });
       }

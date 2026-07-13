@@ -37,6 +37,8 @@ const readTable = (table) => {
       if (table === 'users') return seedDefaultUsers();
       if (table === 'settings') return seedDefaultSettings();
       if (table === 'coupons') return seedDefaultCoupons();
+      if (table === 'customers') return seedDefaultCustomers();
+      if (table === 'homepage') return seedDefaultHomepage();
       return [];
     }
     const content = fs.readFileSync(filePath, 'utf8');
@@ -1501,10 +1503,12 @@ function seedDefaultProducts() {
 
 function seedDefaultCategories() {
   const defaultCategories = [
-    { id: "CAT-001", name: "Wheat Atta", slug: "wheat-atta", featured: true },
-    { id: "CAT-002", name: "Multigrain Atta", slug: "multigrain-atta", featured: true },
-    { id: "CAT-003", name: "Cold Pressed Oil", slug: "cold-pressed-oil", featured: true },
-    { id: "CAT-004", name: "Gram Flour & Others", slug: "gram-flour-others", featured: false }
+    { id: "CAT-001", name: "Wheat Atta", slug: "atta-traditional", featured: true },
+    { id: "CAT-002", name: "Multigrain Atta", slug: "atta-specialty", featured: true },
+    { id: "CAT-003", name: "Cold Pressed Oil", slug: "oils", featured: true },
+    { id: "CAT-004", name: "Gram Flour & Grains", slug: "atta-grains", featured: false },
+    { id: "CAT-005", name: "Traditional Spices", slug: "spices", featured: false },
+    { id: "CAT-006", name: "Fresh Dosa Batters", slug: "batters", featured: false }
   ];
   writeTable('categories', defaultCategories);
   return defaultCategories;
@@ -1568,6 +1572,73 @@ function seedDefaultCoupons() {
   ];
   writeTable('coupons', defaultCoupons);
   return defaultCoupons;
+}
+
+function seedDefaultCustomers() {
+  const defaultCustomers = [
+    {
+      id: "CUST-001",
+      name: "Devansh Vashisth",
+      email: "customer@mittifresh.com",
+      password: "customer123",
+      phone: "9958172635",
+      rewardPoints: 150,
+      addresses: [
+        {
+          house: "H-104",
+          street: "Dwarka Sector 7",
+          landmark: "Near Ramphal Chowk",
+          pin: "110075",
+          city: "New Delhi",
+          state: "Delhi"
+        }
+      ],
+      wishlist: [],
+      cart: [],
+      createdAt: new Date().toISOString()
+    }
+  ];
+  writeTable('customers', defaultCustomers);
+  return defaultCustomers;
+}
+
+function seedDefaultHomepage() {
+  const defaultHomepage = {
+    id: "HP-001",
+    hero: {
+      title: "Milling Pure Grains Right Before Your Eyes",
+      subtitle: "Experience 100% natural, unadulterated stone-ground flours and cold-pressed oils prepared fresh on your order.",
+      videoMp4: "assets/hero_video.mp4",
+      videoWebm: "assets/hero_video.webm"
+    },
+    banners: [
+      {
+        id: "banner-1",
+        title: "Cold Pressed Oils",
+        subtitle: "Kohlu-pressed under low temperatures to preserve nutrition, antioxidants, and rich natural aroma.",
+        image: "assets/mustard_oil.jpg",
+        link: "/collections/staples"
+      }
+    ],
+    testimonials: [
+      {
+        id: "test-1",
+        name: "Devansh Vashisth",
+        rating: 5,
+        review: "The taste of rotis made from their stone-ground MP wheat atta is simply amazing. It stays soft for hours! Highly recommended.",
+        date: "2 days ago"
+      },
+      {
+        id: "test-2",
+        name: "Shreya Gupta",
+        rating: 5,
+        review: "I have been using their cold pressed mustard oil for cooking. The pungency and purity is unmatched. Love the transperancy of grinding live.",
+        date: "1 week ago"
+      }
+    ]
+  };
+  writeTable('homepage', [defaultHomepage]);
+  return [defaultHomepage];
 }
 
 module.exports = db;

@@ -257,7 +257,7 @@ app.get('/api/orders/:orderId', (req, res) => {
 // Create Razorpay Order
 const createOrderController = (req, res) => {
   try {
-    const { amount, currency, receipt } = req.body;
+    const { amount, currency, receipt, items } = req.body;
 
     if (!amount || amount < 100) {
       return res.status(400).json({ error: "Invalid amount. Minimum amount is 100 paise." });
@@ -267,6 +267,19 @@ const createOrderController = (req, res) => {
     }
     if (!receipt) {
       return res.status(400).json({ error: "Receipt is required." });
+    }
+
+    // Verify stock before creating Razorpay order
+    if (items && Array.isArray(items)) {
+      for (let item of items) {
+        const prod = db.findOne('products', { name: item.name }) || db.findOne('products', { SKU: item.sku });
+        if (!prod) {
+          return res.status(400).json({ error: `Product "${item.name}" not found in catalog.` });
+        }
+        if (prod.stock < item.quantity) {
+          return res.status(400).json({ error: `Insufficient stock for ${item.name}.` });
+        }
+      }
     }
 
     const options = {
@@ -310,6 +323,12 @@ app.post('/api/verify-payment', (req, res) => {
       if (mitti_order_id) {
         const existing = db.findOne('orders', { orderId: mitti_order_id });
         if (!existing) {
+          try {
+            checkAndDeductStock(items || []);
+          } catch (stockErr) {
+            sendAdminNotification('stock-mismatch-warning', `Paid Order placed but stock was insufficient: ${mitti_order_id} (${stockErr.message})`);
+          }
+
           db.insert('orders', {
             orderId: mitti_order_id,
             razorpayOrderId: razorpay_order_id,
@@ -323,6 +342,7 @@ app.post('/api/verify-payment', (req, res) => {
             items: items || [],
             paymentMethod: "Razorpay"
           });
+          sendAdminNotification('new-order', `New Razorpay Order Verified: ${mitti_order_id}`, { orderId: mitti_order_id, amount });
         }
       }
       return res.status(200).json({ status: 'success', message: 'Payment verified successfully.' });
@@ -404,14 +424,14 @@ app.post('/api/submit-upi-payment', (req, res) => {
 
       db.insert('orders', newOrder);
 
-      // Deduct product inventory stock automatically
-      parsedItems.forEach(item => {
-        const prod = db.findOne('products', { name: item.name });
-        if (prod) {
-          const newStock = Math.max(0, prod.stock - item.quantity);
-          db.update('products', { id: prod.id }, { stock: newStock });
-        }
-      });
+      // Deduct inventory and trigger alerts
+      try {
+        checkAndDeductStock(parsedItems || []);
+      } catch (stockErr) {
+        return res.status(400).json({ error: stockErr.message });
+      }
+
+      sendAdminNotification('new-order', `New UPI Payment Uploaded: ${orderId} (Pending Audit)`, { orderId, amount });
 
       return res.status(200).json({ status: "success", orderId, upiScreenshot: screenshotPath });
 
@@ -447,14 +467,14 @@ app.post('/api/submit-cod-order', (req, res) => {
 
     db.insert('orders', newOrder);
 
-    // Deduct inventory
-    items.forEach(item => {
-      const prod = db.findOne('products', { name: item.name });
-      if (prod) {
-        const newStock = Math.max(0, prod.stock - item.quantity);
-        db.update('products', { id: prod.id }, { stock: newStock });
-      }
-    });
+    // Deduct inventory and trigger alerts
+    try {
+      checkAndDeductStock(items || []);
+    } catch (stockErr) {
+      return res.status(400).json({ error: stockErr.message });
+    }
+
+    sendAdminNotification('new-order', `New COD Order Received: ${orderId}`, { orderId, amount });
 
     return res.status(200).json({ status: "success", orderId });
   } catch (error) {
@@ -619,8 +639,262 @@ app.get('/api/analytics', (req, res) => {
   });
 });
 
-// Start listening
+// SSE (Server-Sent Events) State for real-time notifications
+let adminClients = [];
+
+const sendAdminNotification = (type, message, data = {}) => {
+  const payload = JSON.stringify({ type, message, data, timestamp: new Date().toISOString() });
+  adminClients.forEach(client => {
+    client.write(`data: ${payload}\n\n`);
+  });
+  db.insert('notifications', { type, message, data, read: false });
+};
+
+// Stock Validation Helper
+const checkAndDeductStock = (items) => {
+  const toDeduct = [];
+  for (let item of items) {
+    // Look up product by name or SKU
+    const prod = db.findOne('products', { name: item.name }) || db.findOne('products', { SKU: item.sku });
+    if (!prod) {
+      throw new Error(`Product "${item.name}" not found in catalog.`);
+    }
+    if (prod.stock < item.quantity) {
+      throw new Error(`Insufficient stock for ${item.name}. Available: ${prod.stock}, Requested: ${item.quantity}`);
+    }
+    toDeduct.push({ prod, quantity: item.quantity });
+  }
+
+  // Deduct stock for all items
+  toDeduct.forEach(({ prod, quantity }) => {
+    const newStock = Math.max(0, prod.stock - quantity);
+    db.update('products', { id: prod.id }, { stock: newStock });
+    
+    // Notifications for stock changes
+    if (newStock === 0) {
+      sendAdminNotification('out-of-stock', `Product Out of Stock: ${prod.name}`, { id: prod.id, name: prod.name });
+    } else if (newStock <= 10) {
+      sendAdminNotification('low-stock', `Product Low Stock: ${prod.name} (${newStock} remaining)`, { id: prod.id, name: prod.name, stock: newStock });
+    }
+  });
+};
+
+// SSE Notification Channel Endpoint
+app.get('/api/admin/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  adminClients.push(res);
+
+  req.on('close', () => {
+    adminClients = adminClients.filter(c => c !== res);
+  });
+});
+
+// Notifications List API
+app.get('/api/notifications', (req, res) => {
+  return res.json(db.getAll('notifications'));
+});
+
+// Mark Notifications as Read
+app.post('/api/notifications/read', (req, res) => {
+  const notifications = db.getAll('notifications');
+  notifications.forEach(n => { n.read = true; });
+  db.saveAll('notifications', notifications);
+  return res.json({ status: "success" });
+});
+
+// Dynamic Homepage configuration API
+app.get('/api/homepage', (req, res) => {
+  const hpList = db.getAll('homepage');
+  if (hpList.length === 0) {
+    return res.json({});
+  }
+  return res.json(hpList[0]);
+});
+
+// Admin Homepage Config Update
+app.post('/api/homepage', (req, res) => {
+  const updates = req.body;
+  const hpList = db.getAll('homepage');
+  if (hpList.length === 0) {
+    db.insert('homepage', updates);
+  } else {
+    db.update('homepage', { id: hpList[0].id }, updates);
+  }
+  sendAdminNotification('homepage-update', 'Homepage content has been updated');
+  return res.json({ status: "success", homepage: db.getAll('homepage')[0] });
+});
+
+// Helper: Authenticate customer email from Authorization Header token
+const getCustomerFromToken = (req) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.substring(7);
+  if (!token.startsWith('Token-')) return null;
+  try {
+    const base64Email = token.substring(6);
+    const email = Buffer.from(base64Email, 'base64').toString('utf8');
+    return db.findOne('customers', { email });
+  } catch (e) {
+    return null;
+  }
+};
+
+// Customer Registration
+app.post('/api/customers/register', (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({ error: "Name, email, password and phone are required." });
+    }
+    const existing = db.findOne('customers', { email });
+    if (existing) {
+      return res.status(400).json({ error: "Customer with this email is already registered." });
+    }
+
+    const customer = {
+      name,
+      email,
+      password,
+      phone,
+      rewardPoints: 100, // Gift 100 reward points on sign-up
+      addresses: [],
+      wishlist: [],
+      cart: []
+    };
+
+    const saved = db.insert('customers', customer);
+    const token = `Token-${Buffer.from(email).toString('base64')}`;
+    
+    sendAdminNotification('new-customer', `New Customer Registration: ${name}`, { name, email });
+    
+    return res.status(200).json({ status: "success", customer: saved, token });
+  } catch (error) {
+    console.error("Customer registration error:", error);
+    return res.status(500).json({ error: "Registration failed." });
+  }
+});
+
+// Customer Login
+app.post('/api/customers/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+    const customer = db.findOne('customers', { email });
+    if (!customer || customer.password !== password) {
+      return res.status(401).json({ error: "Invalid email or password credentials." });
+    }
+    const token = `Token-${Buffer.from(email).toString('base64')}`;
+    return res.status(200).json({ status: "success", customer, token });
+  } catch (error) {
+    console.error("Customer login error:", error);
+    return res.status(500).json({ error: "Login failed." });
+  }
+});
+
+// Customer Profile details (including order history!)
+app.get('/api/customers/profile', (req, res) => {
+  const customer = getCustomerFromToken(req);
+  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+  
+  const allOrders = db.getAll('orders');
+  const customerOrders = allOrders.filter(o => o.customer && (o.customer.email === customer.email || o.customer.phone === customer.phone));
+  
+  return res.json({
+    status: "success",
+    customer,
+    orders: customerOrders
+  });
+});
+
+// Update Profile info
+app.put('/api/customers/profile', (req, res) => {
+  const customer = getCustomerFromToken(req);
+  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+
+  const { name, phone } = req.body;
+  const updates = {};
+  if (name) updates.name = name;
+  if (phone) updates.phone = phone;
+
+  const updated = db.update('customers', { email: customer.email }, updates);
+  return res.json({ status: "success", customer: updated[0] });
+});
+
+// Add Address to list
+app.post('/api/customers/address', (req, res) => {
+  const customer = getCustomerFromToken(req);
+  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+
+  const { house, street, landmark, pin, city, state } = req.body;
+  if (!house || !street || !pin) {
+    return res.status(400).json({ error: "House, street and pin code are required." });
+  }
+
+  const addresses = customer.addresses || [];
+  addresses.push({ house, street, landmark: landmark || "", pin, city: city || "New Delhi", state: state || "Delhi" });
+
+  db.update('customers', { email: customer.email }, { addresses });
+  return res.json({ status: "success", addresses });
+});
+
+// Delete Address
+app.delete('/api/customers/address/:index', (req, res) => {
+  const customer = getCustomerFromToken(req);
+  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+
+  const index = parseInt(req.params.index);
+  const addresses = customer.addresses || [];
+  if (isNaN(index) || index < 0 || index >= addresses.length) {
+    return res.status(400).json({ error: "Invalid address selection index." });
+  }
+
+  addresses.splice(index, 1);
+  db.update('customers', { email: customer.email }, { addresses });
+  return res.json({ status: "success", addresses });
+});
+
+// Synchronize Cart list
+app.post('/api/customers/cart', (req, res) => {
+  const customer = getCustomerFromToken(req);
+  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+
+  const { cart } = req.body;
+  db.update('customers', { email: customer.email }, { cart: cart || [] });
+  return res.json({ status: "success" });
+});
+
+// Synchronize Wishlist
+app.post('/api/customers/wishlist', (req, res) => {
+  const customer = getCustomerFromToken(req);
+  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+
+  const { wishlist } = req.body;
+  db.update('customers', { email: customer.email }, { wishlist: wishlist || [] });
+  return res.json({ status: "success" });
+});
+
+// Fetch all registered customers list (Admin panel)
+app.get('/api/customers', (req, res) => {
+  return res.json(db.getAll('customers'));
+});
+
+// Start listening and pre-seed tables
 app.listen(PORT, () => {
+  const tables = ['settings', 'categories', 'products', 'users', 'coupons', 'customers', 'homepage', 'notifications', 'orders', 'logs'];
+  tables.forEach(t => {
+    try {
+      db.getAll(t);
+    } catch (e) {
+      console.error(`Failed to pre-seed table: ${t}`, e);
+    }
+  });
+
   console.log(`=======================================================`);
   console.log(` Mitti Fresh Payment & Operations REST API Backend Running`);
   console.log(` API Endpoint: http://localhost:${PORT}`);
