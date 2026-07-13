@@ -842,9 +842,25 @@
           const dbProducts = await res.json();
           
           for (let item of cart) {
-            const dbVar = dbProducts.find(p => p.SKU === item.sku || p.name === item.name);
+            const dbVar = dbProducts.find(p => {
+              if (item.sku && p.SKU === item.sku) return true;
+              if (p.name === item.name) return true;
+              
+              // Soft matching for stripped names and variant weights
+              const cleanDbName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+              if (cleanDbName === item.name) {
+                // Check if weight/size matches
+                const dbSize = p.weight || "";
+                if (dbSize === item.size) return true;
+                // Fallback check if slug contains/ends with size
+                const cleanSize = item.size.toLowerCase().replace(/[\s()]/g, '');
+                if (p.slug && p.slug.endsWith(cleanSize)) return true;
+              }
+              return false;
+            });
+
             if (!dbVar) {
-              alert(`Product "${item.name}" is no longer available in the catalog. Please modify your basket.`);
+              alert(`Product "${item.name}" (${item.size}) is no longer available in the catalog. Please modify your basket.`);
               return false;
             }
             if (dbVar.stock < item.quantity) {

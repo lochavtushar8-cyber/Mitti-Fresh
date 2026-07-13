@@ -293,6 +293,34 @@ app.get('/api/orders/:orderId', (req, res) => {
   return res.json(order);
 });
 
+// Helper to soft-match storefront cart items to database products
+const findProductFromCartItem = (item) => {
+  if (!item) return null;
+  if (item.sku) {
+    const prod = db.findOne('products', { SKU: item.sku });
+    if (prod) return prod;
+  }
+  
+  // Try exact name match
+  const exact = db.findOne('products', { name: item.name });
+  if (exact) return exact;
+
+  // Try matching clean name and weight
+  const allProducts = db.getAll('products');
+  return allProducts.find(p => {
+    const cleanDbName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (cleanDbName === item.name) {
+      // Check size / weight
+      const dbSize = p.weight || "";
+      if (dbSize === item.size) return true;
+      // Fallback check slug
+      const cleanSize = item.size.toLowerCase().replace(/[\s()]/g, '');
+      if (p.slug && p.slug.endsWith(cleanSize)) return true;
+    }
+    return false;
+  });
+};
+
 // Create Razorpay Order
 const createOrderController = (req, res) => {
   try {
@@ -311,7 +339,7 @@ const createOrderController = (req, res) => {
     // Verify stock before creating Razorpay order
     if (items && Array.isArray(items)) {
       for (let item of items) {
-        const prod = db.findOne('products', { name: item.name }) || db.findOne('products', { SKU: item.sku });
+        const prod = findProductFromCartItem(item);
         if (!prod) {
           return res.status(400).json({ error: `Product "${item.name}" not found in catalog.` });
         }
@@ -709,8 +737,8 @@ const sendStorefrontEvent = (type, message, data = {}) => {
 const checkAndDeductStock = (items) => {
   const toDeduct = [];
   for (let item of items) {
-    // Look up product by name or SKU
-    const prod = db.findOne('products', { name: item.name }) || db.findOne('products', { SKU: item.sku });
+    // Look up product using soft match helper
+    const prod = findProductFromCartItem(item);
     if (!prod) {
       throw new Error(`Product "${item.name}" not found in catalog.`);
     }
