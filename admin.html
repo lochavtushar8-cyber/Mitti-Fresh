@@ -973,7 +973,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // Resolve API base path dynamically
-      const API_BASE = window.location.protocol === "file:" ? API_BASE + "" : "";
+      const API_BASE = window.location.protocol === "file:" ? "http://localhost:3000" : "";
       // Audio notification player
       const notifSound = document.getElementById('notif-sound-el');
       const triggerSound = () => {
