@@ -705,6 +705,7 @@ const rebuildCatalog = (dbProducts) => {
       name: item.weight || actualSizeVal,
       value: actualSizeVal,
       price: item.sellingPrice,
+      selling_price: item.sellingPrice,
       mrp: item.MRP || item.sellingPrice,
       stock: item.stock,
       sku: item.SKU,
@@ -1527,8 +1528,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Check default size specs
       let activeSizeIndex = 0;
       let activeSize = prod.sizes[activeSizeIndex];
-      let activePrice = activeSize.price;
-      let activeMrp = activeSize.mrp || activePrice;
+      let activePrice = activeSize.selling_price;
+      let activeMrp = activeSize.mrp;
       let savings = activeMrp - activePrice;
       let savingsPercent = Math.round((savings / activeMrp) * 100);
 
@@ -1769,8 +1770,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             activeSizeIndex = parseInt(chip.getAttribute('data-index'));
             activeSize = prod.sizes[activeSizeIndex];
-            activePrice = activeSize.price;
-            activeMrp = activeSize.mrp || activePrice;
+            activePrice = activeSize.selling_price;
+            activeMrp = activeSize.mrp;
             savings = activeMrp - activePrice;
             savingsPercent = Math.round((savings / activeMrp) * 100);
 
