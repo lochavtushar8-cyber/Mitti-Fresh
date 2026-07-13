@@ -1135,7 +1135,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const renderProducts = () => {
     if (bestsellersList) {
       bestsellersList.innerHTML = '';
-      const bestsellers = PRODUCTS.filter(prod => prod.badgeType === 'bestseller');
+      let bestsellers = PRODUCTS.filter(prod => prod.badgeType === 'bestseller' || (prod.badge && prod.badge.toLowerCase().includes('best')));
+      if (bestsellers.length === 0) {
+        bestsellers = PRODUCTS.slice(0, 4); // Fallback to first 4 products in catalog
+      }
       
       bestsellers.forEach(prod => {
         const card = document.createElement('div');
@@ -1525,7 +1528,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Populate related products
       const relatedProducts = PRODUCTS.filter(p => p.category === prod.category && p.id !== prod.id).slice(0, 4);
-      const backupRelated = PRODUCTS.filter(p => p.badgeType === 'bestseller' && p.id !== prod.id).slice(0, 4);
+      let backupRelated = PRODUCTS.filter(p => (p.badgeType === 'bestseller' || (p.badge && p.badge.toLowerCase().includes('best'))) && p.id !== prod.id).slice(0, 4);
+      if (backupRelated.length === 0) {
+        backupRelated = PRODUCTS.filter(p => p.id !== prod.id).slice(0, 4);
+      }
       const selectedRelated = relatedProducts.length >= 2 ? relatedProducts : backupRelated;
 
       let relatedHtml = '';
