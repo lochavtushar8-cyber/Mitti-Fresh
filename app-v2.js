@@ -725,6 +725,30 @@ const rebuildCatalog = (dbProducts) => {
 
 // --- APP INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
+  // Inject a small visual floating badge to verify app-v2.js is active
+  console.log("Mitti Fresh app-v2.js successfully loaded in browser!");
+  try {
+    const dbg = document.createElement('div');
+    dbg.id = 'mitti-sync-badge';
+    dbg.style.position = 'fixed';
+    dbg.style.bottom = '15px';
+    dbg.style.left = '15px';
+    dbg.style.background = 'rgba(33, 78, 52, 0.9)';
+    dbg.style.color = '#fff';
+    dbg.style.padding = '6px 12px';
+    dbg.style.fontSize = '11px';
+    dbg.style.borderRadius = '20px';
+    dbg.style.zIndex = '999999';
+    dbg.style.fontFamily = 'sans-serif';
+    dbg.style.pointerEvents = 'none';
+    dbg.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)';
+    dbg.style.display = 'flex';
+    dbg.style.alignItems = 'center';
+    dbg.style.gap = '6px';
+    dbg.innerHTML = `<span style="display: inline-block; width: 6px; height: 6px; background: #2ECC71; border-radius: 50%;"></span> Live Sync V2.0 Active`;
+    document.body.appendChild(dbg);
+  } catch (e) {}
+
   // Load products list from backend dynamically
   try {
     const res = await fetch(window.getApiEndpoint('/api/products') + '?t=' + Date.now());
