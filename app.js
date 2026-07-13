@@ -661,9 +661,13 @@ let PRODUCTS = [];
 const rebuildCatalog = (dbProducts) => {
   const catalogMap = {};
   
-  const reverseCategoryMap = (cat) => {
+  const reverseCategoryMap = (cat, name = "") => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('khal') || lowerName.includes('peas') || lowerName.includes('methi') || lowerName.includes('fenugreek')) {
+      return 'khal-seeds';
+    }
     switch (cat) {
-      case 'Wheat Atta': return 'atta-traditional';
+      case 'Wheat Atta': return 'atta-grains';
       case 'Multigrain Atta': return 'atta-specialty';
       case 'Cold Pressed Oil': return 'oils';
       case 'Gram Flour & Grains': return 'atta-grains';
@@ -683,7 +687,7 @@ const rebuildCatalog = (dbProducts) => {
       catalogMap[actualBaseId] = {
         id: actualBaseId,
         name: item.name.replace(/\s*\([^)]*\)\s*$/, '').trim(), // Strip " (5kg)" suffix
-        category: reverseCategoryMap(item.category),
+        category: reverseCategoryMap(item.category, item.name),
         description: item.shortDescription || item.fullDescription || "",
         basePrice: item.sellingPrice,
         unit: item.weight ? item.weight.replace(/[\d\s]/g, '') : "kg",
@@ -720,11 +724,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const dbProducts = await res.json();
       PRODUCTS = rebuildCatalog(dbProducts);
     } else {
-      PRODUCTS = rebuildCatalog(STATIC_BACKUP_PRODUCTS);
+      PRODUCTS = STATIC_BACKUP_PRODUCTS;
     }
   } catch (err) {
     console.warn("Offline fallback, loading static catalog:", err);
-    PRODUCTS = rebuildCatalog(STATIC_BACKUP_PRODUCTS);
+    PRODUCTS = STATIC_BACKUP_PRODUCTS;
   }
 
   // Load dynamic homepage config on homepage
