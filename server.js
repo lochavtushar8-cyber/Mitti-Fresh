@@ -11,8 +11,32 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables dynamically with absolute path to support Phusion Passenger
+dotenv.config({ path: path.join(__dirname, '.env.production') });
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+function logStartupError(message) {
+  const logPath = path.join(__dirname, 'server-error.txt');
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`, 'utf8');
+  console.error(message);
+}
+
+// Register global crash handlers to write logs to disk
+process.on('uncaughtException', (err) => {
+  logStartupError(`Uncaught Exception: ${err.message}\nStack: ${err.stack}`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  logStartupError(`Unhandled Rejection: ${reason}`);
+});
+
+// Verify environment variables on startup
+const requiredEnv = ['INSFORGE_URL', 'INSFORGE_ANON_KEY', 'INSFORGE_API_KEY', 'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'];
+const missingEnv = requiredEnv.filter(key => !process.env[key]);
+if (missingEnv.length > 0) {
+  logStartupError(`WARNING: Missing required environment variables on startup: ${missingEnv.join(', ')}`);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,7 +58,7 @@ async function initInsForge() {
     });
     console.log("✓ Connected to InsForge BaaS database successfully.");
   } catch (err) {
-    console.error("Failed to initialize InsForge SDK client:", err);
+    logStartupError(`Failed to initialize InsForge SDK client: ${err.message}\nStack: ${err.stack}`);
     process.exit(1);
   }
 }
