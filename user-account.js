@@ -545,54 +545,63 @@ document.addEventListener('DOMContentLoaded', () => {
   window.getLoggedInCustomer = () => window.loggedInCustomer;
   
   // Fetch dynamic settings from server to sync contact details and alert banner globally
+  const applySettings = (settings) => {
+    if (!settings) return;
+    
+    // Sync support phone links and text
+    if (settings.supportPhone) {
+      const cleanPhone = settings.supportPhone.trim();
+      
+      // Update tel links
+      document.querySelectorAll('a[href^="tel:"]').forEach(link => {
+        link.href = `tel:${cleanPhone}`;
+        if (link.textContent.includes('8595077263') || link.classList.contains('phone-link')) {
+          link.textContent = cleanPhone;
+        }
+      });
+      
+      // Update WhatsApp links
+      document.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
+        try {
+          const url = new URL(link.href);
+          const textParam = url.searchParams.get('text');
+          const cleanNumber = cleanPhone.replace(/\D/g, ''); // strip spaces/symbols
+          const finalNumber = cleanNumber.startsWith('91') ? cleanNumber : `91${cleanNumber}`;
+          link.href = `https://wa.me/${finalNumber}${textParam ? `?text=${encodeURIComponent(textParam)}` : ''}`;
+          
+          if (link.textContent.includes('8595077263')) {
+            link.innerHTML = link.innerHTML.replace(/8595077263/g, cleanPhone);
+          }
+        } catch(e) {}
+      });
+
+      // Walk text nodes to replace hardcoded phone occurrences dynamically
+      const walkTextNodes = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          if (node.nodeValue.includes('8595077263')) {
+            node.nodeValue = node.nodeValue.replace(/8595077263/g, cleanPhone);
+          }
+        } else {
+          node.childNodes.forEach(walkTextNodes);
+        }
+      };
+      walkTextNodes(document.body);
+    }
+  };
+
   const syncSettingsGlobally = async () => {
     try {
       const res = await fetch(getApiUrl('/api/settings'));
       if (res.ok) {
         const settings = await res.json();
-        
-        // Sync support phone links and text
-        if (settings.supportPhone) {
-          const cleanPhone = settings.supportPhone.trim();
-          
-          // Update tel links
-          document.querySelectorAll('a[href^="tel:"]').forEach(link => {
-            link.href = `tel:${cleanPhone}`;
-            if (link.textContent.includes('8595077263') || link.classList.contains('phone-link')) {
-              link.textContent = cleanPhone;
-            }
-          });
-          
-          // Update WhatsApp links
-          document.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
-            try {
-              const url = new URL(link.href);
-              const textParam = url.searchParams.get('text');
-              const cleanNumber = cleanPhone.replace(/\D/g, ''); // strip spaces/symbols
-              const finalNumber = cleanNumber.startsWith('91') ? cleanNumber : `91${cleanNumber}`;
-              link.href = `https://wa.me/${finalNumber}${textParam ? `?text=${encodeURIComponent(textParam)}` : ''}`;
-              
-              if (link.textContent.includes('8595077263')) {
-                link.innerHTML = link.innerHTML.replace(/8595077263/g, cleanPhone);
-              }
-            } catch(e) {}
-          });
-
-          // Walk text nodes to replace hardcoded phone occurrences dynamically
-          const walkTextNodes = (node) => {
-            if (node.nodeType === Node.TEXT_NODE) {
-              if (node.nodeValue.includes('8595077263')) {
-                node.nodeValue = node.nodeValue.replace(/8595077263/g, cleanPhone);
-              }
-            } else {
-              node.childNodes.forEach(walkTextNodes);
-            }
-          };
-          walkTextNodes(document.body);
-        }
+        applySettings(settings);
+      } else {
+        const cached = localStorage.getItem('mitti_fresh_settings');
+        if (cached) applySettings(JSON.parse(cached));
       }
     } catch (e) {
-      console.warn("Global settings sync failed", e);
+      const cached = localStorage.getItem('mitti_fresh_settings');
+      if (cached) applySettings(JSON.parse(cached));
     }
   };
 

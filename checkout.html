@@ -689,10 +689,42 @@
               alert('Invalid promo code.');
             }
           } else {
-            alert('Coupon service is offline.');
+            const cached = localStorage.getItem('mitti_fresh_coupons');
+            if (cached) {
+              const dbCoupons = JSON.parse(cached);
+              const coupon = dbCoupons.find(c => c.code === code);
+              if (coupon) {
+                if (subtotal >= coupon.minOrder) {
+                  appliedCoupon = coupon;
+                  alert(`Promo applied successfully: ${coupon.type === 'Percentage' ? coupon.discountVal + '% discount' : '₹' + coupon.discountVal + ' flat discount'} subtracted.`);
+                } else {
+                  alert(`Coupon "${code}" is only valid for orders of ₹${coupon.minOrder} and above.`);
+                }
+              } else {
+                alert('Invalid promo code.');
+              }
+            } else {
+              alert('Coupon service is offline.');
+            }
           }
         } catch (e) {
-          alert('Coupon service is offline.');
+          const cached = localStorage.getItem('mitti_fresh_coupons');
+          if (cached) {
+            const dbCoupons = JSON.parse(cached);
+            const coupon = dbCoupons.find(c => c.code === code);
+            if (coupon) {
+              if (subtotal >= coupon.minOrder) {
+                appliedCoupon = coupon;
+                alert(`Promo applied successfully: ${coupon.type === 'Percentage' ? coupon.discountVal + '% discount' : '₹' + coupon.discountVal + ' flat discount'} subtracted.`);
+              } else {
+                alert(`Coupon "${code}" is only valid for orders of ₹${coupon.minOrder} and above.`);
+              }
+            } else {
+              alert('Invalid promo code.');
+            }
+          } else {
+            alert('Coupon validation failed or backend offline.');
+          }
         }
         calculateTotals();
       });
@@ -1312,6 +1344,20 @@
           })
           .catch(err => {
             console.warn("Could not load dynamic settings, using default configurations.", err);
+            try {
+              const cached = localStorage.getItem('mitti_fresh_settings');
+              if (cached) {
+                const dbSettings = JSON.parse(cached);
+                if (dbSettings.upiId) window.CONFIG.UPI_ID = dbSettings.upiId;
+                if (dbSettings.shippingRules) {
+                  window.CONFIG.FREE_DELIVERY_MIN = dbSettings.shippingRules.freeShippingThreshold || 500;
+                  window.CONFIG.COD_CHARGE = dbSettings.shippingRules.codConvenienceFee || 50;
+                }
+                if (dbSettings.serviceablePincodes) window.CONFIG.COD_ELIGIBLE_PINS = dbSettings.serviceablePincodes;
+                calculateTotals();
+                setupSavedAddresses();
+              }
+            } catch(e) {}
           });
       }
 

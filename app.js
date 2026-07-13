@@ -724,11 +724,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       const dbProducts = await res.json();
       PRODUCTS = rebuildCatalog(dbProducts);
     } else {
-      PRODUCTS = STATIC_BACKUP_PRODUCTS;
+      const cached = localStorage.getItem('mitti_fresh_products');
+      if (cached) {
+        try {
+          PRODUCTS = rebuildCatalog(JSON.parse(cached));
+        } catch(e) {
+          PRODUCTS = STATIC_BACKUP_PRODUCTS;
+        }
+      } else {
+        PRODUCTS = STATIC_BACKUP_PRODUCTS;
+      }
     }
   } catch (err) {
     console.warn("Offline fallback, loading static catalog:", err);
-    PRODUCTS = STATIC_BACKUP_PRODUCTS;
+    const cached = localStorage.getItem('mitti_fresh_products');
+    if (cached) {
+      try {
+        PRODUCTS = rebuildCatalog(JSON.parse(cached));
+      } catch(e) {
+        PRODUCTS = STATIC_BACKUP_PRODUCTS;
+      }
+    } else {
+      PRODUCTS = STATIC_BACKUP_PRODUCTS;
+    }
   }
 
   // Load dynamic homepage config on homepage
