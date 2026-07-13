@@ -184,28 +184,39 @@ app.post('/api/products', (req, res) => {
 });
 
 app.put('/api/products/:id', (req, res) => {
+  return handleProductUpdate(req, res);
+});
+app.post('/api/products/:id/update', (req, res) => {
+  return handleProductUpdate(req, res);
+});
+
+function handleProductUpdate(req, res) {
   const { id } = req.params;
   const updates = req.body;
-  
   const updated = db.update('products', { id }, updates);
   if (updated.length === 0) {
     return res.status(404).json({ error: "Product not found." });
   }
-  
   logAction(req.headers['x-user-name'] || "Admin", "Update Product", `Modified product ID: ${id}`);
   return res.json(updated[0]);
-});
+}
 
 app.delete('/api/products/:id', (req, res) => {
+  return handleProductDelete(req, res);
+});
+app.post('/api/products/:id/delete', (req, res) => {
+  return handleProductDelete(req, res);
+});
+
+function handleProductDelete(req, res) {
   const { id } = req.params;
   const deletedCount = db.delete('products', { id });
   if (deletedCount === 0) {
     return res.status(404).json({ error: "Product not found." });
   }
-  
   logAction(req.headers['x-user-name'] || "Admin", "Delete Product", `Removed product ID: ${id}`);
   return res.json({ status: "success", message: "Product deleted successfully." });
-});
+}
 
 // Bulk Import Products (Overwrite / Append)
 app.post('/api/products/bulk-import', (req, res) => {
@@ -532,10 +543,17 @@ app.post('/api/coupons', (req, res) => {
 });
 
 app.delete('/api/coupons/:id', (req, res) => {
+  return handleCouponDelete(req, res);
+});
+app.post('/api/coupons/:id/delete', (req, res) => {
+  return handleCouponDelete(req, res);
+});
+
+function handleCouponDelete(req, res) {
   const { id } = req.params;
   db.delete('coupons', { id });
   return res.json({ status: "success", message: "Coupon deleted successfully." });
-});
+}
 
 
 // 7. REVIEW ROUTES
@@ -854,6 +872,13 @@ app.post('/api/customers/address', (req, res) => {
 
 // Delete Address
 app.delete('/api/customers/address/:index', (req, res) => {
+  return handleAddressDelete(req, res);
+});
+app.post('/api/customers/address/:index/delete', (req, res) => {
+  return handleAddressDelete(req, res);
+});
+
+function handleAddressDelete(req, res) {
   const customer = getCustomerFromToken(req);
   if (!customer) return res.status(401).json({ error: "Unauthorized session." });
 
@@ -866,7 +891,7 @@ app.delete('/api/customers/address/:index', (req, res) => {
   addresses.splice(index, 1);
   db.update('customers', { email: customer.email }, { addresses });
   return res.json({ status: "success", addresses });
-});
+}
 
 // Synchronize Cart list
 app.post('/api/customers/cart', (req, res) => {

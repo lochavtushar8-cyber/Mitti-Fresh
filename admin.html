@@ -1481,7 +1481,7 @@
       // Expose globally for onclick actions
       window.deleteProduct = (id) => {
         if (!confirm("Are you sure you want to delete this product?")) return;
-        fetch(`${API_BASE}/api/products/${id}`, { method: "DELETE" })
+        fetch(`${API_BASE}/api/products/${id}/delete`, { method: "POST" })
           .then(() => { alert("Product deleted!"); syncData(); })
           .catch(() => {
             const list = products.filter(p => p.id !== id);
@@ -1561,8 +1561,8 @@
 
         if (id) {
           // Update
-          fetch(`${API_BASE}/api/products/${id}`, {
-            method: "PUT",
+          fetch(`${API_BASE}/api/products/${id}/update`, {
+            method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           })
@@ -2005,7 +2005,7 @@
       window.deleteCoupon = (id) => {
         if (!confirm("Are you sure?")) return;
         
-        fetch(`${API_BASE}/api/coupons/${id}`, { method: "DELETE" })
+        fetch(`${API_BASE}/api/coupons/${id}/delete`, { method: "POST" })
           .then(() => { syncData(); })
           .catch(() => {
             const list = coupons.filter(c => c.id !== id);

@@ -433,8 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const index = delBtn.getAttribute('data-index');
         if (!confirm("Are you sure you want to delete this address?")) return;
         try {
-          const res = await fetch(getApiUrl(`/api/customers/address/${index}`), {
-            method: 'DELETE',
+          const res = await fetch(getApiUrl(`/api/customers/address/${index}/delete`), {
+            method: 'POST',
             headers: { 'Authorization': `Bearer ${getAuthToken()}` }
           });
           if (res.ok) {
