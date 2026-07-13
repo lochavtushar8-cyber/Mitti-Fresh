@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = getAuthToken();
     if (!token) return;
     try {
-      const res = await fetch(getApiUrl('/api/customers/profile'), {
+      const res = await fetch(getApiUrl('/api/customers/profile') + '?t=' + Date.now(), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const syncSettingsGlobally = async () => {
     try {
-      const res = await fetch(getApiUrl('/api/settings'));
+      const res = await fetch(getApiUrl('/api/settings') + '?t=' + Date.now());
       if (res.ok) {
         const settings = await res.json();
         applySettings(settings);

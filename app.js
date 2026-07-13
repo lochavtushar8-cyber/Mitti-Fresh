@@ -720,7 +720,7 @@ const rebuildCatalog = (dbProducts) => {
 document.addEventListener('DOMContentLoaded', async () => {
   // Load products list from backend dynamically
   try {
-    const res = await fetch(window.getApiEndpoint('/api/products'));
+    const res = await fetch(window.getApiEndpoint('/api/products') + '?t=' + Date.now());
     if (res.ok) {
       const dbProducts = await res.json();
       PRODUCTS = rebuildCatalog(dbProducts);
@@ -752,7 +752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load dynamic homepage config on homepage
   try {
-    const hpRes = await fetch(window.getApiEndpoint('/api/homepage'));
+    const hpRes = await fetch(window.getApiEndpoint('/api/homepage') + '?t=' + Date.now());
     if (hpRes.ok) {
       const hp = await hpRes.json();
       if (hp) {

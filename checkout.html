@@ -674,7 +674,7 @@
         if (code.length === 0) return;
         
         try {
-          const res = await fetch(window.getApiEndpoint('/api/coupons'));
+          const res = await fetch(window.getApiEndpoint('/api/coupons') + '?t=' + Date.now());
           if (res.ok) {
             const dbCoupons = await res.json();
             const coupon = dbCoupons.find(c => c.code === code);
@@ -1318,7 +1318,7 @@
       // Fetch dynamic settings from server on load
       const settingsUrl = window.getApiEndpoint('/api/settings');
       if (settingsUrl) {
-        fetch(settingsUrl)
+        fetch(settingsUrl + '?t=' + Date.now())
           .then(res => res.json())
           .then(data => {
             const settingsList = Array.isArray(data) ? data : [data];
