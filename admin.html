@@ -1186,7 +1186,20 @@
         // Fetch Settings
         fetch(API_BASE + "/api/settings")
           .then(res => res.json())
-          .then(data => { settings = data; loadSettingsUI(); })
+          .then(data => {
+            settings = data || {};
+            if (!settings.upiId) {
+              settings = {
+                businessName: "Mitti Fresh",
+                upiId: "lochavtushar8-1@oksbi",
+                supportPhone: "8595077263",
+                supportEmail: "support@mittifresh.com",
+                shippingRules: { flatRate: 50, freeShippingThreshold: 500, codConvenienceFee: 50 },
+                serviceablePincodes: ["110075", "110078", "110059"]
+              };
+            }
+            loadSettingsUI();
+          })
           .catch(() => {
             settings = JSON.parse(localStorage.getItem('mitti_fresh_settings') || '{}');
             if (!settings.upiId) {
@@ -1222,7 +1235,17 @@
         // Fetch Categories
         fetch(API_BASE + "/api/categories")
           .then(res => res.json())
-          .then(data => { categories = data; renderCategories(); })
+          .then(data => {
+            categories = Array.isArray(data) ? data : [];
+            if (categories.length === 0) {
+              categories = [
+                { id: "CAT-001", name: "Wheat Atta", slug: "wheat-atta", featured: true },
+                { id: "CAT-002", name: "Multigrain Atta", slug: "multigrain-atta", featured: true },
+                { id: "CAT-003", name: "Cold Pressed Oil", slug: "cold-pressed-oil", featured: true }
+              ];
+            }
+            renderCategories();
+          })
           .catch(() => {
             categories = JSON.parse(localStorage.getItem('mitti_fresh_categories') || '[]');
             if (categories.length === 0) {
@@ -1250,7 +1273,16 @@
         // Fetch Coupons
         fetch(API_BASE + "/api/coupons")
           .then(res => res.json())
-          .then(data => { coupons = data; renderCoupons(); })
+          .then(data => {
+            coupons = Array.isArray(data) ? data : [];
+            if (coupons.length === 0) {
+              coupons = [
+                { id: "CPN-001", code: "WELCOME10", type: "Percentage", discountVal: 10, minOrder: 0, maxDiscount: 100, expiry: "2026-12-31" },
+                { id: "CPN-002", code: "SAVE100", type: "Flat", discountVal: 100, minOrder: 500, maxDiscount: 100, expiry: "2026-08-31" }
+              ];
+            }
+            renderCoupons();
+          })
           .catch(() => {
             coupons = JSON.parse(localStorage.getItem('mitti_fresh_coupons') || '[]');
             if (coupons.length === 0) {
@@ -1265,7 +1297,16 @@
         // Fetch Reviews
         fetch(API_BASE + "/api/reviews")
           .then(res => res.json())
-          .then(data => { reviews = data; renderReviews(); })
+          .then(data => {
+            reviews = Array.isArray(data) ? data : [];
+            if (reviews.length === 0) {
+              reviews = [
+                { id: "REV-001", product_name: "MP Wheat Atta", customer_name: "Aman V.", rating: 5, comment: "Roti is very soft!", status: "Approved" },
+                { id: "REV-002", product_name: "Cold Pressed Mustard Oil", customer_name: "Jyoti S.", rating: 4, comment: "Pure and smelly yellow oil.", status: "Pending" }
+              ];
+            }
+            renderReviews();
+          })
           .catch(() => {
             reviews = JSON.parse(localStorage.getItem('mitti_fresh_reviews') || '[]');
             if (reviews.length === 0) {
@@ -1280,18 +1321,60 @@
         // Fetch Logs
         fetch(API_BASE + "/api/logs")
           .then(res => res.json())
-          .then(data => { logs = data; renderLogs(); })
+          .then(data => {
+            logs = Array.isArray(data) ? data : [];
+            if (logs.length === 0) {
+              logs = [
+                { createdAt: new Date().toISOString(), user: "System", action: "Initialize", details: "Mitti Fresh Admin Console Loaded" }
+              ];
+            }
+            renderLogs();
+          })
           .catch(() => {
             logs = JSON.parse(localStorage.getItem('mitti_fresh_logs') || '[]');
+            if (logs.length === 0) {
+              logs = [
+                { createdAt: new Date().toISOString(), user: "System", action: "Initialize", details: "Mitti Fresh Admin Console Loaded" }
+              ];
+            }
             renderLogs();
           });
 
         // Fetch Homepage Hero settings
         fetch(API_BASE + "/api/homepage")
           .then(res => res.json())
-          .then(data => { homepageConfig = data; loadHomepageUI(); })
+          .then(data => {
+            homepageConfig = data || {};
+            if (!homepageConfig.hero) {
+              homepageConfig = {
+                hero: {
+                  title: "Milling Pure Grains Right Before Your Eyes",
+                  subtitle: "Experience 100% natural, unadulterated stone-ground flours and cold-pressed oils prepared fresh on your order."
+                },
+                bannerText: "Pure & Organic Flours, Cold Pressed Oils",
+                testimonials: [
+                  { name: "Devansh Vashisth", review: "The taste of rotis made from their stone-ground MP wheat atta is simply amazing." },
+                  { name: "Shreya Gupta", review: "I have been using their cold pressed mustard oil for cooking. Purity is unmatched." }
+                ]
+              };
+            }
+            loadHomepageUI();
+          })
           .catch(() => {
             homepageConfig = JSON.parse(localStorage.getItem('mitti_fresh_homepage') || '{}');
+            if (!homepageConfig.hero) {
+              homepageConfig = {
+                hero: {
+                  title: "Milling Pure Grains Right Before Your Eyes",
+                  subtitle: "Experience 100% natural, unadulterated stone-ground flours and cold-pressed oils prepared fresh on your order."
+                },
+                bannerText: "Pure & Organic Flours, Cold Pressed Oils",
+                testimonials: [
+                  { name: "Devansh Vashisth", review: "The taste of rotis made from their stone-ground MP wheat atta is simply amazing." },
+                  { name: "Shreya Gupta", review: "I have been using their cold pressed mustard oil for cooking. Purity is unmatched." }
+                ]
+              };
+            }
             loadHomepageUI();
           });
 
