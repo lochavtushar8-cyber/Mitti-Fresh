@@ -196,6 +196,7 @@ app.post('/api/products', (req, res) => {
   
   const newProduct = db.insert('products', productData);
   logAction(req.headers['x-user-name'] || "Admin", "Create Product", `Added product SKU: ${newProduct.SKU}`);
+  sendStorefrontEvent('catalog-updated', `Added product SKU: ${newProduct.SKU}`);
   return res.status(201).json(newProduct);
 });
 
@@ -214,6 +215,7 @@ function handleProductUpdate(req, res) {
     return res.status(404).json({ error: "Product not found." });
   }
   logAction(req.headers['x-user-name'] || "Admin", "Update Product", `Modified product ID: ${id}`);
+  sendStorefrontEvent('catalog-updated', `Modified product ID: ${id}`);
   return res.json(updated[0]);
 }
 
@@ -231,6 +233,7 @@ function handleProductDelete(req, res) {
     return res.status(404).json({ error: "Product not found." });
   }
   logAction(req.headers['x-user-name'] || "Admin", "Delete Product", `Removed product ID: ${id}`);
+  sendStorefrontEvent('catalog-updated', `Removed product ID: ${id}`);
   return res.json({ status: "success", message: "Product deleted successfully." });
 }
 
@@ -618,6 +621,7 @@ app.post('/api/settings', (req, res) => {
   }
 
   logAction(req.headers['x-user-name'] || "Admin", "Update Settings", "Modified shop core configurations");
+  sendStorefrontEvent('catalog-updated', 'Settings updated');
   return res.json({ status: "success", settings: db.getAll('settings')[0] });
 });
 
@@ -684,6 +688,7 @@ app.get('/api/analytics', (req, res) => {
 
 // SSE (Server-Sent Events) State for real-time notifications
 let adminClients = [];
+let storefrontClients = [];
 
 const sendAdminNotification = (type, message, data = {}) => {
   const payload = JSON.stringify({ type, message, data, timestamp: new Date().toISOString() });
@@ -691,6 +696,13 @@ const sendAdminNotification = (type, message, data = {}) => {
     client.write(`data: ${payload}\n\n`);
   });
   db.insert('notifications', { type, message, data, read: false });
+};
+
+const sendStorefrontEvent = (type, message, data = {}) => {
+  const payload = JSON.stringify({ type, message, data, timestamp: new Date().toISOString() });
+  storefrontClients.forEach(client => {
+    client.write(`data: ${payload}\n\n`);
+  });
 };
 
 // Stock Validation Helper
@@ -733,6 +745,19 @@ app.get('/api/admin/events', (req, res) => {
 
   req.on('close', () => {
     adminClients = adminClients.filter(c => c !== res);
+  });
+});
+
+app.get('/api/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  storefrontClients.push(res);
+
+  req.on('close', () => {
+    storefrontClients = storefrontClients.filter(c => c !== res);
   });
 });
 

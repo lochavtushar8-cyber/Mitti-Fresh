@@ -749,6 +749,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(dbg);
   } catch (e) {}
 
+  // Establish real-time SSE listener for catalog updates
+  try {
+    const sseUrl = window.getApiEndpoint('/api/events');
+    if (sseUrl) {
+      const eventSource = new EventSource(sseUrl);
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'catalog-updated' || data.type === 'settings-updated') {
+            console.log("Mitti Fresh - Live update event received, reloading page...", data);
+            window.location.reload();
+          }
+        } catch (e) {}
+      };
+    }
+  } catch (e) {}
+
   // Load products list from backend dynamically
   try {
     const res = await fetch(window.getApiEndpoint('/api/products') + '?t=' + Date.now());
