@@ -51,6 +51,22 @@ app.get('/refund', (req, res) => {
 app.get('/product', (req, res) => {
   res.sendFile(path.join(__dirname, 'product.html'));
 });
+app.get('/app-v2.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'app-v2.js'));
+});
+app.get('/config-v2.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'config-v2.js'));
+});
+app.get('/user-account-v2.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'user-account-v2.js'));
+});
+app.get('/ai-assistant.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'ai-assistant.js'));
+});
 app.get('/order-success', (req, res) => {
   res.sendFile(path.join(__dirname, 'order-success.html'));
 });
