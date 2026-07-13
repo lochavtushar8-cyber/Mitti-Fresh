@@ -19,8 +19,8 @@ const CONFIG = {
   RAZORPAY_KEY_ID: "rzp_test_TCiy2iwbfm1FJW",
 
   // Production endpoints resolved dynamically
-  CREATE_ORDER_API: getApiEndpoint("/api/create-order"),
-  VERIFY_PAYMENT_API: getApiEndpoint("/api/verify-payment"),
+CREATE_ORDER_API: getApiEndpoint("/create-order"),
+VERIFY_PAYMENT_API: getApiEndpoint("/verify-payment"),
 
   // Cash on Delivery parameters
   COD_ELIGIBLE_PINS: ["110078", "110075", "110059", "110045", "110077", "110076", "110043"], // Dwarka and surrounding sectors
