@@ -645,7 +645,8 @@ app.post('/api/settings', (req, res) => {
   if (settingsList.length === 0) {
     db.insert('settings', updates);
   } else {
-    db.update('settings', { businessName: settingsList[0].businessName }, updates);
+    const merged = { ...settingsList[0], ...updates };
+    db.update('settings', { businessName: settingsList[0].businessName }, merged);
   }
 
   logAction(req.headers['x-user-name'] || "Admin", "Update Settings", "Modified shop core configurations");

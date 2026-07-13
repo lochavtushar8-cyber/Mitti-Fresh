@@ -1062,6 +1062,7 @@
       let reviews = [];
       let logs = [];
       let settings = {};
+      let homepageConfig = {};
       let employees = [
         { name: "Tushar Singh Lochav", email: "admin@mittifresh.com", role: "Super Admin", status: "Active" },
         { name: "Rohan Vashisth", email: "manager@mittifresh.com", role: "Manager", status: "Active" },
@@ -1237,11 +1238,12 @@
         // Fetch Orders
         fetch(API_BASE + "/api/orders")
           .then(res => res.json())
-          .then(data => { orders = data; renderOrders(); renderUpiAuditor(); calculateStats(); })
+          .then(data => { orders = data; renderOrders(); renderUpiAuditor(); renderCustomers(); calculateStats(); })
           .catch(() => {
             orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
             renderOrders();
             renderUpiAuditor();
+            renderCustomers();
             calculateStats();
           });
 
@@ -1297,7 +1299,6 @@
       };
 
       // HOMEPAGE HERO BINDINGS & LOGIC
-      let homepageConfig = {};
       
       const loadHomepageUI = () => {
         document.getElementById('hp-hero-title').value = (homepageConfig.hero && homepageConfig.hero.title) || "";
@@ -1458,7 +1459,8 @@
       // 2. PRODUCTS PANEL LOGIC
       const renderProducts = () => {
         const tbody = document.getElementById('products-table-body');
-        tbody.innerHTML = products.map(p => `
+        const list = Array.isArray(products) ? products : [];
+        tbody.innerHTML = list.map(p => `
           <tr>
             <td><img src="${p.image || 'assets/logo.jpg'}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;"></td>
             <td><strong>${p.name}</strong></td>
@@ -1608,7 +1610,8 @@
       // 3. CATEGORIES PANEL LOGIC
       const renderCategories = () => {
         const tbody = document.getElementById('categories-table-body');
-        tbody.innerHTML = categories.map(c => `
+        const list = Array.isArray(categories) ? categories : [];
+        tbody.innerHTML = list.map(c => `
           <tr>
             <td><code>${c.id}</code></td>
             <td><strong>${c.name}</strong></td>
@@ -1650,7 +1653,8 @@
       // 4. INVENTORY PANEL LOGIC
       const renderInventory = () => {
         const tbody = document.getElementById('inventory-table-body');
-        tbody.innerHTML = products.map(p => `
+        const list = Array.isArray(products) ? products : [];
+        tbody.innerHTML = list.map(p => `
           <tr>
             <td><strong>${p.name}</strong></td>
             <td><code>${p.SKU || 'N/A'}</code></td>
@@ -1671,8 +1675,8 @@
         if (idx !== -1) {
           const newStock = Math.max(0, products[idx].stock + change);
           
-          fetch(`${API_BASE}/api/products/${id}`, {
-            method: "PUT",
+          fetch(`${API_BASE}/api/products/${id}/update`, {
+            method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ stock: newStock })
           })
@@ -1689,11 +1693,12 @@
       const renderOrders = () => {
         const tbody = document.getElementById('orders-list-body');
         const filterVal = document.getElementById('order-search-input').value.toLowerCase();
+        const ordList = Array.isArray(orders) ? orders : [];
         
-        const filtered = orders.filter(o => 
-          o.orderId.toLowerCase().includes(filterVal) ||
-          (o.customer && o.customer.name.toLowerCase().includes(filterVal)) ||
-          (o.customer && o.customer.phone.includes(filterVal))
+        const filtered = ordList.filter(o => 
+          (o.orderId && o.orderId.toLowerCase().includes(filterVal)) ||
+          (o.customer && o.customer.name && o.customer.name.toLowerCase().includes(filterVal)) ||
+          (o.customer && o.customer.phone && o.customer.phone.includes(filterVal))
         );
 
         if (filtered.length === 0) {
@@ -1879,7 +1884,8 @@
       // 6. UPI PAYMENT AUDITOR PANEL
       const renderUpiAuditor = () => {
         const tbody = document.getElementById('upi-auditor-table-body');
-        const pendingUpi = orders.filter(o => o.paymentMethod === 'UPI' && o.paymentStatus === 'Pending Verification');
+        const ordList = Array.isArray(orders) ? orders : [];
+        const pendingUpi = ordList.filter(o => o.paymentMethod === 'UPI' && o.paymentStatus === 'Pending Verification');
         
         if (pendingUpi.length === 0) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px;">No pending UPI verifications.</td></tr>`;
@@ -1945,7 +1951,8 @@
         
         // Group customers
         const custs = {};
-        orders.forEach(o => {
+        const ordList = Array.isArray(orders) ? orders : [];
+        ordList.forEach(o => {
           if (o.customer && o.customer.phone) {
             const key = o.customer.phone;
             if (!custs[key]) {
@@ -1987,7 +1994,8 @@
       // 8. COUPONS PANEL LOGIC
       const renderCoupons = () => {
         const tbody = document.getElementById('coupons-table-body');
-        tbody.innerHTML = coupons.map(c => `
+        const list = Array.isArray(coupons) ? coupons : [];
+        tbody.innerHTML = list.map(c => `
           <tr>
             <td><code>${c.code}</code></td>
             <td>${c.type}</td>
@@ -2046,7 +2054,8 @@
       // 9. REVIEWS PANEL LOGIC
       const renderReviews = () => {
         const tbody = document.getElementById('reviews-table-body');
-        tbody.innerHTML = reviews.map(r => `
+        const list = Array.isArray(reviews) ? reviews : [];
+        tbody.innerHTML = list.map(r => `
           <tr>
             <td><strong>${r.product_name || 'MP Wheat Atta'}</strong></td>
             <td>${r.customer_name}</td>
@@ -2092,12 +2101,13 @@
       // 11. AUDIT LOGS PANEL LOGIC
       const renderLogs = () => {
         const tbody = document.getElementById('logs-table-body');
-        if (logs.length === 0) {
+        const logList = Array.isArray(logs) ? logs : [];
+        if (logList.length === 0) {
           tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No operational actions logged yet.</td></tr>`;
           return;
         }
 
-        tbody.innerHTML = logs.map(l => `
+        tbody.innerHTML = logList.map(l => `
           <tr>
             <td><small>${l.createdAt ? new Date(l.createdAt).toLocaleString() : 'N/A'}</small></td>
             <td><strong>${l.user}</strong></td>
@@ -2125,39 +2135,87 @@
 
       // 13. CALCULATE DASHBOARD STATS
       const calculateStats = () => {
-        let totalRevenue = 0;
-        let todayRevenue = 0;
-        let todayOrdersCount = 0;
-        
-        const todayDateStr = new Date().toLocaleDateString();
+        fetch(API_BASE + "/api/analytics")
+          .then(res => res.json())
+          .then(data => {
+            const m = data.metrics || {};
+            document.getElementById('stat-revenue-today').textContent = `₹${m.todayRevenue || 0}`;
+            document.getElementById('stat-orders-today').textContent = m.todayOrders || 0;
+            document.getElementById('stat-revenue-monthly').textContent = `₹${m.totalRevenue || 0}`;
+            document.getElementById('stat-low-stock').textContent = m.lowStock || 0;
 
-        orders.forEach(o => {
-          if (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified') {
-            totalRevenue += o.amount;
-            if (o.date && o.date.startsWith(todayDateStr.split('/')[0])) {
-              todayRevenue += o.amount;
+            const orderBadge = document.getElementById('sidebar-order-badge');
+            const upiBadge = document.getElementById('sidebar-upi-badge');
+
+            if (m.pendingOrders > 0) {
+              orderBadge.style.display = "flex";
+              orderBadge.textContent = m.pendingOrders;
+            } else {
+              orderBadge.style.display = "none";
             }
-          }
-          if (o.date && o.date.startsWith(todayDateStr.split('/')[0])) {
-            todayOrdersCount++;
-          }
-        });
 
-        const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 10).length;
-        const pendingOrdersCount = orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Payment Verification Pending').length;
-        const pendingUpiCount = orders.filter(o => o.paymentMethod === 'UPI' && o.paymentStatus === 'Pending Verification').length;
+            const pendingUpiCount = (orders || []).filter(o => o.paymentMethod === 'UPI' && o.paymentStatus === 'Pending Verification').length;
+            if (pendingUpiCount > 0) {
+              upiBadge.style.display = "flex";
+              upiBadge.textContent = pendingUpiCount;
+            } else {
+              upiBadge.style.display = "none";
+            }
 
-        // Render dashboard widgets
-        document.getElementById('stat-revenue-today').textContent = `₹${todayRevenue}`;
-        document.getElementById('stat-orders-today').textContent = todayOrdersCount;
-        document.getElementById('stat-revenue-monthly').textContent = `₹${totalRevenue}`;
-        document.getElementById('stat-low-stock').textContent = lowStockCount;
+            renderWeeklySalesChart();
+          })
+          .catch(err => {
+            console.warn("Analytics API unavailable, compiling metrics locally:", err);
+            let totalRevenue = 0;
+            let todayRevenue = 0;
+            let todayOrdersCount = 0;
+            const todayDateStr = new Date().toLocaleDateString();
 
-        // Render dynamic Weekly Sales Chart
+            const ordList = Array.isArray(orders) ? orders : [];
+            ordList.forEach(o => {
+              if (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified') {
+                totalRevenue += o.amount;
+                if (o.date && o.date.startsWith(todayDateStr.split('/')[0])) {
+                  todayRevenue += o.amount;
+                }
+              }
+              if (o.date && o.date.startsWith(todayDateStr.split('/')[0])) {
+                todayOrdersCount++;
+              }
+            });
+
+            const prodList = Array.isArray(products) ? products : [];
+            const lowStockCount = prodList.filter(p => p.stock > 0 && p.stock <= 10).length;
+            const pendingOrdersCount = ordList.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Payment Verification Pending').length;
+            const pendingUpiCount = ordList.filter(o => o.paymentMethod === 'UPI' && o.paymentStatus === 'Pending Verification').length;
+
+            document.getElementById('stat-revenue-today').textContent = `₹${todayRevenue}`;
+            document.getElementById('stat-orders-today').textContent = todayOrdersCount;
+            document.getElementById('stat-revenue-monthly').textContent = `₹${totalRevenue}`;
+            document.getElementById('stat-low-stock').textContent = lowStockCount;
+
+            const orderBadge = document.getElementById('sidebar-order-badge');
+            const upiBadge = document.getElementById('sidebar-upi-badge');
+
+            if (pendingOrdersCount > 0) {
+              orderBadge.style.display = "flex";
+              orderBadge.textContent = pendingOrdersCount;
+            } else {
+              orderBadge.style.display = "none";
+            }
+
+            if (pendingUpiCount > 0) {
+              upiBadge.style.display = "flex";
+              upiBadge.textContent = pendingUpiCount;
+            } else {
+              upiBadge.style.display = "none";
+            }
+
+            renderWeeklySalesChart();
+          });
+
         const renderWeeklySalesChart = () => {
           const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-          
-          // Build the last 7 days in order (ending with today)
           const last7Days = [];
           for (let i = 6; i >= 0; i--) {
             const d = new Date();
@@ -2169,13 +2227,12 @@
             });
           }
 
-          // Aggregate orders by date string
-          orders.forEach(o => {
+          const ordList = Array.isArray(orders) ? orders : [];
+          ordList.forEach(o => {
             if (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified') {
               const oDate = o.date ? o.date.split(',')[0].trim() : "";
               const match = last7Days.find(day => {
                 if (day.dateString === oDate) return true;
-                // Match prefix (e.g. 7/13/2026 matches 07/13/2026 or 7/13/2026)
                 const parts1 = day.dateString.split('/');
                 const parts2 = oDate.split('/');
                 if (parts1.length === 3 && parts2.length === 3) {
@@ -2191,10 +2248,7 @@
             }
           });
 
-          // Find max sales to scale the heights
           const maxSales = Math.max(...last7Days.map(d => d.sales), 100);
-
-          // Render the bars HTML
           const container = document.getElementById('weekly-sales-chart-container');
           if (container) {
             container.innerHTML = last7Days.map((day, idx) => {
@@ -2212,25 +2266,6 @@
             }).join('');
           }
         };
-        renderWeeklySalesChart();
-
-        // Badges sidebar unread counts
-        const orderBadge = document.getElementById('sidebar-order-badge');
-        const upiBadge = document.getElementById('sidebar-upi-badge');
-
-        if (pendingOrdersCount > 0) {
-          orderBadge.style.display = "flex";
-          orderBadge.textContent = pendingOrdersCount;
-        } else {
-          orderBadge.style.display = "none";
-        }
-
-        if (pendingUpiCount > 0) {
-          upiBadge.style.display = "flex";
-          upiBadge.textContent = pendingUpiCount;
-        } else {
-          upiBadge.style.display = "none";
-        }
       };
 
       document.getElementById('btn-refresh-stats').addEventListener('click', () => {
