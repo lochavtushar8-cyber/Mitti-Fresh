@@ -73,6 +73,10 @@ app.get('/order-success', (req, res) => {
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
+app.get('/admin.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'admin.js'));
+});
 
 // Enable CORS and body parsers
 app.use(cors());
