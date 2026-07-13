@@ -11,14 +11,35 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Import JSON database engine
-const db = require('./db');
-
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;// Serve static frontend files from the root directory
+const PORT = process.env.PORT || 3000;
+
+// Initialize InsForge SDK client dynamically (since @insforge/sdk is ESM only)
+let insforge;
+let insforgePublic;
+
+async function initInsForge() {
+  try {
+    const sdk = await import('@insforge/sdk');
+    insforge = sdk.createAdminClient({
+      baseUrl: process.env.INSFORGE_URL,
+      apiKey: process.env.INSFORGE_API_KEY
+    });
+    insforgePublic = sdk.createClient({
+      baseUrl: process.env.INSFORGE_URL,
+      anonKey: process.env.INSFORGE_ANON_KEY
+    });
+    console.log("✓ Connected to InsForge BaaS database successfully.");
+  } catch (err) {
+    console.error("Failed to initialize InsForge SDK client:", err);
+    process.exit(1);
+  }
+}
+
+// Serve static frontend files from the root directory
 app.use(express.static(__dirname));
 
 // Route to serve the main homepage
@@ -130,14 +151,35 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || 'secret_placeholder'
 });
 
+// Secure Password Hashing Helpers
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedPassword) {
+  if (!storedPassword) return false;
+  const [salt, hash] = storedPassword.split(':');
+  if (!salt || !hash) return false;
+  const verifyHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return hash === verifyHash;
+}
+
 // Helper: Logging Audit Action
-const logAction = (user, action, details) => {
-  db.insert('logs', {
-    user: user || "System",
-    action,
-    details,
-    ip: "127.0.0.1"
-  });
+const logAction = async (user, action, details) => {
+  try {
+    const id = 'LOG-' + Math.floor(100000 + Math.random() * 900000);
+    await insforge.database.from('logs').insert([{
+      id,
+      user: user || "System",
+      action,
+      details,
+      ip: "127.0.0.1"
+    }]);
+  } catch (err) {
+    console.error("[InsForge Error] Logging action failed:", err);
+  }
 };
 
 /* ==========================================================================
@@ -151,57 +193,120 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// 1. AUTHENTICATION ROUTE
-app.post('/api/auth/login', (req, res) => {
+// 1. AUTHENTICATION ROUTE (Admin/Employee Login)
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required." });
   }
 
-  const user = db.findOne('users', { email, password });
-  if (!user) {
-    return res.status(401).json({ error: "Invalid credentials." });
-  }
+  try {
+    const { data: user, error } = await insforge.database
+      .from('users')
+      .select()
+      .eq('email', email)
+      .maybeSingle();
 
-  if (user.status === 'Blocked') {
-    return res.status(403).json({ error: "This employee account is blocked." });
-  }
-
-  logAction(user.name, "User Login", `Logged in successfully as ${user.role}`);
-  
-  // Return simulated token and profile details
-  return res.status(200).json({
-    status: "success",
-    token: `simulated-jwt-token-for-${user.id}-${Date.now()}`,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role
+    if (error) {
+      return res.status(500).json({ error: error.message });
     }
-  });
+
+    if (!user || !verifyPassword(password, user.password)) {
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    if (user.status === 'Blocked') {
+      return res.status(403).json({ error: "This employee account is blocked." });
+    }
+
+    await logAction(user.name, "User Login", `Logged in successfully as ${user.role}`);
+    
+    // Return simulated token and profile details
+    return res.status(200).json({
+      status: "success",
+      token: `simulated-jwt-token-for-${user.id}-${Date.now()}`,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // 2. PRODUCT ROUTES
-app.get('/api/products', (req, res) => {
-  return res.json(db.getAll('products'));
+app.get('/api/products', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database
+      .from('products')
+      .select()
+      .order('created_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Map database properties to fit frontend expectations (SKU, MRP, etc.)
+    const mapped = data.map(p => ({
+      ...p,
+      SKU: p.sku,
+      MRP: p.mrp,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at
+    }));
+    return res.json(mapped);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', async (req, res) => {
   const productData = req.body;
   if (!productData.name || !productData.sellingPrice) {
     return res.status(400).json({ error: "Product Name and Selling Price are required." });
   }
   
-  // Generate SKU if missing
-  if (!productData.SKU) {
-    productData.SKU = 'MF-' + productData.name.substring(0,3).toUpperCase() + '-' + Math.floor(1000 + Math.random()*9000);
-  }
+  const id = productData.id || 'PROD-' + Math.floor(100000 + Math.random() * 900000);
+  const sku = productData.SKU || 'MF-' + productData.name.substring(0,3).toUpperCase() + '-' + Math.floor(1000 + Math.random()*9000);
   
-  const newProduct = db.insert('products', productData);
-  logAction(req.headers['x-user-name'] || "Admin", "Create Product", `Added product SKU: ${newProduct.SKU}`);
-  sendStorefrontEvent('catalog-updated', `Added product SKU: ${newProduct.SKU}`);
-  return res.status(201).json(newProduct);
+  const insertRow = {
+    id,
+    name: productData.name,
+    slug: productData.slug || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+    category: productData.category,
+    brand: productData.brand || 'Mitti Fresh',
+    shortDescription: productData.shortDescription,
+    fullDescription: productData.fullDescription,
+    image: productData.image,
+    gallery: productData.gallery || [],
+    video: productData.video || '',
+    weight: productData.weight,
+    stock: productData.stock || 0,
+    sku,
+    mrp: productData.MRP || productData.mrp || 0,
+    sellingPrice: productData.sellingPrice,
+    status: productData.status || 'active',
+    featured: productData.featured || false
+  };
+
+  try {
+    const { data, error } = await insforge.database
+      .from('products')
+      .insert([insertRow])
+      .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const saved = data[0];
+    const mapped = { ...saved, SKU: saved.sku, MRP: saved.mrp };
+    
+    await logAction(req.headers['x-user-name'] || "Admin", "Create Product", `Added product SKU: ${sku}`);
+    sendStorefrontEvent('catalog-updated', `Added product SKU: ${sku}`);
+    return res.status(201).json(mapped);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.put('/api/products/:id', (req, res) => {
@@ -211,16 +316,50 @@ app.post('/api/products/:id/update', (req, res) => {
   return handleProductUpdate(req, res);
 });
 
-function handleProductUpdate(req, res) {
+async function handleProductUpdate(req, res) {
   const { id } = req.params;
   const updates = req.body;
-  const updated = db.update('products', { id }, updates);
-  if (updated.length === 0) {
-    return res.status(404).json({ error: "Product not found." });
+
+  const pgUpdates = {};
+  if (updates.name !== undefined) pgUpdates.name = updates.name;
+  if (updates.slug !== undefined) pgUpdates.slug = updates.slug;
+  if (updates.category !== undefined) pgUpdates.category = updates.category;
+  if (updates.brand !== undefined) pgUpdates.brand = updates.brand;
+  if (updates.shortDescription !== undefined) pgUpdates.shortDescription = updates.shortDescription;
+  if (updates.fullDescription !== undefined) pgUpdates.fullDescription = updates.fullDescription;
+  if (updates.image !== undefined) pgUpdates.image = updates.image;
+  if (updates.gallery !== undefined) pgUpdates.gallery = updates.gallery;
+  if (updates.video !== undefined) pgUpdates.video = updates.video;
+  if (updates.weight !== undefined) pgUpdates.weight = updates.weight;
+  if (updates.stock !== undefined) pgUpdates.stock = updates.stock;
+  if (updates.SKU !== undefined) pgUpdates.sku = updates.SKU;
+  if (updates.sku !== undefined) pgUpdates.sku = updates.sku;
+  if (updates.MRP !== undefined) pgUpdates.mrp = updates.MRP;
+  if (updates.mrp !== undefined) pgUpdates.mrp = updates.mrp;
+  if (updates.sellingPrice !== undefined) pgUpdates.sellingPrice = updates.sellingPrice;
+  if (updates.status !== undefined) pgUpdates.status = updates.status;
+  if (updates.featured !== undefined) pgUpdates.featured = updates.featured;
+
+  try {
+    const { data, error } = await insforge.database
+      .from('products')
+      .update(pgUpdates)
+      .eq('id', id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      return res.status(404).json({ error: "Product not found." });
+    }
+
+    const updated = data[0];
+    const mapped = { ...updated, SKU: updated.sku, MRP: updated.mrp };
+
+    await logAction(req.headers['x-user-name'] || "Admin", "Update Product", `Modified product ID: ${id}`);
+    sendStorefrontEvent('catalog-updated', `Modified product ID: ${id}`);
+    return res.json(mapped);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-  logAction(req.headers['x-user-name'] || "Admin", "Update Product", `Modified product ID: ${id}`);
-  sendStorefrontEvent('catalog-updated', `Modified product ID: ${id}`);
-  return res.json(updated[0]);
 }
 
 app.delete('/api/products/:id', (req, res) => {
@@ -230,103 +369,194 @@ app.post('/api/products/:id/delete', (req, res) => {
   return handleProductDelete(req, res);
 });
 
-function handleProductDelete(req, res) {
+async function handleProductDelete(req, res) {
   const { id } = req.params;
-  const deletedCount = db.delete('products', { id });
-  if (deletedCount === 0) {
-    return res.status(404).json({ error: "Product not found." });
+
+  try {
+    const { data, error } = await insforge.database
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      return res.status(404).json({ error: "Product not found." });
+    }
+
+    await logAction(req.headers['x-user-name'] || "Admin", "Delete Product", `Removed product ID: ${id}`);
+    sendStorefrontEvent('catalog-updated', `Removed product ID: ${id}`);
+    return res.json({ status: "success", message: "Product deleted successfully." });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-  logAction(req.headers['x-user-name'] || "Admin", "Delete Product", `Removed product ID: ${id}`);
-  sendStorefrontEvent('catalog-updated', `Removed product ID: ${id}`);
-  return res.json({ status: "success", message: "Product deleted successfully." });
 }
 
 // Bulk Import Products (Overwrite / Append)
-app.post('/api/products/bulk-import', (req, res) => {
+app.post('/api/products/bulk-import', async (req, res) => {
   const { products } = req.body;
   if (!Array.isArray(products)) {
     return res.status(400).json({ error: "Products parameter must be a JSON array." });
   }
   
-  const currentProducts = db.getAll('products');
-  products.forEach(p => {
-    if (!p.id) p.id = "PROD-" + Math.floor(100000 + Math.random() * 900000);
-    const idx = currentProducts.findIndex(cp => cp.id === p.id || (cp.SKU && cp.SKU === p.SKU));
-    if (idx !== -1) {
-      currentProducts[idx] = { ...currentProducts[idx], ...p, updatedAt: new Date().toISOString() };
-    } else {
-      p.createdAt = new Date().toISOString();
-      p.updatedAt = new Date().toISOString();
-      currentProducts.push(p);
+  try {
+    for (let p of products) {
+      const id = p.id || "PROD-" + Math.floor(100000 + Math.random() * 900000);
+      const sku = p.SKU || p.sku || 'MF-' + p.name.substring(0,3).toUpperCase() + '-' + Math.floor(1000 + Math.random()*9000);
+      const row = {
+        id,
+        name: p.name,
+        slug: p.slug || p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        category: p.category,
+        brand: p.brand || 'Mitti Fresh',
+        shortDescription: p.shortDescription,
+        fullDescription: p.fullDescription,
+        image: p.image,
+        gallery: p.gallery || [],
+        video: p.video || '',
+        weight: p.weight,
+        stock: p.stock || 0,
+        sku,
+        mrp: p.MRP || p.mrp || 0,
+        sellingPrice: p.sellingPrice || 0,
+        status: p.status || 'active',
+        featured: p.featured || false
+      };
+      await insforge.database.from('products').upsert([row]);
     }
-  });
-  
-  db.saveAll('products', currentProducts);
-  logAction(req.headers['x-user-name'] || "Admin", "Bulk Import Products", `Imported ${products.length} products`);
-  return res.json({ status: "success", count: products.length });
+    
+    await logAction(req.headers['x-user-name'] || "Admin", "Bulk Import Products", `Imported ${products.length} products`);
+    return res.json({ status: "success", count: products.length });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
-
 
 // 3. CATEGORY ROUTES
-app.get('/api/categories', (req, res) => {
-  return res.json(db.getAll('categories'));
+app.get('/api/categories', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database.from('categories').select();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/categories', (req, res) => {
+app.post('/api/categories', async (req, res) => {
   const category = req.body;
   if (!category.name) {
     return res.status(400).json({ error: "Category Name is required." });
   }
-  const newCat = db.insert('categories', category);
-  logAction(req.headers['x-user-name'] || "Admin", "Create Category", `Added category: ${newCat.name}`);
-  return res.status(201).json(newCat);
-});
 
+  const id = category.id || 'CAT-' + Math.floor(100000 + Math.random() * 900000);
+  const slug = category.slug || category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  
+  const row = {
+    id,
+    name: category.name,
+    slug,
+    featured: category.featured || false
+  };
+
+  try {
+    const { data, error } = await insforge.database.from('categories').insert([row]).select();
+    if (error) return res.status(500).json({ error: error.message });
+
+    await logAction(req.headers['x-user-name'] || "Admin", "Create Category", `Added category: ${category.name}`);
+    return res.status(201).json(data[0]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // 4. ORDER ROUTES
-app.get('/api/orders', (req, res) => {
-  return res.json(db.getAll('orders'));
+app.get('/api/orders', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database
+      .from('orders')
+      .select()
+      .order('created_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const mapped = data.map(o => ({
+      ...o,
+      date: o.created_at ? new Date(o.created_at).toLocaleString() : ''
+    }));
+    return res.json(mapped);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/orders/:orderId', (req, res) => {
+app.get('/api/orders/:orderId', async (req, res) => {
   const { orderId } = req.params;
-  const order = db.findOne('orders', { orderId });
-  if (!order) {
-    return res.status(404).json({ error: "Order not found." });
+  try {
+    const { data: order, error } = await insforge.database
+      .from('orders')
+      .select()
+      .eq('orderId', orderId)
+      .maybeSingle();
+
+    if (error || !order) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    return res.json({
+      ...order,
+      date: order.created_at ? new Date(order.created_at).toLocaleString() : ''
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-  return res.json(order);
 });
 
 // Helper to soft-match storefront cart items to database products
-const findProductFromCartItem = (item) => {
+const findProductFromCartItem = async (item) => {
   if (!item) return null;
-  if (item.sku) {
-    const prod = db.findOne('products', { SKU: item.sku });
-    if (prod) return prod;
-  }
   
-  // Try exact name match
-  const exact = db.findOne('products', { name: item.name });
-  if (exact) return exact;
-
-  // Try matching clean name and weight
-  const allProducts = db.getAll('products');
-  return allProducts.find(p => {
-    const cleanDbName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-    if (cleanDbName === item.name) {
-      // Check size / weight
-      const dbSize = p.weight || "";
-      if (dbSize === item.size) return true;
-      // Fallback check slug
-      const cleanSize = item.size.toLowerCase().replace(/[\s()]/g, '');
-      if (p.slug && p.slug.endsWith(cleanSize)) return true;
+  try {
+    if (item.sku) {
+      const { data } = await insforge.database
+        .from('products')
+        .select()
+        .eq('sku', item.sku)
+        .maybeSingle();
+      if (data) return data;
     }
-    return false;
-  });
+    
+    // Try exact name match
+    const { data: exact } = await insforge.database
+      .from('products')
+      .select()
+      .eq('name', item.name)
+      .maybeSingle();
+    if (exact) return exact;
+
+    // Try matching clean name and weight
+    const { data: allProducts } = await insforge.database.from('products').select();
+    if (!allProducts) return null;
+
+    return allProducts.find(p => {
+      const cleanDbName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      if (cleanDbName === item.name) {
+        // Check size / weight
+        const dbSize = p.weight || "";
+        if (dbSize === item.size) return true;
+        // Fallback check slug
+        const cleanSize = item.size.toLowerCase().replace(/[\s()]/g, '');
+        if (p.slug && p.slug.endsWith(cleanSize)) return true;
+      }
+      return false;
+    });
+  } catch (err) {
+    console.error("findProductFromCartItem error:", err);
+    return null;
+  }
 };
 
 // Create Razorpay Order
-const createOrderController = (req, res) => {
+const createOrderController = async (req, res) => {
   try {
     const { amount, currency, receipt, items } = req.body;
 
@@ -343,7 +573,7 @@ const createOrderController = (req, res) => {
     // Verify stock before creating Razorpay order
     if (items && Array.isArray(items)) {
       for (let item of items) {
-        const prod = findProductFromCartItem(item);
+        const prod = await findProductFromCartItem(item);
         if (!prod) {
           return res.status(400).json({ error: `Product "${item.name}" not found in catalog.` });
         }
@@ -376,7 +606,7 @@ app.post('/api/create-order', createOrderController);
 app.post('/create-order', createOrderController);
 
 // Unified Razorpay Checkout Verification route
-app.post('/api/verify-payment', (req, res) => {
+app.post('/api/verify-payment', async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, mitti_order_id, amount, customer, address, items } = req.body;
 
@@ -392,28 +622,34 @@ app.post('/api/verify-payment', (req, res) => {
 
     if (expectedSignature === razorpay_signature) {
       if (mitti_order_id) {
-        const existing = db.findOne('orders', { orderId: mitti_order_id });
+        const { data: existing } = await insforge.database
+          .from('orders')
+          .select()
+          .eq('orderId', mitti_order_id)
+          .maybeSingle();
+
         if (!existing) {
           try {
-            checkAndDeductStock(items || []);
+            await checkAndDeductStock(items || []);
           } catch (stockErr) {
-            sendAdminNotification('stock-mismatch-warning', `Paid Order placed but stock was insufficient: ${mitti_order_id} (${stockErr.message})`);
+            await sendAdminNotification('stock-mismatch-warning', `Paid Order placed but stock was insufficient: ${mitti_order_id} (${stockErr.message})`);
           }
 
-          db.insert('orders', {
+          const newOrder = {
             orderId: mitti_order_id,
             razorpayOrderId: razorpay_order_id,
             razorpayPaymentId: razorpay_payment_id,
             paymentStatus: "Paid",
             orderStatus: "Preparing Order",
             amount: parseFloat(amount),
-            date: new Date().toLocaleString(),
             customer: customer || {},
             address: address || {},
             items: items || [],
             paymentMethod: "Razorpay"
-          });
-          sendAdminNotification('new-order', `New Razorpay Order Verified: ${mitti_order_id}`, { orderId: mitti_order_id, amount });
+          };
+          
+          await insforge.database.from('orders').insert([newOrder]);
+          await sendAdminNotification('new-order', `New Razorpay Order Verified: ${mitti_order_id}`, { orderId: mitti_order_id, amount });
         }
       }
       return res.status(200).json({ status: 'success', message: 'Payment verified successfully.' });
@@ -427,7 +663,7 @@ app.post('/api/verify-payment', (req, res) => {
 
 // 5. DIRECT UPI PAYMENT UPLOADER
 app.post('/api/submit-upi-payment', (req, res) => {
-  upload.single('screenshot')(req, res, (err) => {
+  upload.single('screenshot')(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ error: `File upload error: ${err.message}` });
     } else if (err) {
@@ -476,7 +712,6 @@ app.post('/api/submit-upi-payment', (req, res) => {
         paymentStatus: "Pending Verification",
         orderStatus: "Payment Verification Pending",
         amount: parseFloat(amount),
-        date: new Date().toLocaleString(),
         customer: {
           name: customerName,
           phone: customerPhone,
@@ -493,16 +728,16 @@ app.post('/api/submit-upi-payment', (req, res) => {
         items: parsedItems
       };
 
-      db.insert('orders', newOrder);
+      await insforge.database.from('orders').insert([newOrder]);
 
       // Deduct inventory and trigger alerts
       try {
-        checkAndDeductStock(parsedItems || []);
+        await checkAndDeductStock(parsedItems || []);
       } catch (stockErr) {
         return res.status(400).json({ error: stockErr.message });
       }
 
-      sendAdminNotification('new-order', `New UPI Payment Uploaded: ${orderId} (Pending Audit)`, { orderId, amount });
+      await sendAdminNotification('new-order', `New UPI Payment Uploaded: ${orderId} (Pending Audit)`, { orderId, amount });
 
       return res.status(200).json({ status: "success", orderId, upiScreenshot: screenshotPath });
 
@@ -514,7 +749,7 @@ app.post('/api/submit-upi-payment', (req, res) => {
 });
 
 // 6. COD ORDER SUBMITTER
-app.post('/api/submit-cod-order', (req, res) => {
+app.post('/api/submit-cod-order', async (req, res) => {
   try {
     const { orderId, amount, customer, address, items } = req.body;
     
@@ -530,22 +765,21 @@ app.post('/api/submit-cod-order', (req, res) => {
       paymentStatus: "Pending", // Cash collected at door
       orderStatus: "Pending",
       amount: parseFloat(amount),
-      date: new Date().toLocaleString(),
       customer: customer || {},
       address: address || {},
       items: items || []
     };
 
-    db.insert('orders', newOrder);
+    await insforge.database.from('orders').insert([newOrder]);
 
     // Deduct inventory and trigger alerts
     try {
-      checkAndDeductStock(items || []);
+      await checkAndDeductStock(items || []);
     } catch (stockErr) {
       return res.status(400).json({ error: stockErr.message });
     }
 
-    sendAdminNotification('new-order', `New COD Order Received: ${orderId}`, { orderId, amount });
+    await sendAdminNotification('new-order', `New COD Order Received: ${orderId}`, { orderId, amount });
 
     return res.status(200).json({ status: "success", orderId });
   } catch (error) {
@@ -555,7 +789,7 @@ app.post('/api/submit-cod-order', (req, res) => {
 });
 
 // Update Order / Payment Status (Admin console)
-app.post('/api/update-order-status', (req, res) => {
+app.post('/api/update-order-status', async (req, res) => {
   const { orderId, orderStatus, paymentStatus, trackingRef, shippingCarrier } = req.body;
 
   if (!orderId) {
@@ -565,32 +799,66 @@ app.post('/api/update-order-status', (req, res) => {
   const updates = {};
   if (orderStatus) updates.orderStatus = orderStatus;
   if (paymentStatus) updates.paymentStatus = paymentStatus;
-  if (trackingRef) updates.trackingRef = trackingRef;
-  if (shippingCarrier) updates.shippingCarrier = shippingCarrier;
+  if (trackingRef) updates.trackingId = trackingRef;
+  if (shippingCarrier) updates.deliveryPartner = shippingCarrier;
 
-  const updated = db.update('orders', { orderId }, updates);
-  if (updated.length === 0) {
-    return res.status(404).json({ error: "Order not found." });
+  try {
+    const { data, error } = await insforge.database
+      .from('orders')
+      .update(updates)
+      .eq('orderId', orderId)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    await logAction(req.headers['x-user-name'] || "Admin", "Update Order", `Changed status for order ${orderId}`);
+    return res.json({ status: "success", order: data[0] });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  logAction(req.headers['x-user-name'] || "Admin", "Update Order", `Changed status for order ${orderId}`);
-  return res.json({ status: "success", order: updated[0] });
 });
 
 
 // 6. COUPON ROUTES
-app.get('/api/coupons', (req, res) => {
-  return res.json(db.getAll('coupons'));
+app.get('/api/coupons', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database.from('coupons').select();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/coupons', (req, res) => {
+app.post('/api/coupons', async (req, res) => {
   const coupon = req.body;
   if (!coupon.code || !coupon.discountVal) {
     return res.status(400).json({ error: "Coupon Code and Discount Value are required." });
   }
-  const newCoupon = db.insert('coupons', coupon);
-  logAction(req.headers['x-user-name'] || "Admin", "Create Coupon", `Added coupon: ${newCoupon.code}`);
-  return res.status(201).json(newCoupon);
+  
+  const id = coupon.id || 'CPN-' + Math.floor(100000 + Math.random() * 900000);
+  const row = {
+    id,
+    code: coupon.code,
+    type: coupon.type,
+    discountVal: coupon.discountVal,
+    minOrder: coupon.minOrder || 0,
+    maxDiscount: coupon.maxDiscount,
+    usageLimit: coupon.usageLimit || 0,
+    expiry: coupon.expiry
+  };
+
+  try {
+    const { data, error } = await insforge.database.from('coupons').insert([row]).select();
+    if (error) return res.status(500).json({ error: error.message });
+
+    await logAction(req.headers['x-user-name'] || "Admin", "Create Coupon", `Added coupon: ${coupon.code}`);
+    return res.status(201).json(data[0]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.delete('/api/coupons/:id', (req, res) => {
@@ -600,135 +868,212 @@ app.post('/api/coupons/:id/delete', (req, res) => {
   return handleCouponDelete(req, res);
 });
 
-function handleCouponDelete(req, res) {
+async function handleCouponDelete(req, res) {
   const { id } = req.params;
-  db.delete('coupons', { id });
-  return res.json({ status: "success", message: "Coupon deleted successfully." });
+  try {
+    await insforge.database.from('coupons').delete().eq('id', id);
+    return res.json({ status: "success", message: "Coupon deleted successfully." });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 }
 
 
 // 7. REVIEW ROUTES
-app.get('/api/reviews', (req, res) => {
-  return res.json(db.getAll('reviews'));
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database.from('reviews').select();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/reviews', (req, res) => {
+app.post('/api/reviews', async (req, res) => {
   const review = req.body;
   if (!review.product_id || !review.rating || !review.comment) {
     return res.status(400).json({ error: "Missing required review parameters." });
   }
-  // Default to Pending status for Admin moderation
-  review.status = 'Pending';
-  const newReview = db.insert('reviews', review);
-  return res.status(201).json(newReview);
+  
+  const id = 'REV-' + Math.floor(100000 + Math.random() * 900000);
+  const row = {
+    id,
+    productId: review.product_id,
+    customerId: review.customer_id || null,
+    customerName: review.customer_name || 'Anonymous',
+    rating: review.rating,
+    comment: review.comment,
+    status: 'Pending',
+    adminReply: null
+  };
+
+  try {
+    const { data, error } = await insforge.database.from('reviews').insert([row]).select();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(201).json(data[0]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/reviews/:id/moderate', (req, res) => {
+app.post('/api/reviews/:id/moderate', async (req, res) => {
   const { id } = req.params;
   const { status, reply } = req.body;
   
   const updates = {};
   if (status) updates.status = status;
-  if (reply) updates.reply = reply;
+  if (reply) updates.adminReply = reply;
 
-  const updated = db.update('reviews', { id }, updates);
-  return res.json({ status: "success", review: updated[0] });
+  try {
+    const { data, error } = await insforge.database
+      .from('reviews')
+      .update(updates)
+      .eq('id', id)
+      .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ status: "success", review: data ? data[0] : null });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 
 // 8. SETTINGS ROUTES
-app.get('/api/settings', (req, res) => {
-  const settingsList = db.getAll('settings');
-  return res.json(settingsList[0] || {});
+app.get('/api/settings', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database.from('settings').select();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data[0] || {});
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', async (req, res) => {
   const updates = req.body;
-  const settingsList = db.getAll('settings');
   
-  if (settingsList.length === 0) {
-    db.insert('settings', updates);
-  } else {
-    const merged = { ...settingsList[0], ...updates };
-    db.update('settings', { businessName: settingsList[0].businessName }, merged);
-  }
+  try {
+    const { data: settingsList } = await insforge.database.from('settings').select();
+    
+    if (!settingsList || settingsList.length === 0) {
+      updates.id = 'settings_default';
+      await insforge.database.from('settings').insert([updates]);
+    } else {
+      await insforge.database.from('settings').update(updates).eq('id', settingsList[0].id);
+    }
 
-  logAction(req.headers['x-user-name'] || "Admin", "Update Settings", "Modified shop core configurations");
-  sendStorefrontEvent('catalog-updated', 'Settings updated');
-  return res.json({ status: "success", settings: db.getAll('settings')[0] });
+    await logAction(req.headers['x-user-name'] || "Admin", "Update Settings", "Modified shop core configurations");
+    sendStorefrontEvent('catalog-updated', 'Settings updated');
+    
+    const { data: freshSettings } = await insforge.database.from('settings').select();
+    return res.json({ status: "success", settings: freshSettings ? freshSettings[0] : {} });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 
 // 9. AUDIT LOGS
-app.get('/api/logs', (req, res) => {
-  return res.json(db.getAll('logs'));
+app.get('/api/logs', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database
+      .from('logs')
+      .select()
+      .order('created_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 
 // 10. DYNAMIC BUSINESS ANALYTICS
-app.get('/api/analytics', (req, res) => {
-  const orders = db.getAll('orders');
-  const products = db.getAll('products');
-  const categories = db.getAll('categories');
+app.get('/api/analytics', async (req, res) => {
+  try {
+    const { data: orders } = await insforge.database.from('orders').select();
+    const { data: products } = await insforge.database.from('products').select();
+    const { data: categories } = await insforge.database.from('categories').select();
 
-  // Compute metrics
-  const todayDateStr = new Date().toLocaleDateString();
-  
-  const todayOrders = orders.filter(o => o.date && o.date.startsWith(todayDateStr.split('/')[0])); // simple date match
-  const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified' ? o.amount : 0), 0);
-  
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified' ? o.amount : 0), 0);
-  
-  const pendingOrdersCount = orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Payment Verification Pending').length;
-  const processingCount = orders.filter(o => o.orderStatus === 'Preparing' || o.orderStatus === 'Grinding').length;
-  const deliveredCount = orders.filter(o => o.orderStatus === 'Delivered').length;
-  const cancelledCount = orders.filter(o => o.orderStatus === 'Cancelled').length;
-  
-  const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 10);
-  const outOfStockProducts = products.filter(p => p.stock === 0);
+    const ordersList = orders || [];
+    const productsList = products || [];
+    const categoriesList = categories || [];
 
-  // Extract unique customers
-  const customerMap = {};
-  orders.forEach(o => {
-    if (o.customer && o.customer.phone) {
-      customerMap[o.customer.phone] = (customerMap[o.customer.phone] || 0) + 1;
-    }
-  });
-  
-  const totalCustomers = Object.keys(customerMap).length;
-  const returningCustomers = Object.values(customerMap).filter(v => v > 1).length;
+    // Compute metrics
+    const todayDateStr = new Date().toLocaleDateString();
+    
+    const todayOrders = ordersList.filter(o => o.created_at && new Date(o.created_at).toLocaleDateString() === todayDateStr);
+    const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified' ? parseFloat(o.amount) : 0), 0);
+    const totalRevenue = ordersList.reduce((sum, o) => sum + (o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified' ? parseFloat(o.amount) : 0), 0);
+    
+    const pendingOrdersCount = ordersList.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Payment Verification Pending').length;
+    const processingCount = ordersList.filter(o => o.orderStatus === 'Preparing' || o.orderStatus === 'Grinding' || o.orderStatus === 'Preparing Order').length;
+    const deliveredCount = ordersList.filter(o => o.orderStatus === 'Delivered').length;
+    const cancelledCount = ordersList.filter(o => o.orderStatus === 'Cancelled').length;
+    
+    const lowStockProducts = productsList.filter(p => p.stock > 0 && p.stock <= 10);
+    const outOfStockProducts = productsList.filter(p => p.stock === 0);
 
-  return res.json({
-    metrics: {
-      todayOrders: todayOrders.length,
-      todayRevenue,
-      totalRevenue,
-      pendingOrders: pendingOrdersCount,
-      processingOrders: processingCount,
-      deliveredOrders: deliveredCount,
-      cancelledOrders: cancelledCount,
-      totalCustomers,
-      returningCustomers,
-      totalProducts: products.length,
-      lowStock: lowStockProducts.length,
-      outOfStock: outOfStockProducts.length,
-      totalCategories: categories.length
-    },
-    lowStockItems: lowStockProducts.map(p => ({ id: p.id, name: p.name, stock: p.stock })),
-    outOfStockItems: outOfStockProducts.map(p => ({ id: p.id, name: p.name }))
-  });
+    // Extract unique customers
+    const customerMap = {};
+    ordersList.forEach(o => {
+      if (o.customer && o.customer.phone) {
+        customerMap[o.customer.phone] = (customerMap[o.customer.phone] || 0) + 1;
+      }
+    });
+    
+    const totalCustomers = Object.keys(customerMap).length;
+    const returningCustomers = Object.values(customerMap).filter(v => v > 1).length;
+
+    return res.json({
+      metrics: {
+        todayOrders: todayOrders.length,
+        todayRevenue,
+        totalRevenue,
+        pendingOrders: pendingOrdersCount,
+        processingOrders: processingCount,
+        deliveredOrders: deliveredCount,
+        cancelledOrders: cancelledCount,
+        totalCustomers,
+        returningCustomers,
+        totalProducts: productsList.length,
+        lowStock: lowStockProducts.length,
+        outOfStock: outOfStockProducts.length,
+        totalCategories: categoriesList.length
+      },
+      lowStockItems: lowStockProducts.map(p => ({ id: p.id, name: p.name, stock: p.stock })),
+      outOfStockItems: outOfStockProducts.map(p => ({ id: p.id, name: p.name }))
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // SSE (Server-Sent Events) State for real-time notifications
 let adminClients = [];
 let storefrontClients = [];
 
-const sendAdminNotification = (type, message, data = {}) => {
+const sendAdminNotification = async (type, message, data = {}) => {
   const payload = JSON.stringify({ type, message, data, timestamp: new Date().toISOString() });
   adminClients.forEach(client => {
     client.write(`data: ${payload}\n\n`);
   });
-  db.insert('notifications', { type, message, data, read: false });
+  
+  try {
+    const id = 'NOTIF-' + Math.floor(100000 + Math.random() * 900000);
+    await insforge.database.from('notifications').insert([{
+      id,
+      type,
+      message,
+      data,
+      read: false
+    }]);
+  } catch (err) {
+    console.error("[InsForge Error] Creating notification failed:", err);
+  }
 };
 
 const sendStorefrontEvent = (type, message, data = {}) => {
@@ -739,11 +1084,10 @@ const sendStorefrontEvent = (type, message, data = {}) => {
 };
 
 // Stock Validation Helper
-const checkAndDeductStock = (items) => {
+const checkAndDeductStock = async (items) => {
   const toDeduct = [];
   for (let item of items) {
-    // Look up product using soft match helper
-    const prod = findProductFromCartItem(item);
+    const prod = await findProductFromCartItem(item);
     if (!prod) {
       throw new Error(`Product "${item.name}" not found in catalog.`);
     }
@@ -754,17 +1098,17 @@ const checkAndDeductStock = (items) => {
   }
 
   // Deduct stock for all items
-  toDeduct.forEach(({ prod, quantity }) => {
+  for (let { prod, quantity } of toDeduct) {
     const newStock = Math.max(0, prod.stock - quantity);
-    db.update('products', { id: prod.id }, { stock: newStock });
+    await insforge.database.from('products').update({ stock: newStock }).eq('id', prod.id);
     
     // Notifications for stock changes
     if (newStock === 0) {
-      sendAdminNotification('out-of-stock', `Product Out of Stock: ${prod.name}`, { id: prod.id, name: prod.name });
+      await sendAdminNotification('out-of-stock', `Product Out of Stock: ${prod.name}`, { id: prod.id, name: prod.name });
     } else if (newStock <= 10) {
-      sendAdminNotification('low-stock', `Product Low Stock: ${prod.name} (${newStock} remaining)`, { id: prod.id, name: prod.name, stock: newStock });
+      await sendAdminNotification('low-stock', `Product Low Stock: ${prod.name} (${newStock} remaining)`, { id: prod.id, name: prod.name, stock: newStock });
     }
-  });
+  }
 };
 
 // SSE Notification Channel Endpoint
@@ -795,71 +1139,136 @@ app.get('/api/events', (req, res) => {
 });
 
 // Notifications List API
-app.get('/api/notifications', (req, res) => {
-  return res.json(db.getAll('notifications'));
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database
+      .from('notifications')
+      .select()
+      .order('created_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Mark Notifications as Read
-app.post('/api/notifications/read', (req, res) => {
-  const notifications = db.getAll('notifications');
-  notifications.forEach(n => { n.read = true; });
-  db.saveAll('notifications', notifications);
-  return res.json({ status: "success" });
+app.post('/api/notifications/read', async (req, res) => {
+  try {
+    const { error } = await insforge.database
+      .from('notifications')
+      .update({ read: true })
+      .neq('id', 'placeholder_nonexistent_id'); // target all notifications
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ status: "success" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Dynamic Homepage configuration API
-app.get('/api/homepage', (req, res) => {
-  const hpList = db.getAll('homepage');
-  if (hpList.length === 0) {
-    return res.json({});
+app.get('/api/homepage', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database.from('homepage').select();
+    if (error || !data || data.length === 0) {
+      return res.json({});
+    }
+    return res.json(data[0]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-  return res.json(hpList[0]);
 });
 
 // Admin Homepage Config Update
-app.post('/api/homepage', (req, res) => {
+app.post('/api/homepage', async (req, res) => {
   const updates = req.body;
-  const hpList = db.getAll('homepage');
-  if (hpList.length === 0) {
-    db.insert('homepage', updates);
-  } else {
-    db.update('homepage', { id: hpList[0].id }, updates);
+  try {
+    const { data: hpList } = await insforge.database.from('homepage').select();
+    if (!hpList || hpList.length === 0) {
+      updates.id = 'HP-001';
+      await insforge.database.from('homepage').insert([updates]);
+    } else {
+      await insforge.database.from('homepage').update(updates).eq('id', hpList[0].id);
+    }
+    await sendAdminNotification('homepage-update', 'Homepage content has been updated');
+    
+    const { data: freshHp } = await insforge.database.from('homepage').select();
+    return res.json({ status: "success", homepage: freshHp ? freshHp[0] : {} });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-  sendAdminNotification('homepage-update', 'Homepage content has been updated');
-  return res.json({ status: "success", homepage: db.getAll('homepage')[0] });
 });
 
 // Helper: Authenticate customer email from Authorization Header token
-const getCustomerFromToken = (req) => {
+const getCustomerFromToken = async (req) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.substring(7);
-  if (!token.startsWith('Token-')) return null;
   try {
-    const base64Email = token.substring(6);
-    const email = Buffer.from(base64Email, 'base64').toString('utf8');
-    return db.findOne('customers', { email });
+    if (token.startsWith('Token-')) {
+      const base64Email = token.substring(6);
+      const email = Buffer.from(base64Email, 'base64').toString('utf8');
+      
+      const { data } = await insforge.database
+        .from('customers')
+        .select()
+        .eq('email', email)
+        .maybeSingle();
+
+      return data;
+    }
+
+    const { createClient } = await import('@insforge/sdk');
+    const userClient = createClient({
+      baseUrl: process.env.INSFORGE_URL,
+      anonKey: process.env.INSFORGE_ANON_KEY,
+      accessToken: token,
+      isServerMode: true
+    });
+
+    const { data, error } = await userClient.auth.getCurrentUser();
+    if (error || !data || !data.user) return null;
+
+    const { data: customerProfile } = await insforge.database
+      .from('customers')
+      .select()
+      .eq('email', data.user.email)
+      .maybeSingle();
+
+    return customerProfile;
   } catch (e) {
     return null;
   }
 };
 
 // Customer Registration
-app.post('/api/customers/register', (req, res) => {
+app.post('/api/customers/register', async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
     if (!name || !email || !password || !phone) {
       return res.status(400).json({ error: "Name, email, password and phone are required." });
     }
-    const existing = db.findOne('customers', { email });
-    if (existing) {
-      return res.status(400).json({ error: "Customer with this email is already registered." });
-    }
-
-    const customer = {
-      name,
+    
+    // 1. Sign up user using InsForge Auth
+    const { data: authData, error: authError } = await insforgePublic.auth.signUp({
       email,
       password,
+      name
+    });
+
+    if (authError) {
+      return res.status(400).json({ error: authError.message });
+    }
+
+    // 2. Insert customer profile into customers table
+    const id = authData.user.id; // use the UUID from InsForge Auth
+    const customer = {
+      id,
+      name,
+      email,
+      password: 'INSFORGE_AUTH', // Managed by InsForge Auth
       phone,
       rewardPoints: 100, // Gift 100 reward points on sign-up
       addresses: [],
@@ -867,12 +1276,12 @@ app.post('/api/customers/register', (req, res) => {
       cart: []
     };
 
-    const saved = db.insert('customers', customer);
-    const token = `Token-${Buffer.from(email).toString('base64')}`;
+    const { data, error } = await insforge.database.from('customers').insert([customer]).select();
+    if (error) return res.status(500).json({ error: error.message });
+
+    await sendAdminNotification('new-customer', `New Customer Registration: ${name}`, { name, email });
     
-    sendAdminNotification('new-customer', `New Customer Registration: ${name}`, { name, email });
-    
-    return res.status(200).json({ status: "success", customer: saved, token });
+    return res.status(200).json({ status: "success", customer: data[0], token: authData.accessToken });
   } catch (error) {
     console.error("Customer registration error:", error);
     return res.status(500).json({ error: "Registration failed." });
@@ -880,18 +1289,35 @@ app.post('/api/customers/register', (req, res) => {
 });
 
 // Customer Login
-app.post('/api/customers/login', (req, res) => {
+app.post('/api/customers/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required." });
     }
-    const customer = db.findOne('customers', { email });
-    if (!customer || customer.password !== password) {
-      return res.status(401).json({ error: "Invalid email or password credentials." });
+
+    // 1. Sign in via InsForge Auth
+    const { data: authData, error: authError } = await insforgePublic.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError) {
+      return res.status(401).json({ error: authError.message || "Invalid email or password credentials." });
     }
-    const token = `Token-${Buffer.from(email).toString('base64')}`;
-    return res.status(200).json({ status: "success", customer, token });
+
+    // 2. Look up customer profile
+    const { data: customer, error: dbError } = await insforge.database
+      .from('customers')
+      .select()
+      .eq('email', email)
+      .maybeSingle();
+
+    if (dbError || !customer) {
+      return res.status(404).json({ error: "Customer profile not found." });
+    }
+
+    return res.status(200).json({ status: "success", customer, token: authData.accessToken });
   } catch (error) {
     console.error("Customer login error:", error);
     return res.status(500).json({ error: "Login failed." });
@@ -899,49 +1325,77 @@ app.post('/api/customers/login', (req, res) => {
 });
 
 // Customer Profile details (including order history!)
-app.get('/api/customers/profile', (req, res) => {
-  const customer = getCustomerFromToken(req);
-  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
-  
-  const allOrders = db.getAll('orders');
-  const customerOrders = allOrders.filter(o => o.customer && (o.customer.email === customer.email || o.customer.phone === customer.phone));
-  
-  return res.json({
-    status: "success",
-    customer,
-    orders: customerOrders
-  });
+app.get('/api/customers/profile', async (req, res) => {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+    
+    const { data: allOrders } = await insforge.database.from('orders').select();
+    const ordersList = allOrders || [];
+    const customerOrders = ordersList.filter(o => o.customer && (o.customer.email === customer.email || o.customer.phone === customer.phone));
+    
+    return res.json({
+      status: "success",
+      customer,
+      orders: customerOrders.map(o => ({
+        ...o,
+        date: o.created_at ? new Date(o.created_at).toLocaleString() : ''
+      }))
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Update Profile info
-app.put('/api/customers/profile', (req, res) => {
-  const customer = getCustomerFromToken(req);
-  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+app.put('/api/customers/profile', async (req, res) => {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) return res.status(401).json({ error: "Unauthorized session." });
 
-  const { name, phone } = req.body;
-  const updates = {};
-  if (name) updates.name = name;
-  if (phone) updates.phone = phone;
+    const { name, phone } = req.body;
+    const updates = {};
+    if (name) updates.name = name;
+    if (phone) updates.phone = phone;
 
-  const updated = db.update('customers', { email: customer.email }, updates);
-  return res.json({ status: "success", customer: updated[0] });
+    const { data, error } = await insforge.database
+      .from('customers')
+      .update(updates)
+      .eq('email', customer.email)
+      .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ status: "success", customer: data[0] });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Add Address to list
-app.post('/api/customers/address', (req, res) => {
-  const customer = getCustomerFromToken(req);
-  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+app.post('/api/customers/address', async (req, res) => {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) return res.status(401).json({ error: "Unauthorized session." });
 
-  const { house, street, landmark, pin, city, state } = req.body;
-  if (!house || !street || !pin) {
-    return res.status(400).json({ error: "House, street and pin code are required." });
+    const { house, street, landmark, pin, city, state } = req.body;
+    if (!house || !street || !pin) {
+      return res.status(400).json({ error: "House, street and pin code are required." });
+    }
+
+    const addresses = customer.addresses || [];
+    addresses.push({ house, street, landmark: landmark || "", pin, city: city || "New Delhi", state: state || "Delhi" });
+
+    const { data, error } = await insforge.database
+      .from('customers')
+      .update({ addresses })
+      .eq('email', customer.email)
+      .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ status: "success", addresses: data[0].addresses });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  const addresses = customer.addresses || [];
-  addresses.push({ house, street, landmark: landmark || "", pin, city: city || "New Delhi", state: state || "Delhi" });
-
-  db.update('customers', { email: customer.email }, { addresses });
-  return res.json({ status: "success", addresses });
 });
 
 // Delete Address
@@ -952,59 +1406,98 @@ app.post('/api/customers/address/:index/delete', (req, res) => {
   return handleAddressDelete(req, res);
 });
 
-function handleAddressDelete(req, res) {
-  const customer = getCustomerFromToken(req);
-  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+async function handleAddressDelete(req, res) {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) return res.status(401).json({ error: "Unauthorized session." });
 
-  const index = parseInt(req.params.index);
-  const addresses = customer.addresses || [];
-  if (isNaN(index) || index < 0 || index >= addresses.length) {
-    return res.status(400).json({ error: "Invalid address selection index." });
+    const index = parseInt(req.params.index);
+    const addresses = customer.addresses || [];
+    if (isNaN(index) || index < 0 || index >= addresses.length) {
+      return res.status(400).json({ error: "Invalid address selection index." });
+    }
+
+    addresses.splice(index, 1);
+    const { data, error } = await insforge.database
+      .from('customers')
+      .update({ addresses })
+      .eq('email', customer.email)
+      .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ status: "success", addresses: data[0].addresses });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  addresses.splice(index, 1);
-  db.update('customers', { email: customer.email }, { addresses });
-  return res.json({ status: "success", addresses });
 }
 
 // Synchronize Cart list
-app.post('/api/customers/cart', (req, res) => {
-  const customer = getCustomerFromToken(req);
-  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+app.post('/api/customers/cart', async (req, res) => {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) return res.status(401).json({ error: "Unauthorized session." });
 
-  const { cart } = req.body;
-  db.update('customers', { email: customer.email }, { cart: cart || [] });
-  return res.json({ status: "success" });
+    const { cart } = req.body;
+    const { error } = await insforge.database
+      .from('customers')
+      .update({ cart: cart || [] })
+      .eq('email', customer.email);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ status: "success" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Synchronize Wishlist
-app.post('/api/customers/wishlist', (req, res) => {
-  const customer = getCustomerFromToken(req);
-  if (!customer) return res.status(401).json({ error: "Unauthorized session." });
+app.post('/api/customers/wishlist', async (req, res) => {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) return res.status(401).json({ error: "Unauthorized session." });
 
-  const { wishlist } = req.body;
-  db.update('customers', { email: customer.email }, { wishlist: wishlist || [] });
-  return res.json({ status: "success" });
+    const { wishlist } = req.body;
+    const { error } = await insforge.database
+      .from('customers')
+      .update({ wishlist: wishlist || [] })
+      .eq('email', customer.email);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ status: "success" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Fetch all registered customers list (Admin panel)
-app.get('/api/customers', (req, res) => {
-  return res.json(db.getAll('customers'));
+app.get('/api/customers', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database.from('customers').select();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-// Start listening and pre-seed tables
-app.listen(PORT, () => {
-  const tables = ['settings', 'categories', 'products', 'users', 'coupons', 'customers', 'homepage', 'notifications', 'orders', 'logs'];
-  tables.forEach(t => {
-    try {
-      db.getAll(t);
-    } catch (e) {
-      console.error(`Failed to pre-seed table: ${t}`, e);
-    }
-  });
+// Fetch all registered employees list (Admin panel)
+app.get('/api/admin/employees', async (req, res) => {
+  try {
+    const { data, error } = await insforge.database.from('users').select();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
-  console.log(`=======================================================`);
-  console.log(` Mitti Fresh Payment & Operations REST API Backend Running`);
-  console.log(` API Endpoint: http://localhost:${PORT}`);
-  console.log(`=======================================================`);
+// Initialize database connection dynamically, then start listening
+initInsForge().then(() => {
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(` Mitti Fresh Payment & Operations REST API Backend Running`);
+    console.log(` Connected to InsForge cloud Postgres database.`);
+    console.log(` API Endpoint: http://localhost:${PORT}`);
+    console.log(`=======================================================`);
+  });
 });

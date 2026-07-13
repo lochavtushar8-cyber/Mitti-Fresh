@@ -18,12 +18,7 @@
       let logs = [];
       let settings = {};
       let homepageConfig = {};
-      let employees = [
-        { name: "Tushar Singh Lochav", email: "admin@mittifresh.com", role: "Super Admin", status: "Active" },
-        { name: "Rohan Vashisth", email: "manager@mittifresh.com", role: "Manager", status: "Active" },
-        { name: "Amit Sharma", email: "warehouse@mittifresh.com", role: "Warehouse", status: "Active" },
-        { name: "Devinder Singh", email: "delivery@mittifresh.com", role: "Delivery", status: "Active" }
-      ];
+      let employees = [];
 
       // Tab Switching Logic
       const sidebarItems = document.querySelectorAll('.sidebar-item');
@@ -333,7 +328,17 @@
             loadHomepageUI();
           });
 
-        renderEmployees();
+        // Fetch Employees
+        fetch(API_BASE + "/api/admin/employees")
+          .then(res => res.json())
+          .then(data => {
+            employees = Array.isArray(data) ? data : [];
+            renderEmployees();
+          })
+          .catch(err => {
+            console.error("Failed to fetch employees", err);
+            renderEmployees();
+          });
       };
 
       // HOMEPAGE HERO BINDINGS & LOGIC
