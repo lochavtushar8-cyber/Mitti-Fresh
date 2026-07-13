@@ -676,41 +676,48 @@ const rebuildCatalog = (dbProducts) => {
   };
 
   dbProducts.forEach(item => {
-    const parts = item.slug.split('-');
-    const sizeValue = parts[parts.length - 1]; // "1kg"
-    const baseId = parts.slice(0, -1).join('-'); // "multigrain-atta-special"
-    
-    const actualBaseId = baseId || item.slug;
-    const actualSizeVal = baseId ? sizeValue : (item.weight || "1 unit");
+    try {
+      if (!item || (!item.slug && !item.id)) return;
+      const slugVal = item.slug || item.id || "unknown-product";
+      const parts = slugVal.split('-');
+      const sizeValue = parts[parts.length - 1]; // "1kg"
+      const baseId = parts.slice(0, -1).join('-'); // "multigrain-atta-special"
+      
+      const actualBaseId = baseId || slugVal;
+      const actualSizeVal = baseId ? sizeValue : (item.weight || "1 unit");
+      const nameVal = item.name ? item.name.replace(/\s*\([^)]*\)\s*$/, '').trim() : "Mitti Fresh Staple";
 
-    if (!catalogMap[actualBaseId]) {
-      catalogMap[actualBaseId] = {
-        id: actualBaseId,
-        name: item.name.replace(/\s*\([^)]*\)\s*$/, '').trim(), // Strip " (5kg)" suffix
-        category: reverseCategoryMap(item.category, item.name),
-        description: item.shortDescription || item.fullDescription || "",
-        basePrice: item.sellingPrice,
-        unit: item.weight ? item.weight.replace(/[\d\s]/g, '') : "kg",
-        sizes: [],
-        image: item.image,
-        ingredients: item.ingredients || "",
-        benefits: item.benefits || "",
-        nutrition: item.nutrition || null,
-        badge: item.badge || "",
-        badgeType: item.badgeType || ""
-      };
+      if (!catalogMap[actualBaseId]) {
+        catalogMap[actualBaseId] = {
+          id: actualBaseId,
+          name: nameVal,
+          category: reverseCategoryMap(item.category || "", item.name || ""),
+          description: item.shortDescription || item.fullDescription || "",
+          basePrice: item.sellingPrice || item.price || 0,
+          unit: item.weight ? item.weight.replace(/[\d\s]/g, '') : "kg",
+          sizes: [],
+          image: item.image || "assets/logo.jpg",
+          ingredients: item.ingredients || "",
+          benefits: item.benefits || "",
+          nutrition: item.nutrition || null,
+          badge: item.badge || "",
+          badgeType: item.badgeType || ""
+        };
+      }
+      
+      catalogMap[actualBaseId].sizes.push({
+        name: item.weight || actualSizeVal,
+        value: actualSizeVal,
+        price: item.sellingPrice || item.price || 0,
+        selling_price: item.sellingPrice || item.price || 0,
+        mrp: item.MRP || item.sellingPrice || item.price || 0,
+        stock: typeof item.stock === 'number' ? item.stock : 100,
+        sku: item.SKU || "",
+        dbId: item.id || slugVal
+      });
+    } catch (err) {
+      console.error("Mitti Fresh - Failed to parse database product entry:", item, err);
     }
-    
-    catalogMap[actualBaseId].sizes.push({
-      name: item.weight || actualSizeVal,
-      value: actualSizeVal,
-      price: item.sellingPrice,
-      selling_price: item.sellingPrice,
-      mrp: item.MRP || item.sellingPrice,
-      stock: item.stock,
-      sku: item.SKU,
-      dbId: item.id
-    });
   });
 
   return Object.values(catalogMap);
