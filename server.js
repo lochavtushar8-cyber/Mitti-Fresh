@@ -403,7 +403,7 @@ app.post('/api/submit-upi-payment', (req, res) => {
         parsedItems = [];
       }
 
-      const screenshotPath = req.file ? `http://localhost:${PORT}/uploads/${req.file.filename}` : "";
+      const screenshotPath = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : "";
 
       const newOrder = {
         orderId,

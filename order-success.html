@@ -171,11 +171,23 @@
           }
         })
         .catch(err => {
-          console.warn("Could not retrieve order from server, using local cache", err);
-          const orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
-          const localOrder = orders.find(o => o.orderId === orderId);
+          console.warn("Could not retrieve order details from API, attempting local recovery:", err);
+          try {
+            const cachedOrders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
+            const localOrder = cachedOrders.find(o => o.orderId === orderId);
+            if (localOrder) {
+              if (status === 'success') {
+                renderSuccessCard(localOrder, paymentId);
+              } else {
+                renderFailureCard(orderId, errorCode);
+              }
+              return;
+            }
+          } catch (e) {}
+
           if (status === 'success') {
-            renderSuccessCard(localOrder, paymentId);
+            // Render basic template if recovery fails
+            renderSuccessCard({ orderId, amount: 0, date: new Date().toLocaleString(), customer: {} }, paymentId);
           } else {
             renderFailureCard(orderId, errorCode);
           }
