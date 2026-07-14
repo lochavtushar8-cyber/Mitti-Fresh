@@ -990,43 +990,10 @@
             window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
           })
           .catch(err => {
-            console.warn("UPI server submission failed, falling back to LocalStorage:", err);
-            
-            // Extract error message safely
-            const errMsg = (err && err.message) ? String(err.message).toLowerCase() : "";
-            
-            // Check if it's a network reachability error (Failed to fetch, CORS, offline, or blank error object)
-            const isNetworkError = !errMsg ||
-                                   errMsg.includes("fetch") || 
-                                   errMsg.includes("network") || 
-                                   errMsg.includes("cors") ||
-                                   errMsg.includes("failed") ||
-                                   errMsg.includes("typeerror");
-
-            if (isNetworkError) {
-              // Silently fall back to LocalStorage write so customer can complete purchase!
-              const orderPayload = {
-                orderId: mittiOrderId,
-                paymentMethod: "UPI",
-                upiTransactionId: txnId,
-                upiScreenshot: upiScreenshotBase64, // Local base64 fallback
-                upiNotes: document.getElementById('upi-notes').value.trim(),
-                paymentStatus: "Pending Verification",
-                orderStatus: "Payment Verification Pending",
-                amount: grandTotal,
-                date: new Date().toLocaleString(),
-                customer: { name: custName, phone: custPhone, email: custEmail },
-                address: { house: houseNo, street: street, landmark: landmark, pin: pinCode, city: "New Delhi", state: "Delhi" },
-                items: cart
-              };
-              saveOrder(orderPayload);
-              window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${txnId}&status=success&method=upi`;
-            } else {
-              // Real validation error returned by the server, alert the customer to fix it
-              alert(`Payment Details Submission Failed: ${err.message || err}`);
-              placeOrderBtn.disabled = false;
-              placeOrderBtn.innerHTML = `<i class="fa-solid fa-square-check"></i> Place Order`;
-            }
+            console.error("UPI server submission failed:", err);
+            alert(`Payment Details Submission Failed: ${err.message || err}`);
+            placeOrderBtn.disabled = false;
+            placeOrderBtn.innerHTML = `<i class="fa-solid fa-square-check"></i> Place Order`;
           });
         } else if (isCod) {
           // Complete direct COD Order
@@ -1066,18 +1033,10 @@
             window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=COD&status=success`;
           })
           .catch(err => {
-            console.warn("COD server submission failed, falling back to LocalStorage:", err);
-            const finalPayload = {
-              ...orderPayload,
-              paymentMethod: "COD",
-              razorpayOrderId: "",
-              razorpayPaymentId: "COD",
-              paymentStatus: "Pending",
-              orderStatus: "Pending",
-              date: new Date().toLocaleString()
-            };
-            saveOrder(finalPayload);
-            window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=COD&status=success`;
+            console.error("COD server submission failed:", err);
+            alert(`Order Submission Failed: ${err.message || err}`);
+            placeOrderBtn.disabled = false;
+            placeOrderBtn.innerHTML = `<i class="fa-solid fa-square-check"></i> Place Order`;
           });
         } else {
           // Initialize Razorpay Payment Gateway Flow
@@ -1086,16 +1045,8 @@
         });
       });
 
-      // Write order payload to local database (LocalStorage simulation for dynamic retrieval)
+      // Clear local active cart storage once order is placed
       const saveOrder = (order) => {
-        let orders = [];
-        try {
-          orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
-        } catch(e) {}
-        orders.unshift(order); // Newest orders first
-        localStorage.setItem('mitti_fresh_orders', JSON.stringify(orders));
-        
-        // Empty active cart
         localStorage.removeItem('mitti_fresh_cart');
       };
 
@@ -1262,27 +1213,7 @@
             })
             .catch(err => {
               console.error("Verification endpoint down", err);
-              // Fallback to recording paid order if API verify endpoint errored but signature exists
-              const orderPayload = {
-                orderId: mittiOrderId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                paymentStatus: "Paid",
-                orderStatus: "Pending",
-                amount: amount,
-                date: new Date().toLocaleString(),
-                customer: { name, phone, email },
-                address: {
-                  house: document.getElementById('addr-house').value,
-                  street: document.getElementById('addr-street').value,
-                  landmark: document.getElementById('addr-landmark').value,
-                  pin: document.getElementById('addr-pin').value,
-                  city: "New Delhi", state: "Delhi"
-                },
-                items: cart
-              };
-              saveOrder(orderPayload);
-              window.location.href = `/order-success?orderId=${mittiOrderId}&paymentId=${response.razorpay_payment_id}&status=success`;
+              window.location.href = `/order-success?orderId=${mittiOrderId}&status=failed&error=VerificationUnreachable`;
             });
           },
           "prefill": {

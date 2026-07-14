@@ -493,6 +493,33 @@ app.post('/api/categories', async (req, res) => {
   }
 });
 
+app.delete('/api/categories/:id', (req, res) => {
+  return handleCategoryDelete(req, res);
+});
+app.post('/api/categories/:id/delete', (req, res) => {
+  return handleCategoryDelete(req, res);
+});
+
+async function handleCategoryDelete(req, res) {
+  const { id } = req.params;
+  try {
+    const { data, error } = await insforge.database
+      .from('categories')
+      .delete()
+      .eq('id', id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      return res.status(404).json({ error: "Category not found." });
+    }
+
+    await logAction(req.headers['x-user-name'] || "Admin", "Delete Category", `Removed category ID: ${id}`);
+    return res.json({ status: "success", message: "Category deleted successfully." });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
 // 4. ORDER ROUTES
 app.get('/api/orders', async (req, res) => {
   try {

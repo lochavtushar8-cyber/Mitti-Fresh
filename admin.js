@@ -131,53 +131,32 @@
         }, 6000);
       };
 
-      // Synchronize Data (Fetch API with local localStorage backup fallback)
+      // Synchronize Data (Fetch API with live database backend)
       const syncData = () => {
         // Fetch Settings
         fetch(API_BASE + "/api/settings")
           .then(res => res.json())
           .then(data => {
             settings = data || {};
-            if (!settings.upiId) {
-              settings = {
-                businessName: "Mitti Fresh",
-                upiId: "lochavtushar8-1@oksbi",
-                supportPhone: "8595077263",
-                supportEmail: "support@mittifresh.com",
-                shippingRules: { flatRate: 50, freeShippingThreshold: 500, codConvenienceFee: 50 },
-                serviceablePincodes: ["110075", "110078", "110059"]
-              };
-            }
             loadSettingsUI();
           })
-          .catch(() => {
-            settings = JSON.parse(localStorage.getItem('mitti_fresh_settings') || '{}');
-            if (!settings.upiId) {
-              settings = {
-                businessName: "Mitti Fresh",
-                upiId: "lochavtushar8-1@oksbi",
-                supportPhone: "8595077263",
-                supportEmail: "support@mittifresh.com",
-                shippingRules: { flatRate: 50, freeShippingThreshold: 500, codConvenienceFee: 50 },
-                serviceablePincodes: ["110075", "110078", "110059"]
-              };
-            }
+          .catch(err => {
+            console.error("Failed to fetch settings:", err);
+            settings = {};
             loadSettingsUI();
           });
 
         // Fetch Products
         fetch(API_BASE + "/api/products")
           .then(res => res.json())
-          .then(data => { products = data; renderProducts(); renderInventory(); })
-          .catch(() => {
-            products = JSON.parse(localStorage.getItem('mitti_fresh_products') || '[]');
-            if (products.length === 0) {
-              products = [
-                { id: "PROD-WHEAT-001", name: "MP Wheat Atta (Stone Ground)", SKU: "MF-MPW-5KG", category: "Wheat Atta", weight: "5kg", MRP: 380, sellingPrice: 350, stock: 120, shelfLife: "60 Days" },
-                { id: "PROD-MULTI-002", name: "Multigrain Atta (Health Special)", SKU: "MF-MUL-5KG", category: "Multigrain Atta", weight: "5kg", MRP: 450, sellingPrice: 420, stock: 8, shelfLife: "45 Days" },
-                { id: "PROD-MUSTARD-003", name: "Cold Pressed Mustard Oil", SKU: "MF-MST-1L", category: "Cold Pressed Oil", weight: "1L", MRP: 220, sellingPrice: 195, stock: 150, shelfLife: "12 Months" }
-              ];
-            }
+          .then(data => {
+            products = Array.isArray(data) ? data : [];
+            renderProducts();
+            renderInventory();
+          })
+          .catch(err => {
+            console.error("Failed to fetch products:", err);
+            products = [];
             renderProducts();
             renderInventory();
           });
@@ -187,33 +166,27 @@
           .then(res => res.json())
           .then(data => {
             categories = Array.isArray(data) ? data : [];
-            if (categories.length === 0) {
-              categories = [
-                { id: "CAT-001", name: "Wheat Atta", slug: "wheat-atta", featured: true },
-                { id: "CAT-002", name: "Multigrain Atta", slug: "multigrain-atta", featured: true },
-                { id: "CAT-003", name: "Cold Pressed Oil", slug: "cold-pressed-oil", featured: true }
-              ];
-            }
             renderCategories();
           })
-          .catch(() => {
-            categories = JSON.parse(localStorage.getItem('mitti_fresh_categories') || '[]');
-            if (categories.length === 0) {
-              categories = [
-                { id: "CAT-001", name: "Wheat Atta", slug: "wheat-atta", featured: true },
-                { id: "CAT-002", name: "Multigrain Atta", slug: "multigrain-atta", featured: true },
-                { id: "CAT-003", name: "Cold Pressed Oil", slug: "cold-pressed-oil", featured: true }
-              ];
-            }
+          .catch(err => {
+            console.error("Failed to fetch categories:", err);
+            categories = [];
             renderCategories();
           });
 
         // Fetch Orders
         fetch(API_BASE + "/api/orders")
           .then(res => res.json())
-          .then(data => { orders = data; renderOrders(); renderUpiAuditor(); renderCustomers(); renderOverview(); })
-          .catch(() => {
-            orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
+          .then(data => {
+            orders = Array.isArray(data) ? data : [];
+            renderOrders();
+            renderUpiAuditor();
+            renderCustomers();
+            renderOverview();
+          })
+          .catch(err => {
+            console.error("Failed to fetch orders:", err);
+            orders = [];
             renderOrders();
             renderUpiAuditor();
             renderCustomers();
@@ -225,22 +198,11 @@
           .then(res => res.json())
           .then(data => {
             coupons = Array.isArray(data) ? data : [];
-            if (coupons.length === 0) {
-              coupons = [
-                { id: "CPN-001", code: "WELCOME10", type: "Percentage", discountVal: 10, minOrder: 0, maxDiscount: 100, expiry: "2026-12-31" },
-                { id: "CPN-002", code: "SAVE100", type: "Flat", discountVal: 100, minOrder: 500, maxDiscount: 100, expiry: "2026-08-31" }
-              ];
-            }
             renderCoupons();
           })
-          .catch(() => {
-            coupons = JSON.parse(localStorage.getItem('mitti_fresh_coupons') || '[]');
-            if (coupons.length === 0) {
-              coupons = [
-                { id: "CPN-001", code: "WELCOME10", type: "Percentage", discountVal: 10, minOrder: 0, maxDiscount: 100, expiry: "2026-12-31" },
-                { id: "CPN-002", code: "SAVE100", type: "Flat", discountVal: 100, minOrder: 500, maxDiscount: 100, expiry: "2026-08-31" }
-              ];
-            }
+          .catch(err => {
+            console.error("Failed to fetch coupons:", err);
+            coupons = [];
             renderCoupons();
           });
 
@@ -249,22 +211,11 @@
           .then(res => res.json())
           .then(data => {
             reviews = Array.isArray(data) ? data : [];
-            if (reviews.length === 0) {
-              reviews = [
-                { id: "REV-001", product_name: "MP Wheat Atta", customer_name: "Aman V.", rating: 5, comment: "Roti is very soft!", status: "Approved" },
-                { id: "REV-002", product_name: "Cold Pressed Mustard Oil", customer_name: "Jyoti S.", rating: 4, comment: "Pure and smelly yellow oil.", status: "Pending" }
-              ];
-            }
             renderReviews();
           })
-          .catch(() => {
-            reviews = JSON.parse(localStorage.getItem('mitti_fresh_reviews') || '[]');
-            if (reviews.length === 0) {
-              reviews = [
-                { id: "REV-001", product_name: "MP Wheat Atta", customer_name: "Aman V.", rating: 5, comment: "Roti is very soft!", status: "Approved" },
-                { id: "REV-002", product_name: "Cold Pressed Mustard Oil", customer_name: "Jyoti S.", rating: 4, comment: "Pure and smelly yellow oil.", status: "Pending" }
-              ];
-            }
+          .catch(err => {
+            console.error("Failed to fetch reviews:", err);
+            reviews = [];
             renderReviews();
           });
 
@@ -273,20 +224,11 @@
           .then(res => res.json())
           .then(data => {
             logs = Array.isArray(data) ? data : [];
-            if (logs.length === 0) {
-              logs = [
-                { createdAt: new Date().toISOString(), user: "System", action: "Initialize", details: "Mitti Fresh Admin Console Loaded" }
-              ];
-            }
             renderLogs();
           })
-          .catch(() => {
-            logs = JSON.parse(localStorage.getItem('mitti_fresh_logs') || '[]');
-            if (logs.length === 0) {
-              logs = [
-                { createdAt: new Date().toISOString(), user: "System", action: "Initialize", details: "Mitti Fresh Admin Console Loaded" }
-              ];
-            }
+          .catch(err => {
+            console.error("Failed to fetch logs:", err);
+            logs = [];
             renderLogs();
           });
 
@@ -295,36 +237,11 @@
           .then(res => res.json())
           .then(data => {
             homepageConfig = data || {};
-            if (!homepageConfig.hero) {
-              homepageConfig = {
-                hero: {
-                  title: "Milling Pure Grains Right Before Your Eyes",
-                  subtitle: "Experience 100% natural, unadulterated stone-ground flours and cold-pressed oils prepared fresh on your order."
-                },
-                bannerText: "Pure & Organic Flours, Cold Pressed Oils",
-                testimonials: [
-                  { name: "Devansh Vashisth", review: "The taste of rotis made from their stone-ground MP wheat atta is simply amazing." },
-                  { name: "Shreya Gupta", review: "I have been using their cold pressed mustard oil for cooking. Purity is unmatched." }
-                ]
-              };
-            }
             loadHomepageUI();
           })
-          .catch(() => {
-            homepageConfig = JSON.parse(localStorage.getItem('mitti_fresh_homepage') || '{}');
-            if (!homepageConfig.hero) {
-              homepageConfig = {
-                hero: {
-                  title: "Milling Pure Grains Right Before Your Eyes",
-                  subtitle: "Experience 100% natural, unadulterated stone-ground flours and cold-pressed oils prepared fresh on your order."
-                },
-                bannerText: "Pure & Organic Flours, Cold Pressed Oils",
-                testimonials: [
-                  { name: "Devansh Vashisth", review: "The taste of rotis made from their stone-ground MP wheat atta is simply amazing." },
-                  { name: "Shreya Gupta", review: "I have been using their cold pressed mustard oil for cooking. Purity is unmatched." }
-                ]
-              };
-            }
+          .catch(err => {
+            console.error("Failed to fetch homepage config:", err);
+            homepageConfig = {};
             loadHomepageUI();
           });
 
@@ -336,7 +253,8 @@
             renderEmployees();
           })
           .catch(err => {
-            console.error("Failed to fetch employees", err);
+            console.error("Failed to fetch employees:", err);
+            employees = [];
             renderEmployees();
           });
       };

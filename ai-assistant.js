@@ -8,7 +8,7 @@
   window.MittiFreshAIInitialized = true;
 
   // AI Product catalog dictionary for accurate reference matches
-  const AI_CATALOG = {
+  let AI_CATALOG = {
     "wheat-atta": {
       name: "MP Sharbhati Atta",
       id: "wheat-atta",
@@ -608,7 +608,7 @@
   };
 
   // Core NLP Dialog parser & response generator
-  const handleUserInput = (input) => {
+  const handleUserInput = async (input) => {
     const raw = input.toLowerCase().trim();
     
     // Language detection
@@ -680,26 +680,37 @@
       return;
     }
 
-    // Intent: Track order (Dynamic lookup in LocalStorage orders database)
+    // Intent: Track order (Dynamic lookup from Server database)
     if (raw.includes("track") || raw.includes("order status") || raw.includes("mera order") || raw.includes("status")) {
       // Find order ID matches from string
       const matchedId = input.toUpperCase().match(/MF-\d{6}/);
       if (matchedId) {
         const oId = matchedId[0];
-        const orders = JSON.parse(localStorage.getItem('mitti_fresh_orders') || '[]');
-        const ord = orders.find(o => o.orderId === oId);
-        
-        if (ord) {
-          if (isHindi) {
-            appendMessage(`मैंने आपके ऑर्डर <strong>${oId}</strong> की जांच की है:<br>• भुगतान स्थिति: <strong>${ord.paymentStatus}</strong><br>• डिलीवरी स्थिति: <strong>${ord.orderStatus}</strong><br><br>निश्चिंत रहें, हमारी टीम काम कर रही है!`);
+        showTypingIndicator();
+        try {
+          const apiEndpoint = typeof window.getApiEndpoint === 'function' ? window.getApiEndpoint(`/api/orders/${oId}`) : `/api/orders/${oId}`;
+          const res = await fetch(apiEndpoint + '?t=' + Date.now());
+          removeTypingIndicator();
+          if (res.ok) {
+            const ord = await res.json();
+            if (ord && ord.orderId) {
+              if (isHindi) {
+                appendMessage(`मैंने आपके ऑर्डर <strong>${oId}</strong> की जांच की है:<br>• भुगतान स्थिति: <strong>${ord.paymentStatus}</strong><br>• डिलीवरी स्थिति: <strong>${ord.orderStatus}</strong><br><br>निश्चिंत रहें, हमारी टीम काम कर रही है!`);
+              } else {
+                appendMessage(`Checked order status for <strong>${oId}</strong>:<br>• Payment State: <strong>${ord.paymentStatus}</strong><br>• Order Stage: <strong>${ord.orderStatus}</strong><br><br>Our shipping agents are coordinating fresh dispatch.`);
+              }
+            } else {
+              throw new Error("Order not found");
+            }
           } else {
-            appendMessage(`Checked order status for <strong>${oId}</strong>:<br>• Payment State: <strong>${ord.paymentStatus}</strong><br>• Order Stage: <strong>${ord.orderStatus}</strong><br><br>Our shipping agents are coordinating fresh dispatch.`);
+            throw new Error("Server error");
           }
-        } else {
+        } catch (err) {
+          removeTypingIndicator();
           if (isHindi) {
             appendMessage(`क्षमा करें, मुझे <strong>${oId}</strong> नंबर का कोई आर्डर नहीं मिला। कृपया सही आर्डर नंबर जांचें या सहायता टीम से संपर्क करें।`);
           } else {
-            appendMessage(`I couldn't locate order ID <strong>${oId}</strong> in our Local Storage records. Please verify the code on your invoice.`);
+            appendMessage(`I couldn't locate order ID <strong>${oId}</strong> in our database records. Please verify the code on your invoice.`);
           }
         }
       } else {
@@ -872,6 +883,73 @@
   document.getElementById("ai-action-call").addEventListener("click", () => {
     window.location.href = "tel:8595077263";
   });
+
+  // Fetch real-time products from backend to dynamically keep AI Catalog up-to-date
+  async function syncAICatalog() {
+    try {
+      const apiEndpoint = typeof window.getApiEndpoint === 'function' ? window.getApiEndpoint('/api/products') : '/api/products';
+      const res = await fetch(apiEndpoint + '?t=' + Date.now());
+      if (res.ok) {
+        const dbProducts = await res.json();
+        if (dbProducts && dbProducts.length > 0) {
+          const catalogMap = {
+            "wheat-atta": [],
+            "multigrain-atta": [],
+            "mustard-oil": [],
+            "groundnut-oil": [],
+            "besan": [],
+            "maize-flour": []
+          };
+          
+          dbProducts.forEach(p => {
+            const slug = (p.slug || p.id || '').toLowerCase();
+            let key = null;
+            if (slug.includes('wheat') || slug.includes('sharbhati') || slug.includes('atta') && !slug.includes('multigrain')) {
+              key = 'wheat-atta';
+            } else if (slug.includes('multigrain')) {
+              key = 'multigrain-atta';
+            } else if (slug.includes('mustard') || slug.includes('sarso')) {
+              key = 'mustard-oil';
+            } else if (slug.includes('groundnut') || slug.includes('peanut')) {
+              key = 'groundnut-oil';
+            } else if (slug.includes('besan') || slug.includes('gram')) {
+              key = 'besan';
+            } else if (slug.includes('maize') || slug.includes('makki')) {
+              key = 'maize-flour';
+            }
+            
+            if (key) {
+              catalogMap[key].push(p);
+            }
+          });
+          
+          for (const key in catalogMap) {
+            const items = catalogMap[key];
+            if (items.length > 0) {
+              const baseItem = items[0];
+              AI_CATALOG[key] = {
+                id: key,
+                name: baseItem.name.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+                image: baseItem.image || AI_CATALOG[key].image,
+                description: baseItem.shortDescription || baseItem.description || AI_CATALOG[key].description,
+                benefits: baseItem.fullDescription || AI_CATALOG[key].benefits,
+                shelfLife: AI_CATALOG[key].shelfLife || "3 Months",
+                sizes: {}
+              };
+              items.forEach(item => {
+                const sizeLabel = item.weight || "1kg";
+                AI_CATALOG[key].sizes[sizeLabel] = item.sellingPrice;
+              });
+            }
+          }
+        }
+      }
+    } catch(err) {
+      console.warn("AI Assistant failed to sync with dynamic product catalog:", err);
+    }
+  }
+  
+  syncAICatalog();
 
   // Render initial greeting on dynamic load
   renderGreeting();
