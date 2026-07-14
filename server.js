@@ -1009,13 +1009,16 @@ app.post('/api/settings', async (req, res) => {
   const updates = req.body;
   
   try {
-    const { data: settingsList } = await insforge.database.from('settings').select();
+    const { data: settingsList, error: fetchErr } = await insforge.database.from('settings').select();
+    if (fetchErr) return res.status(500).json({ error: fetchErr.message });
     
     if (!settingsList || settingsList.length === 0) {
       updates.id = 'settings_default';
-      await insforge.database.from('settings').insert([updates]);
+      const { error: insertErr } = await insforge.database.from('settings').insert([updates]);
+      if (insertErr) return res.status(500).json({ error: insertErr.message });
     } else {
-      await insforge.database.from('settings').update(updates).eq('id', settingsList[0].id);
+      const { error: updateErr } = await insforge.database.from('settings').update(updates).eq('id', settingsList[0].id);
+      if (updateErr) return res.status(500).json({ error: updateErr.message });
     }
 
     await logAction(req.headers['x-user-name'] || "Admin", "Update Settings", "Modified shop core configurations");
@@ -1027,6 +1030,7 @@ app.post('/api/settings', async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // 9. AUDIT LOGS

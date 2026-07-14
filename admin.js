@@ -387,11 +387,19 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ serviceablePincodes: pinsArr })
         })
-        .then(() => { alert("Serviceable pincodes updated!"); syncData(); })
+        .then(res => res.json().then(json => ({ ok: res.ok, json })))
+        .then(({ ok, json }) => {
+          if (!ok) {
+            alert("Error saving pincodes: " + (json.error || JSON.stringify(json)));
+            return;
+          }
+          alert("Serviceable pincodes updated!");
+          syncData();
+        })
         .catch(() => {
           settings.serviceablePincodes = pinsArr;
           localStorage.setItem('mitti_fresh_settings', JSON.stringify(settings));
-          alert("PIN codes cached locally!");
+          alert("PIN codes cached locally (offline)!");
           syncData();
         });
       });
@@ -408,11 +416,19 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ shippingRules: rules })
         })
-        .then(() => { alert("Shipping parameters saved!"); syncData(); })
+        .then(res => res.json().then(json => ({ ok: res.ok, json })))
+        .then(({ ok, json }) => {
+          if (!ok) {
+            alert("Error saving shipping rules: " + (json.error || JSON.stringify(json)));
+            return;
+          }
+          alert("Shipping parameters saved!");
+          syncData();
+        })
         .catch(() => {
           settings.shippingRules = rules;
           localStorage.setItem('mitti_fresh_settings', JSON.stringify(settings));
-          alert("Shipping rules cached locally!");
+          alert("Shipping rules cached locally (offline)!");
           syncData();
         });
       });
