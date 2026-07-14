@@ -15,6 +15,9 @@ const fs = require('fs');
 dotenv.config({ path: path.join(__dirname, '.env.production') });
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+// Sanitize InsForge URL to prevent double slashes (e.g. //api/database/records/)
+const INSFORGE_URL_CLEANED = (process.env.INSFORGE_URL || '').replace(/\/+$/, '');
+
 function logStartupError(message) {
   const logPath = path.join(__dirname, 'server-error.txt');
   const timestamp = new Date().toISOString();
@@ -49,11 +52,11 @@ async function initInsForge() {
   try {
     const sdk = await import('@insforge/sdk');
     insforge = sdk.createAdminClient({
-      baseUrl: process.env.INSFORGE_URL,
+      baseUrl: INSFORGE_URL_CLEANED,
       apiKey: process.env.INSFORGE_API_KEY
     });
     insforgePublic = sdk.createClient({
-      baseUrl: process.env.INSFORGE_URL,
+      baseUrl: INSFORGE_URL_CLEANED,
       anonKey: process.env.INSFORGE_ANON_KEY
     });
     console.log("✓ Connected to InsForge BaaS database successfully.");
@@ -1273,7 +1276,7 @@ const getCustomerFromToken = async (req) => {
 
     const { createClient } = await import('@insforge/sdk');
     const userClient = createClient({
-      baseUrl: process.env.INSFORGE_URL,
+      baseUrl: INSFORGE_URL_CLEANED,
       anonKey: process.env.INSFORGE_ANON_KEY,
       accessToken: token,
       isServerMode: true
