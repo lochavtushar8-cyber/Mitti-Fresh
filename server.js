@@ -659,8 +659,8 @@ const createOrderController = async (req, res) => {
 app.post('/api/create-order', createOrderController);
 app.post('/create-order', createOrderController);
 
-// Unified Razorpay Checkout Verification route
-app.post('/api/verify-payment', async (req, res) => {
+// Unified Razorpay Checkout Verification controller
+const verifyPaymentController = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, mitti_order_id, amount, customer, address, items } = req.body;
 
@@ -713,7 +713,10 @@ app.post('/api/verify-payment', async (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: "Verification server error." });
   }
-});
+};
+
+app.post('/api/verify-payment', verifyPaymentController);
+app.post('/verify-payment', verifyPaymentController);
 
 // 5. DIRECT UPI PAYMENT UPLOADER
 app.post('/api/submit-upi-payment', (req, res) => {

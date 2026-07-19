@@ -1184,7 +1184,22 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(verifyPayload)
             })
-            .then(res => res.json())
+            .then(res => {
+              // Parse response as JSON if it is JSON, but handle errors
+              return res.json().then(data => {
+                if (!res.ok) {
+                  // Server returned an error status code
+                  throw new Error(data.message || data.error || `HTTP ${res.status}`);
+                }
+                return data;
+              }).catch(err => {
+                // If it wasn't valid JSON or parsing failed, throw network/unreachable error
+                if (!res.ok) {
+                  throw new Error(`HTTP ${res.status}`);
+                }
+                throw err;
+              });
+            })
             .then(verResult => {
               if (verResult.status === 'success') {
                 const orderPayload = {
@@ -1212,8 +1227,12 @@
               }
             })
             .catch(err => {
-              console.error("Verification endpoint down", err);
-              window.location.href = `/order-success?orderId=${mittiOrderId}&status=failed&error=VerificationUnreachable`;
+              console.error("Verification endpoint error:", err);
+              // Distinguish between genuine signature verification failures and reachability issues
+              const errorParam = (err.message && (err.message.includes("Signature") || err.message.includes("VerificationFailed"))) 
+                ? "VerificationFailed" 
+                : "VerificationUnreachable";
+              window.location.href = `/order-success?orderId=${mittiOrderId}&status=failed&error=${errorParam}`;
             });
           },
           "prefill": {
