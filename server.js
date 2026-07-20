@@ -1430,6 +1430,45 @@ const getCustomerFromToken = async (req) => {
 // REFERRAL SYSTEM HELPERS (Phase 1)
 // ==========================================================================
 const REFERRALS_FILE = path.join(__dirname, 'data', 'referrals.json');
+const CUSTOMER_CODES_FILE = path.join(__dirname, 'data', 'customer_codes.json');
+
+const getCustomerCodesMap = async () => {
+  let map = {};
+  try {
+    if (fs.existsSync(CUSTOMER_CODES_FILE)) {
+      const content = fs.readFileSync(CUSTOMER_CODES_FILE, 'utf8');
+      map = JSON.parse(content);
+    }
+  } catch (e) {}
+
+  if (!map || Object.keys(map).length === 0) {
+    try {
+      const { data: logRecords } = await insforge.database.from('logs').select().eq('action', 'customer-referral-code');
+      if (logRecords && logRecords.length > 0) {
+        logRecords.forEach(l => {
+          try {
+            const parsed = JSON.parse(l.details);
+            if (parsed.email && parsed.referralCode) {
+              map[parsed.email.toLowerCase()] = parsed.referralCode;
+            }
+          } catch (e) {}
+        });
+        saveCustomerCodesMap(map);
+      }
+    } catch (e) {}
+  }
+  return map || {};
+};
+
+const saveCustomerCodesMap = (map) => {
+  try {
+    const dir = path.dirname(CUSTOMER_CODES_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(CUSTOMER_CODES_FILE, JSON.stringify(map, null, 2), 'utf8');
+  } catch (e) {
+    console.error("Save customer codes disk failed:", e);
+  }
+};
 
 const getReferralsData = async () => {
   let list = [];
@@ -1609,9 +1648,15 @@ app.get('/api/customers/profile', async (req, res) => {
     const customer = await getCustomerFromToken(req);
     if (!customer) return res.status(401).json({ error: "Unauthorized session." });
     
-    // Ensure customer has a referral code
-    if (!customer.referralCode) {
+    // Ensure customer has a referral code synced with customerMap
+    const customerMap = await getCustomerCodesMap();
+    const custEmail = customer.email ? customer.email.toLowerCase() : '';
+    if (customerMap[custEmail]) {
+      customer.referralCode = customerMap[custEmail];
+    } else if (!customer.referralCode) {
       customer.referralCode = generateCustomerReferralCode(customer.name, customer.id || Date.now().toString());
+      customerMap[custEmail] = customer.referralCode;
+      saveCustomerCodesMap(customerMap);
       try {
         await insforge.database.from('customers').update({ referralCode: customer.referralCode }).eq('email', customer.email);
       } catch (e) {}
@@ -1648,8 +1693,25 @@ app.get('/api/customers/profile', async (req, res) => {
 app.get('/api/admin/referrals', async (req, res) => {
   try {
     const referralsList = await getReferralsData();
+    const customerMap = await getCustomerCodesMap();
     const { data: customersList } = await insforge.database.from('customers').select();
-    return res.json({ status: "success", referrals: referralsList, customers: customersList || [] });
+    const rawCustomers = customersList || [];
+    
+    // Merge persistent custom referral codes for every registered customer
+    const mergedCustomers = rawCustomers.map(c => {
+      const em = c.email ? c.email.toLowerCase() : '';
+      const code = customerMap[em] || c.referralCode || generateCustomerReferralCode(c.name, c.id || Date.now().toString());
+      if (!customerMap[em]) {
+        customerMap[em] = code;
+        saveCustomerCodesMap(customerMap);
+      }
+      return {
+        ...c,
+        referralCode: code
+      };
+    });
+
+    return res.json({ status: "success", referrals: referralsList, customers: mergedCustomers });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1666,22 +1728,34 @@ app.post('/api/admin/referrals/create', async (req, res) => {
     const cleanCode = referralCode.trim().toUpperCase();
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check if referral code is already used by another customer
+    const customerMap = await getCustomerCodesMap();
     const { data: allCustomers } = await insforge.database.from('customers').select();
-    const existing = (allCustomers || []).find(c => c.referralCode && c.referralCode.toUpperCase() === cleanCode && c.email.toLowerCase() !== cleanEmail);
-    if (existing) {
-      return res.status(400).json({ error: `Referral code '${cleanCode}' is already assigned to ${existing.name} (${existing.email}).` });
+    const existingCustList = allCustomers || [];
+
+    // Check if referral code is already assigned to someone else
+    const isCodeUsed = Object.entries(customerMap).some(([em, code]) => code === cleanCode && em !== cleanEmail) ||
+                       existingCustList.some(c => c.referralCode && c.referralCode.toUpperCase() === cleanCode && c.email.toLowerCase() !== cleanEmail);
+    if (isCodeUsed) {
+      return res.status(400).json({ error: `Referral code '${cleanCode}' is already assigned to another customer.` });
     }
 
-    // Update customer record
-    const targetCust = (allCustomers || []).find(c => c.email.toLowerCase() === cleanEmail);
-    if (!targetCust) {
-      return res.status(404).json({ error: `Customer with email '${cleanEmail}' not found.` });
+    // Save to persistent customer codes map
+    customerMap[cleanEmail] = cleanCode;
+    saveCustomerCodesMap(customerMap);
+
+    // Try updating database if customer row exists
+    const targetCust = existingCustList.find(c => c.email.toLowerCase() === cleanEmail);
+    if (targetCust) {
+      try {
+        await insforge.database.from('customers').update({ referralCode: cleanCode }).eq('id', targetCust.id);
+      } catch (e) {}
     }
 
-    await insforge.database.from('customers').update({ referralCode: cleanCode }).eq('id', targetCust.id);
+    try {
+      await logAction(cleanEmail, "customer-referral-code", JSON.stringify({ email: cleanEmail, referralCode: cleanCode }));
+    } catch (e) {}
 
-    return res.json({ status: "success", message: `Referral code '${cleanCode}' successfully assigned to ${targetCust.name}.` });
+    return res.json({ status: "success", message: `Referral code '${cleanCode}' successfully assigned to ${cleanEmail}.` });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
