@@ -1927,11 +1927,9 @@ img {
   background-color: var(--color-bg-white);
 }
 
-/* Cart Coupon / Code Section */
+/* Cart Coupon / Code Section (Hidden in Basket drawer, applied on Checkout only) */
 .cart-coupon-section {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  display: none !important;
 }
 
 .coupon-input {
