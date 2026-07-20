@@ -229,6 +229,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderProducts();
   }
 
+  // Load dynamic settings (Shipping rules, PIN codes) on storefront
+  try {
+    const settingsUrl = window.getApiEndpoint('/api/settings');
+    if (settingsUrl) {
+      const setRes = await fetch(settingsUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      if (setRes.ok) {
+        const dbSettings = await setRes.json();
+        if (dbSettings) {
+          if (dbSettings.shippingRules) {
+            const s = dbSettings.shippingRules;
+            if (s.freeShippingThreshold !== undefined && s.freeShippingThreshold !== null && s.freeShippingThreshold !== "") {
+              window.CONFIG.FREE_DELIVERY_MIN = Number(s.freeShippingThreshold);
+            }
+            if (s.codConvenienceFee !== undefined && s.codConvenienceFee !== null && s.codConvenienceFee !== "") {
+              window.CONFIG.COD_CHARGE = Number(s.codConvenienceFee);
+            }
+            if (s.flatRate !== undefined && s.flatRate !== null && s.flatRate !== "") {
+              window.CONFIG.FLAT_RATE = Number(s.flatRate);
+            }
+          }
+          if (dbSettings.serviceablePincodes && Array.isArray(dbSettings.serviceablePincodes)) {
+            window.CONFIG.COD_ELIGIBLE_PINS = dbSettings.serviceablePincodes;
+          }
+          if (typeof updateCartUI === 'function') {
+            updateCartUI();
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
   // Load dynamic homepage config on homepage
   try {
     const hpRes = await fetch(window.getApiEndpoint('/api/homepage') + '?t=' + Date.now());
@@ -880,9 +911,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (cartSubtotal) cartSubtotal.textContent = `₹${finalSubtotal}`;
 
-      // Update Free Delivery Progress Bar (Threshold: ₹500)
-      const threshold = 500;
-      const progressPercent = Math.min((subtotalValue / threshold) * 100, 100);
+      // Update Free Delivery Progress Bar (Dynamic threshold from server settings)
+      const threshold = (window.CONFIG && window.CONFIG.FREE_DELIVERY_MIN !== undefined && window.CONFIG.FREE_DELIVERY_MIN !== null) ? Number(window.CONFIG.FREE_DELIVERY_MIN) : 500;
+      const progressPercent = threshold > 0 ? Math.min((subtotalValue / threshold) * 100, 100) : 100;
       if (cartProgressFill) cartProgressFill.style.width = `${progressPercent}%`;
       
       if (cartProgressText) {
