@@ -1648,7 +1648,40 @@ app.get('/api/customers/profile', async (req, res) => {
 app.get('/api/admin/referrals', async (req, res) => {
   try {
     const referralsList = await getReferralsData();
-    return res.json({ status: "success", referrals: referralsList });
+    const { data: customersList } = await insforge.database.from('customers').select();
+    return res.json({ status: "success", referrals: referralsList, customers: customersList || [] });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Create / Assign Custom Referral Code (Admin)
+app.post('/api/admin/referrals/create', async (req, res) => {
+  try {
+    const { email, referralCode } = req.body;
+    if (!email || !referralCode) {
+      return res.status(400).json({ error: "Customer email and referral code are required." });
+    }
+
+    const cleanCode = referralCode.trim().toUpperCase();
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if referral code is already used by another customer
+    const { data: allCustomers } = await insforge.database.from('customers').select();
+    const existing = (allCustomers || []).find(c => c.referralCode && c.referralCode.toUpperCase() === cleanCode && c.email.toLowerCase() !== cleanEmail);
+    if (existing) {
+      return res.status(400).json({ error: `Referral code '${cleanCode}' is already assigned to ${existing.name} (${existing.email}).` });
+    }
+
+    // Update customer record
+    const targetCust = (allCustomers || []).find(c => c.email.toLowerCase() === cleanEmail);
+    if (!targetCust) {
+      return res.status(404).json({ error: `Customer with email '${cleanEmail}' not found.` });
+    }
+
+    await insforge.database.from('customers').update({ referralCode: cleanCode }).eq('id', targetCust.id);
+
+    return res.json({ status: "success", message: `Referral code '${cleanCode}' successfully assigned to ${targetCust.name}.` });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

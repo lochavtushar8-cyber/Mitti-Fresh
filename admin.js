@@ -1532,31 +1532,134 @@
 
       // REFERRAL MANAGEMENT (Phase 1)
       const renderReferrals = async () => {
-        const tbody = document.getElementById('referrals-table-body');
-        if (!tbody) return;
+        const tbodyRefHistory = document.getElementById('referrals-table-body');
+        const tbodyCustCodes = document.getElementById('customer-ref-codes-table-body');
+
         try {
           const res = await fetch(API_BASE + "/api/admin/referrals");
           const data = await res.json();
           const referrals = data.referrals || [];
+          const customers = data.customers || [];
           
-          if (referrals.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No referral invitations recorded yet.</td></tr>`;
-            return;
+          // 1. Render Customer Referral Codes Table
+          if (tbodyCustCodes) {
+            if (customers.length === 0) {
+              tbodyCustCodes.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No registered customers found.</td></tr>`;
+            } else {
+              tbodyCustCodes.innerHTML = customers.map(c => {
+                const code = c.referralCode || 'NOT ASSIGNED';
+                const link = code !== 'NOT ASSIGNED' ? `${window.location.origin}/register?ref=${code}` : 'N/A';
+                return `
+                  <tr>
+                    <td style="padding: 12px;"><strong>${c.name}</strong></td>
+                    <td style="padding: 12px;">${c.email}</td>
+                    <td style="padding: 12px;"><code style="font-weight: 700; font-size: 0.95rem; color: #214E34;">${code}</code></td>
+                    <td style="padding: 12px; font-size: 0.8rem; color: #64748B;">${link}</td>
+                    <td style="padding: 12px; text-align: right;">
+                      <button class="btn btn-secondary btn-sm btn-assign-ref-code" data-email="${c.email}" data-code="${code !== 'NOT ASSIGNED' ? code : ''}" style="padding: 4px 10px; font-size: 0.8rem;">
+                        <i class="fa-solid fa-pen-to-square"></i> Assign / Edit
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join('');
+
+              // Edit / Assign Code button click listeners
+              document.querySelectorAll('.btn-assign-ref-code').forEach(btn => {
+                btn.addEventListener('click', () => {
+                  const email = btn.getAttribute('data-email');
+                  const code = btn.getAttribute('data-code');
+                  openCreateReferralModal(email, code);
+                });
+              });
+            }
           }
 
-          tbody.innerHTML = referrals.map(r => `
-            <tr>
-              <td style="padding: 12px;"><strong>${r.referrerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referrerEmail}</span></td>
-              <td style="padding: 12px;"><strong>${r.referredCustomerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referredCustomerEmail}</span></td>
-              <td style="padding: 12px;"><code style="font-weight: 700;">${r.referralCode}</code></td>
-              <td style="padding: 12px; font-size: 0.85rem;">${r.referralDate ? new Date(r.referralDate).toLocaleDateString() : 'N/A'}</td>
-              <td style="padding: 12px;"><span style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;">${r.status || 'Pending'}</span></td>
-            </tr>
-          `).join('');
+          // 2. Render Tracked Referrals History Table
+          if (tbodyRefHistory) {
+            if (referrals.length === 0) {
+              tbodyRefHistory.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No referral invitations recorded yet.</td></tr>`;
+            } else {
+              tbodyRefHistory.innerHTML = referrals.map(r => `
+                <tr>
+                  <td style="padding: 12px;"><strong>${r.referrerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referrerEmail}</span></td>
+                  <td style="padding: 12px;"><strong>${r.referredCustomerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referredCustomerEmail}</span></td>
+                  <td style="padding: 12px;"><code style="font-weight: 700;">${r.referralCode}</code></td>
+                  <td style="padding: 12px; font-size: 0.85rem;">${r.referralDate ? new Date(r.referralDate).toLocaleDateString() : 'N/A'}</td>
+                  <td style="padding: 12px;"><span style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;">${r.status || 'Pending'}</span></td>
+                </tr>
+              `).join('');
+            }
+          }
+
         } catch (e) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #DC2626; padding: 20px;">Failed to load referrals data.</td></tr>`;
+          if (tbodyRefHistory) tbodyRefHistory.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #DC2626; padding: 20px;">Failed to load referrals data.</td></tr>`;
         }
       };
+
+      // Modal handling for Referral Code Creation
+      const modalCreateRef = document.getElementById('modal-create-referral');
+      const openCreateReferralModal = (email = '', code = '') => {
+        if (!modalCreateRef) return;
+        document.getElementById('ref-create-email').value = email;
+        document.getElementById('ref-create-code').value = code;
+        modalCreateRef.style.display = 'flex';
+      };
+
+      const closeCreateReferralModal = () => {
+        if (modalCreateRef) modalCreateRef.style.display = 'none';
+      };
+
+      const btnOpenCreate = document.getElementById('btn-open-create-referral');
+      if (btnOpenCreate) {
+        btnOpenCreate.addEventListener('click', () => openCreateReferralModal());
+      }
+
+      const btnCloseCreate = document.getElementById('btn-close-create-referral');
+      if (btnCloseCreate) btnCloseCreate.addEventListener('click', closeCreateReferralModal);
+
+      const btnCancelCreate = document.getElementById('btn-cancel-create-referral');
+      if (btnCancelCreate) btnCancelCreate.addEventListener('click', closeCreateReferralModal);
+
+      // Auto generate code button listener
+      const btnAutoGen = document.getElementById('btn-auto-gen-ref-code');
+      if (btnAutoGen) {
+        btnAutoGen.addEventListener('click', () => {
+          const emailInput = document.getElementById('ref-create-email').value.trim();
+          const prefix = (emailInput.split('@')[0] || 'MITT').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4) || 'MITT';
+          const rand = Math.floor(1000 + Math.random() * 9000);
+          document.getElementById('ref-create-code').value = `${prefix}${rand}`;
+        });
+      }
+
+      // Submit Form Handler for Assigning / Creating Referral Code
+      const formCreateRef = document.getElementById('form-create-referral');
+      if (formCreateRef) {
+        formCreateRef.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('ref-create-email').value.trim();
+          const referralCode = document.getElementById('ref-create-code').value.trim();
+
+          try {
+            const res = await fetch(API_BASE + "/api/admin/referrals/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, referralCode })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+              alert(data.message || "Referral code saved successfully!");
+              closeCreateReferralModal();
+              renderReferrals();
+            } else {
+              alert(data.error || "Failed to save referral code.");
+            }
+          } catch (err) {
+            alert("Error connecting to server.");
+          }
+        });
+      }
 
       const btnRefreshRefs = document.getElementById('btn-refresh-referrals');
       if (btnRefreshRefs) {
