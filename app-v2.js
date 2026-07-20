@@ -169,17 +169,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res.ok) {
       const dbProducts = await res.json();
       try { localStorage.removeItem('mitti_fresh_products'); } catch (e) {}
-      PRODUCTS = rebuildCatalog(dbProducts);
+      PRODUCTS = sortByBestSellerRank(rebuildCatalog(dbProducts));
     } else {
       const cached = localStorage.getItem('mitti_fresh_products');
       if (cached) {
         try {
-          PRODUCTS = rebuildCatalog(JSON.parse(cached));
+          PRODUCTS = sortByBestSellerRank(rebuildCatalog(JSON.parse(cached)));
         } catch(e) {
-          PRODUCTS = STATIC_BACKUP_PRODUCTS;
+          PRODUCTS = sortByBestSellerRank(STATIC_BACKUP_PRODUCTS);
         }
       } else {
-        PRODUCTS = STATIC_BACKUP_PRODUCTS;
+        PRODUCTS = sortByBestSellerRank(STATIC_BACKUP_PRODUCTS);
       }
     }
   } catch (err) {
@@ -187,12 +187,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cached = localStorage.getItem('mitti_fresh_products');
     if (cached) {
       try {
-        PRODUCTS = rebuildCatalog(JSON.parse(cached));
+        PRODUCTS = sortByBestSellerRank(rebuildCatalog(JSON.parse(cached)));
       } catch(e) {
-        PRODUCTS = STATIC_BACKUP_PRODUCTS;
+        PRODUCTS = sortByBestSellerRank(STATIC_BACKUP_PRODUCTS);
       }
     } else {
-      PRODUCTS = STATIC_BACKUP_PRODUCTS;
+      PRODUCTS = sortByBestSellerRank(STATIC_BACKUP_PRODUCTS);
     }
   }
 
@@ -544,14 +544,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           const parsed = parseInt(p.video.replace('RANK:', ''));
           if (!isNaN(parsed) && parsed > 0) r = parsed;
         }
-        return (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0) ? Number(r) : Infinity;
+        return (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0) ? Number(r) : Number.MAX_SAFE_INTEGER;
       };
       const rankA = getRank(a);
       const rankB = getRank(b);
-      if (rankA !== rankB) {
-        return rankA - rankB;
-      }
-      return 0;
+      return rankA - rankB;
     });
   };
 
