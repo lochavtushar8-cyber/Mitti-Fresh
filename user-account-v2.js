@@ -368,62 +368,88 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size: 0.75rem; color: #777; margin-top: 4px;">Earn 5% points on every order to redeem for future discounts!</div>
         </div>
 
-        <!-- Refer & Earn Section (Phase 1) -->
-        <div style="margin-top: 20px; padding: 16px; border: 1.5px solid #214E34; border-radius: 12px; background: #F4F8F5;">
-          <h4 style="margin: 0 0 10px 0; color: #214E34; display: flex; align-items: center; gap: 8px; font-size: 1.1rem;">
-            <i class="fa-solid fa-gift"></i> Refer & Earn
-          </h4>
+        <!-- Refer & Earn Section (Hostinger UI & UX Inspired) -->
+        <div style="margin-top: 20px; border-radius: 16px; background: #FFF; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
           
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; text-align: center;">
-            <div style="background: #FFF; padding: 8px 4px; border-radius: 8px; border: 1px solid #E2E8F0;">
-              <div style="font-size: 0.72rem; color: #64748B;">Total</div>
-              <div style="font-weight: 700; font-size: 1.1rem; color: #214E34;">${refStats.totalReferrals}</div>
-            </div>
-            <div style="background: #FFF; padding: 8px 4px; border-radius: 8px; border: 1px solid #E2E8F0;">
-              <div style="font-size: 0.72rem; color: #64748B;">Pending</div>
-              <div style="font-weight: 700; font-size: 1.1rem; color: #D97706;">${refStats.pendingReferrals}</div>
-            </div>
-            <div style="background: #FFF; padding: 8px 4px; border-radius: 8px; border: 1px solid #E2E8F0;">
-              <div style="font-size: 0.72rem; color: #64748B;">Successful</div>
-              <div style="font-weight: 700; font-size: 1.1rem; color: #16A34A;">${refStats.successfulReferrals}</div>
-            </div>
+          <!-- Hostinger Navigation Tabs -->
+          <div style="display: flex; border-bottom: 1.5px solid #E2E8F0; background: #F8FAFC;">
+            <button type="button" id="ref-subtab-btn-refer" style="flex: 1; padding: 12px; border: none; background: transparent; font-weight: 700; font-size: 0.9rem; color: #214E34; border-bottom: 3px solid #214E34; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <i class="fa-solid fa-gift"></i> Refer & earn
+            </button>
+            <button type="button" id="ref-subtab-btn-earnings" style="flex: 1; padding: 12px; border: none; background: transparent; font-weight: 600; font-size: 0.9rem; color: #64748B; border-bottom: 3px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <i class="fa-solid fa-chart-pie"></i> My earnings
+            </button>
           </div>
 
-          <div class="account-form-group" style="margin-bottom: 10px;">
-            <label style="font-size: 0.8rem; font-weight: 600;">Your Referral Code</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" readonly value="${refCode}" id="input-ref-code" style="font-weight: 700; text-transform: uppercase; background: #FFF; text-align: center; letter-spacing: 1px;">
-              <button type="button" class="account-btn" id="btn-copy-ref-code" style="width: auto; padding: 0 14px; font-size: 0.8rem; white-space: nowrap;">Copy Code</button>
-            </div>
-          </div>
+          <!-- TAB 1: Refer & Earn Hero Panel -->
+          <div id="ref-subtab-content-refer" style="padding: 18px 14px;">
+            <div style="background: linear-gradient(135deg, #EBF5ED 0%, #F4F8F5 100%); border-radius: 16px; padding: 22px 14px; text-align: center; border: 1px solid rgba(33,78,52,0.12);">
+              <h3 style="margin: 0 0 6px 0; color: #1E293B; font-size: 1.25rem; font-weight: 800; font-family: 'Playfair Display', serif;">
+                Invite friends and share fresh organic staples
+              </h3>
+              <p style="margin: 0 0 18px 0; color: #475569; font-size: 0.82rem;">Share your unique link or code to invite friends & family</p>
 
-          <div class="account-form-group" style="margin-bottom: 12px;">
-            <label style="font-size: 0.8rem; font-weight: 600;">Your Referral Link</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" readonly value="${refLink}" id="input-ref-link" style="font-size: 0.75rem; background: #FFF;">
-              <button type="button" class="account-btn" id="btn-copy-ref-link" style="width: auto; padding: 0 14px; font-size: 0.8rem; white-space: nowrap;">Copy Link</button>
-            </div>
-          </div>
+              <!-- Hostinger Centerpiece Oval Pill Bar -->
+              <div style="background: #FFFFFF; border-radius: 50px; padding: 4px 6px 4px 14px; border: 1.5px solid #214E34; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(33,78,52,0.1);">
+                <i class="fa-solid fa-link" style="color: #64748B; font-size: 0.85rem;"></i>
+                <input type="text" readonly value="${refLink}" id="input-ref-link" style="border: none; background: transparent; outline: none; font-size: 0.76rem; color: #334155; width: 100%; font-weight: 500;">
+                <button type="button" id="btn-copy-ref-link" style="background: #214E34; color: #FFFFFF; border-radius: 40px; padding: 8px 16px; font-weight: 700; font-size: 0.8rem; border: none; white-space: nowrap; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s ease;">
+                  <i class="fa-regular fa-copy"></i> Copy link
+                </button>
+              </div>
 
-          <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Join Mitti Fresh for fresh & organic staples. Use my referral code *${refCode}* or sign up using my link: ${refLink}`)}" target="_blank" class="account-btn" style="background: #25D366; color: #FFF; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 10px; margin-top: 10px; border-radius: 8px;">
-            <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i> Share on WhatsApp
-          </a>
-
-          ${refStats.referrals && refStats.referrals.length > 0 ? `
-            <div style="margin-top: 14px; border-top: 1px solid #CBD5E1; padding-top: 10px;">
-              <div style="font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 6px;">My Referred Customers:</div>
-              <div style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
-                ${refStats.referrals.map(r => `
-                  <div style="background: #FFF; padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <strong>${r.referredCustomerName}</strong> (${r.referredCustomerEmail})
-                    </div>
-                    <span style="background: #FEF3C7; color: #92400E; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.7rem;">${r.status}</span>
-                  </div>
-                `).join('')}
+              <!-- Secondary Code Box -->
+              <div style="margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; color: #475569;">
+                <span>Referral Code: <strong style="color: #214E34; letter-spacing: 0.5px;">${refCode}</strong></span>
+                <button type="button" id="btn-copy-ref-code" style="background: #E2E8F0; color: #1E293B; border: none; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Copy Code</button>
               </div>
             </div>
-          ` : ''}
+
+            <!-- Share on WhatsApp CTA -->
+            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Join Mitti Fresh for fresh & organic staples. Use my referral code *${refCode}* or sign up using my link: ${refLink}`)}" target="_blank" style="background: #25D366; color: #FFF; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 12px; margin-top: 14px; border-radius: 12px; box-shadow: 0 4px 12px rgba(37,211,102,0.22); font-size: 0.9rem;">
+              <i class="fa-brands fa-whatsapp" style="font-size: 1.25rem;"></i> Share on WhatsApp
+            </a>
+          </div>
+
+          <!-- TAB 2: My Earnings / Stats Panel -->
+          <div id="ref-subtab-content-earnings" style="padding: 16px 14px; display: none;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; text-align: center;">
+              <div style="background: #F8FAFC; padding: 10px 4px; border-radius: 10px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Total Invited</div>
+                <div style="font-weight: 800; font-size: 1.2rem; color: #214E34; margin-top: 2px;">${refStats.totalReferrals}</div>
+              </div>
+              <div style="background: #F8FAFC; padding: 10px 4px; border-radius: 10px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Pending</div>
+                <div style="font-weight: 800; font-size: 1.2rem; color: #D97706; margin-top: 2px;">${refStats.pendingReferrals}</div>
+              </div>
+              <div style="background: #F8FAFC; padding: 10px 4px; border-radius: 10px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Successful</div>
+                <div style="font-weight: 800; font-size: 1.2rem; color: #16A34A; margin-top: 2px;">${refStats.successfulReferrals}</div>
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid #E2E8F0; padding-top: 12px;">
+              <h5 style="margin: 0 0 10px 0; font-size: 0.85rem; color: #334155; font-weight: 700;">Referred Friends History</h5>
+              ${refStats.referrals && refStats.referrals.length > 0 ? `
+                <div style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                  ${refStats.referrals.map(r => `
+                    <div style="background: #F8FAFC; padding: 8px 12px; border-radius: 8px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid #F1F5F9;">
+                      <div>
+                        <strong>${r.referredCustomerName}</strong><br>
+                        <span style="color: #64748B; font-size: 0.72rem;">${r.referredCustomerEmail}</span>
+                      </div>
+                      <span style="background: #FEF3C7; color: #92400E; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.7rem;">${r.status}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : `
+                <div style="text-align: center; color: #94A3B8; padding: 20px 10px; font-size: 0.82rem;">
+                  No referrals yet. Share your link to start earning!
+                </div>
+              `}
+            </div>
+          </div>
+
         </div>
 
         <!-- Saved Addresses Section -->
@@ -485,6 +511,40 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
+      // Hostinger Subtab Switching Handlers
+      const tabBtnRefer = document.getElementById('ref-subtab-btn-refer');
+      const tabBtnEarnings = document.getElementById('ref-subtab-btn-earnings');
+      const contentRefer = document.getElementById('ref-subtab-content-refer');
+      const contentEarnings = document.getElementById('ref-subtab-content-earnings');
+
+      if (tabBtnRefer && tabBtnEarnings) {
+        tabBtnRefer.addEventListener('click', () => {
+          tabBtnRefer.style.color = '#214E34';
+          tabBtnRefer.style.fontWeight = '700';
+          tabBtnRefer.style.borderBottom = '3px solid #214E34';
+
+          tabBtnEarnings.style.color = '#64748B';
+          tabBtnEarnings.style.fontWeight = '600';
+          tabBtnEarnings.style.borderBottom = '3px solid transparent';
+
+          contentRefer.style.display = 'block';
+          contentEarnings.style.display = 'none';
+        });
+
+        tabBtnEarnings.addEventListener('click', () => {
+          tabBtnEarnings.style.color = '#214E34';
+          tabBtnEarnings.style.fontWeight = '700';
+          tabBtnEarnings.style.borderBottom = '3px solid #214E34';
+
+          tabBtnRefer.style.color = '#64748B';
+          tabBtnRefer.style.fontWeight = '600';
+          tabBtnRefer.style.borderBottom = '3px solid transparent';
+
+          contentEarnings.style.display = 'block';
+          contentRefer.style.display = 'none';
+        });
+      }
+
       // Copy Code & Link Event Handlers
       const btnCopyCode = document.getElementById('btn-copy-ref-code');
       if (btnCopyCode) {
@@ -500,8 +560,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnCopyLink) {
         btnCopyLink.addEventListener('click', () => {
           navigator.clipboard.writeText(refLink).then(() => {
-            btnCopyLink.textContent = "Copied!";
-            setTimeout(() => { btnCopyLink.textContent = "Copy Link"; }, 2000);
+            btnCopyLink.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
+            setTimeout(() => { btnCopyLink.innerHTML = `<i class="fa-regular fa-copy"></i> Copy link`; }, 2000);
           });
         });
       }
