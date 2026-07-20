@@ -968,14 +968,18 @@
       <form id="product-form" style="display: flex; flex-direction: column; gap: 16px;">
         <input type="hidden" id="prod-form-id">
         
-        <!-- Image Preview & Change Image section for Edit Product -->
-        <div id="edit-prod-image-container" style="display: none; align-items: center; gap: 16px; padding: 12px; border: 1px dashed var(--color-border, #ddd); border-radius: 8px; background-color: var(--color-bg-light, #f9f9f9);">
-          <img id="edit-prod-image-preview" src="" alt="Product Image" style="width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc;">
-          <div>
-            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Product Image</label>
-            <button type="button" id="btn-change-prod-image" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem; cursor: pointer;">Change Image</button>
-            <input type="file" id="edit-prod-image-file" accept="image/*" style="display: none;">
+        <!-- Multi-Image Gallery Manager for Edit Product -->
+        <div id="edit-prod-gallery-container" style="display: none; flex-direction: column; gap: 12px; padding: 14px; border: 1px dashed var(--color-border, #ddd); border-radius: 8px; background-color: var(--color-bg-light, #f9f9f9);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-weight: 600; font-size: 0.95rem; color: var(--color-text-main, #333); margin: 0;">Product Images Gallery</label>
+            <button type="button" id="btn-add-gallery-image" class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-plus"></i> Add More Images
+            </button>
           </div>
+          <div id="edit-prod-gallery-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+            <!-- Dynamic Image Cards Rendered Here -->
+          </div>
+          <input type="file" id="edit-prod-gallery-file-input" accept="image/*" multiple style="display: none;">
         </div>
         <div>
           <label>Product Name</label>

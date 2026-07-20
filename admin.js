@@ -491,26 +491,130 @@
       };
 
       const productModal = document.getElementById('product-modal');
-      const editImgContainer = document.getElementById('edit-prod-image-container');
-      const editImgPreview = document.getElementById('edit-prod-image-preview');
-      const editImgFile = document.getElementById('edit-prod-image-file');
-      const btnChangeImg = document.getElementById('btn-change-prod-image');
+      const editGalleryContainer = document.getElementById('edit-prod-gallery-container');
+      const editGalleryList = document.getElementById('edit-prod-gallery-list');
+      const btnAddGalleryImg = document.getElementById('btn-add-gallery-image');
+      const galleryFileInput = document.getElementById('edit-prod-gallery-file-input');
 
-      if (btnChangeImg && editImgFile) {
-        btnChangeImg.addEventListener('click', () => {
-          editImgFile.click();
-        });
+      // State for current edit modal images
+      let currentEditProductImages = [];
+      let targetChangeImageId = null;
+
+      // Hidden single-file input for replacing an individual image slot
+      let singleReplaceFileInput = document.getElementById('edit-prod-single-replace-file');
+      if (!singleReplaceFileInput) {
+        singleReplaceFileInput = document.createElement('input');
+        singleReplaceFileInput.type = 'file';
+        singleReplaceFileInput.accept = 'image/*';
+        singleReplaceFileInput.id = 'edit-prod-single-replace-file';
+        singleReplaceFileInput.style.display = 'none';
+        document.body.appendChild(singleReplaceFileInput);
       }
 
-      if (editImgFile && editImgPreview) {
-        editImgFile.addEventListener('change', (e) => {
-          const file = e.target.files[0];
-          if (file) {
+      // Render Multi-Image Cards
+      const renderEditProductGallery = () => {
+        if (!editGalleryList) return;
+        editGalleryList.innerHTML = "";
+
+        if (currentEditProductImages.length === 0) {
+          editGalleryList.innerHTML = `<div style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 12px; border: 1px dashed #cbd5e1; border-radius: 6px; background: #ffffff;">No images attached. Click "+ Add More Images" above to add image files.</div>`;
+          return;
+        }
+
+        currentEditProductImages.forEach((item, index) => {
+          const card = document.createElement('div');
+          card.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);";
+
+          const isMain = index === 0;
+          const badgeText = isMain ? "Main Image" : `Gallery #${index + 1}`;
+          const badgeBg = isMain ? "#214E34" : "#475569";
+
+          card.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
+              <img src="${item.previewUrl || item.url || 'assets/logo.jpg'}" alt="Product image ${index + 1}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1; flex-shrink: 0;">
+              <div style="display: flex; flex-direction: column; gap: 3px; overflow: hidden;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="background-color: ${badgeBg}; color: #fff; font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px;">${badgeText}</span>
+                </div>
+                <span style="font-size: 0.75rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.file ? (item.file.name || 'New File Selected') : (item.url ? item.url.split('/').pop() : 'Image Asset')}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <button type="button" class="btn btn-secondary btn-change-img-slot" data-id="${item.id}" style="padding: 4px 10px; font-size: 0.78rem; cursor: pointer;">
+                <i class="fa-solid fa-sync"></i> Change Image
+              </button>
+              <button type="button" class="btn btn-danger btn-remove-img-slot" data-id="${item.id}" style="padding: 4px 10px; font-size: 0.78rem; background-color: #ef4444; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+                <i class="fa-solid fa-trash"></i> Remove
+              </button>
+            </div>
+          `;
+
+          editGalleryList.appendChild(card);
+        });
+
+        // Event listeners for individual Change Image slot buttons
+        editGalleryList.querySelectorAll('.btn-change-img-slot').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            targetChangeImageId = e.currentTarget.getAttribute('data-id');
+            singleReplaceFileInput.value = "";
+            singleReplaceFileInput.click();
+          });
+        });
+
+        // Event listeners for individual Remove Image slot buttons
+        editGalleryList.querySelectorAll('.btn-remove-img-slot').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const removeId = e.currentTarget.getAttribute('data-id');
+            currentEditProductImages = currentEditProductImages.filter(img => img.id !== removeId);
+            renderEditProductGallery();
+          });
+        });
+      };
+
+      // Handler for replacing single image slot
+      singleReplaceFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && targetChangeImageId) {
+          const item = currentEditProductImages.find(img => img.id === targetChangeImageId);
+          if (item) {
+            item.file = file;
             const reader = new FileReader();
             reader.onload = (evt) => {
-              editImgPreview.src = evt.target.result;
+              item.previewUrl = evt.target.result;
+              renderEditProductGallery();
             };
             reader.readAsDataURL(file);
+          }
+        }
+      });
+
+      // Handler for "+ Add More Images"
+      if (btnAddGalleryImg && galleryFileInput) {
+        btnAddGalleryImg.addEventListener('click', () => {
+          galleryFileInput.value = "";
+          galleryFileInput.click();
+        });
+
+        galleryFileInput.addEventListener('change', (e) => {
+          const files = Array.from(e.target.files);
+          if (files.length > 0) {
+            files.forEach(file => {
+              const newItem = {
+                id: 'img-' + Date.now() + '-' + Math.round(Math.random() * 1E6),
+                url: null,
+                file: file,
+                previewUrl: null
+              };
+              currentEditProductImages.push(newItem);
+
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                newItem.previewUrl = evt.target.result;
+                renderEditProductGallery();
+              };
+              reader.readAsDataURL(file);
+            });
+            renderEditProductGallery();
           }
         });
       }
@@ -519,8 +623,8 @@
         document.getElementById('product-modal-title').textContent = "Add New Product";
         document.getElementById('prod-form-id').value = "";
         document.getElementById('product-form').reset();
-        if (editImgContainer) editImgContainer.style.display = "none";
-        if (editImgFile) editImgFile.value = "";
+        currentEditProductImages = [];
+        if (editGalleryContainer) editGalleryContainer.style.display = "none";
         productModal.style.display = "flex";
       });
 
@@ -545,9 +649,32 @@
         document.getElementById('prod-form-ingredients').value = prod.ingredients || "";
         document.getElementById('prod-form-short').value = prod.shortDescription || "";
         
-        if (editImgContainer) editImgContainer.style.display = "flex";
-        if (editImgPreview) editImgPreview.src = prod.image || 'assets/logo.jpg';
-        if (editImgFile) editImgFile.value = "";
+        // Initialize currentEditProductImages with all product images
+        currentEditProductImages = [];
+        let rawList = [];
+        if (Array.isArray(prod.gallery) && prod.gallery.length > 0) {
+          rawList = [...prod.gallery];
+          if (prod.image && !rawList.includes(prod.image)) {
+            rawList.unshift(prod.image);
+          }
+        } else {
+          // Default fallback images array
+          rawList = [
+            prod.image || 'assets/logo.jpg',
+            'assets/grinding_live.jpg',
+            'assets/hero_banner.jpg'
+          ];
+        }
+
+        currentEditProductImages = rawList.map((urlStr, idx) => ({
+          id: 'img-existing-' + idx + '-' + Date.now() + '-' + Math.round(Math.random()*1000),
+          url: urlStr,
+          file: null,
+          previewUrl: urlStr
+        }));
+
+        if (editGalleryContainer) editGalleryContainer.style.display = "flex";
+        renderEditProductGallery();
 
         productModal.style.display = "flex";
       };
@@ -556,24 +683,35 @@
         e.preventDefault();
         const id = document.getElementById('prod-form-id').value;
 
-        let newImageUrl = null;
-        if (id && editImgFile && editImgFile.files && editImgFile.files[0]) {
-          const file = editImgFile.files[0];
-          try {
-            const formData = new FormData();
-            formData.append('image', file);
-            const uploadRes = await fetch(`${API_BASE}/api/upload-image`, {
-              method: "POST",
-              body: formData
-            });
-            const uploadData = await uploadRes.json();
-            if (uploadData && uploadData.url) {
-              newImageUrl = uploadData.url;
-            }
-          } catch (uploadErr) {
-            console.warn("Image upload server error, falling back to base64 preview:", uploadErr);
-            if (editImgPreview && editImgPreview.src) {
-              newImageUrl = editImgPreview.src;
+        let finalImageUrls = [];
+        if (id && currentEditProductImages.length > 0) {
+          for (let item of currentEditProductImages) {
+            if (item.file) {
+              // Upload new or replaced image file to server
+              try {
+                const formData = new FormData();
+                formData.append('image', item.file);
+                const uploadRes = await fetch(`${API_BASE}/api/upload-image`, {
+                  method: "POST",
+                  body: formData
+                });
+                const uploadData = await uploadRes.json();
+                if (uploadData && uploadData.url) {
+                  finalImageUrls.push(uploadData.url);
+                } else if (item.previewUrl) {
+                  finalImageUrls.push(item.previewUrl);
+                }
+              } catch (uploadErr) {
+                console.warn("Upload server error, falling back to base64 preview URL:", uploadErr);
+                if (item.previewUrl) {
+                  finalImageUrls.push(item.previewUrl);
+                }
+              }
+            } else if (item.url) {
+              // Retain existing image URL
+              finalImageUrls.push(item.url);
+            } else if (item.previewUrl) {
+              finalImageUrls.push(item.previewUrl);
             }
           }
         }
@@ -591,8 +729,9 @@
           shortDescription: document.getElementById('prod-form-short').value
         };
 
-        if (newImageUrl) {
-          payload.image = newImageUrl;
+        if (id && finalImageUrls.length > 0) {
+          payload.image = finalImageUrls[0];
+          payload.gallery = finalImageUrls;
         }
 
         if (id) {
