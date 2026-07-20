@@ -967,6 +967,16 @@
       
       <form id="product-form" style="display: flex; flex-direction: column; gap: 16px;">
         <input type="hidden" id="prod-form-id">
+        
+        <!-- Image Preview & Change Image section for Edit Product -->
+        <div id="edit-prod-image-container" style="display: none; align-items: center; gap: 16px; padding: 12px; border: 1px dashed var(--color-border, #ddd); border-radius: 8px; background-color: var(--color-bg-light, #f9f9f9);">
+          <img id="edit-prod-image-preview" src="" alt="Product Image" style="width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc;">
+          <div>
+            <label style="font-weight: 600; display: block; margin-bottom: 6px;">Product Image</label>
+            <button type="button" id="btn-change-prod-image" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem; cursor: pointer;">Change Image</button>
+            <input type="file" id="edit-prod-image-file" accept="image/*" style="display: none;">
+          </div>
+        </div>
         <div>
           <label>Product Name</label>
           <input type="text" id="prod-form-name" class="form-control" required>

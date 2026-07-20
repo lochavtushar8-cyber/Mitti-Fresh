@@ -172,6 +172,20 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
+// Endpoint to upload product images using existing Multer storage
+app.post('/api/upload-image', (req, res) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || "Image upload failed." });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided." });
+    }
+    const imageUrl = `/uploads/${req.file.filename}`;
+    return res.json({ status: "success", url: imageUrl });
+  });
+});
+
 // Initialize Razorpay SDK using credentials
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',

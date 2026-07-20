@@ -491,10 +491,36 @@
       };
 
       const productModal = document.getElementById('product-modal');
+      const editImgContainer = document.getElementById('edit-prod-image-container');
+      const editImgPreview = document.getElementById('edit-prod-image-preview');
+      const editImgFile = document.getElementById('edit-prod-image-file');
+      const btnChangeImg = document.getElementById('btn-change-prod-image');
+
+      if (btnChangeImg && editImgFile) {
+        btnChangeImg.addEventListener('click', () => {
+          editImgFile.click();
+        });
+      }
+
+      if (editImgFile && editImgPreview) {
+        editImgFile.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              editImgPreview.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
       document.getElementById('btn-add-product').addEventListener('click', () => {
         document.getElementById('product-modal-title').textContent = "Add New Product";
         document.getElementById('prod-form-id').value = "";
         document.getElementById('product-form').reset();
+        if (editImgContainer) editImgContainer.style.display = "none";
+        if (editImgFile) editImgFile.value = "";
         productModal.style.display = "flex";
       });
 
@@ -519,12 +545,39 @@
         document.getElementById('prod-form-ingredients').value = prod.ingredients || "";
         document.getElementById('prod-form-short').value = prod.shortDescription || "";
         
+        if (editImgContainer) editImgContainer.style.display = "flex";
+        if (editImgPreview) editImgPreview.src = prod.image || 'assets/logo.jpg';
+        if (editImgFile) editImgFile.value = "";
+
         productModal.style.display = "flex";
       };
 
-      document.getElementById('product-form').addEventListener('submit', (e) => {
+      document.getElementById('product-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('prod-form-id').value;
+
+        let newImageUrl = null;
+        if (id && editImgFile && editImgFile.files && editImgFile.files[0]) {
+          const file = editImgFile.files[0];
+          try {
+            const formData = new FormData();
+            formData.append('image', file);
+            const uploadRes = await fetch(`${API_BASE}/api/upload-image`, {
+              method: "POST",
+              body: formData
+            });
+            const uploadData = await uploadRes.json();
+            if (uploadData && uploadData.url) {
+              newImageUrl = uploadData.url;
+            }
+          } catch (uploadErr) {
+            console.warn("Image upload server error, falling back to base64 preview:", uploadErr);
+            if (editImgPreview && editImgPreview.src) {
+              newImageUrl = editImgPreview.src;
+            }
+          }
+        }
+
         const payload = {
           name: document.getElementById('prod-form-name').value,
           SKU: document.getElementById('prod-form-sku').value,
@@ -537,6 +590,10 @@
           ingredients: document.getElementById('prod-form-ingredients').value,
           shortDescription: document.getElementById('prod-form-short').value
         };
+
+        if (newImageUrl) {
+          payload.image = newImageUrl;
+        }
 
         if (id) {
           // Update
