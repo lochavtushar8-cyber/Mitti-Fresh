@@ -9,6 +9,25 @@ const STATIC_BACKUP_PRODUCTS = [];
 // Dynamic PRODUCTS holder
 let PRODUCTS = [];
 
+// --- BEST SELLER RANK SORTING HELPER ---
+const sortByBestSellerRank = (productsArr) => {
+  if (!Array.isArray(productsArr)) return [];
+  return [...productsArr].sort((a, b) => {
+    const getRank = (p) => {
+      if (!p) return Number.MAX_SAFE_INTEGER;
+      let r = p.bestSellerRank ?? p.bestseller_rank ?? p.rank;
+      if ((r === null || r === undefined || r === "") && p.video && typeof p.video === 'string' && p.video.startsWith('RANK:')) {
+        const parsed = parseInt(p.video.replace('RANK:', ''));
+        if (!isNaN(parsed) && parsed > 0) r = parsed;
+      }
+      return (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0) ? Number(r) : Number.MAX_SAFE_INTEGER;
+    };
+    const rankA = getRank(a);
+    const rankB = getRank(b);
+    return rankA - rankB;
+  });
+};
+
 // Rebuild frontend catalog structure from database variants
 const rebuildCatalog = (dbProducts) => {
   const catalogMap = {};
@@ -194,6 +213,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       PRODUCTS = sortByBestSellerRank(STATIC_BACKUP_PRODUCTS);
     }
+  }
+
+  // Trigger immediate catalog render after products are fetched
+  if (typeof renderProducts === 'function') {
+    renderProducts();
   }
 
   // Load dynamic homepage config on homepage
@@ -534,69 +558,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
   };
 
-  // --- BEST SELLER RANK SORTING HELPER ---
-  const sortByBestSellerRank = (productsArr) => {
-    if (!Array.isArray(productsArr)) return [];
-    return [...productsArr].sort((a, b) => {
-      const getRank = (p) => {
-        let r = p.bestSellerRank ?? p.bestseller_rank ?? p.rank;
-        if ((r === null || r === undefined || r === "") && p.video && typeof p.video === 'string' && p.video.startsWith('RANK:')) {
-          const parsed = parseInt(p.video.replace('RANK:', ''));
-          if (!isNaN(parsed) && parsed > 0) r = parsed;
-        }
-        return (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0) ? Number(r) : Number.MAX_SAFE_INTEGER;
-      };
-      const rankA = getRank(a);
-      const rankB = getRank(b);
-      return rankA - rankB;
-    });
-  };
-
   // --- PRODUCT CATALOG RENDER ---
   const renderProducts = () => {
-    if (bestsellersList) {
-      bestsellersList.innerHTML = '';
-      const sortedBestsellers = sortByBestSellerRank(PRODUCTS);
-      
-      sortedBestsellers.forEach(prod => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.setAttribute('data-category', prod.category);
-        card.innerHTML = createProductCardHTML(prod);
-        bestsellersList.appendChild(card);
-      });
-    }
-
-    if (productList) {
-      productList.innerHTML = '';
-      const filteredProducts = PRODUCTS.filter(prod => {
-        const matchesCategory = currentCategory === 'all' || prod.category === currentCategory;
-        const matchesSearch = prod.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
-                              prod.description.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
-                              (prod.ingredients && prod.ingredients.toLowerCase().includes(currentSearchQuery.toLowerCase()));
-        return matchesCategory && matchesSearch;
-      });
-
-      if (filteredProducts.length === 0) {
-        productList.innerHTML = `
-          <div class="no-results-state">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <h3>No items found</h3>
-            <p>We couldn't find any staples matching "${currentSearchQuery}". Try adjusting your keywords.</p>
-          </div>
-        `;
-        return;
+    try {
+      if (bestsellersList) {
+        bestsellersList.innerHTML = '';
+        const sortedBestsellers = sortByBestSellerRank(PRODUCTS);
+        
+        sortedBestsellers.forEach(prod => {
+          try {
+            if (!prod) return;
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.setAttribute('data-category', prod.category || '');
+            card.innerHTML = createProductCardHTML(prod);
+            bestsellersList.appendChild(card);
+          } catch (itemErr) {
+            console.error("Mitti Fresh - Failed rendering bestseller item:", prod, itemErr);
+          }
+        });
       }
 
-      const sortedProducts = sortByBestSellerRank(filteredProducts);
+      if (productList) {
+        productList.innerHTML = '';
+        const filteredProducts = PRODUCTS.filter(prod => {
+          if (!prod) return false;
+          const matchesCategory = currentCategory === 'all' || prod.category === currentCategory;
+          const searchLower = (currentSearchQuery || '').toLowerCase();
+          const matchesSearch = (prod.name || '').toLowerCase().includes(searchLower) ||
+                                (prod.description || '').toLowerCase().includes(searchLower) ||
+                                (prod.ingredients && prod.ingredients.toLowerCase().includes(searchLower));
+          return matchesCategory && matchesSearch;
+        });
 
-      sortedProducts.forEach(prod => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.setAttribute('data-category', prod.category);
-        card.innerHTML = createProductCardHTML(prod);
-        productList.appendChild(card);
-      });
+        if (filteredProducts.length === 0) {
+          productList.innerHTML = `
+            <div class="no-results-state">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <h3>No items found</h3>
+              <p>We couldn't find any staples matching "${currentSearchQuery}". Try adjusting your keywords.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const sortedProducts = sortByBestSellerRank(filteredProducts);
+
+        sortedProducts.forEach(prod => {
+          try {
+            if (!prod) return;
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.setAttribute('data-category', prod.category || '');
+            card.innerHTML = createProductCardHTML(prod);
+            productList.appendChild(card);
+          } catch (itemErr) {
+            console.error("Mitti Fresh - Failed rendering product item:", prod, itemErr);
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Mitti Fresh - Render products error:", err);
     }
   };
 
