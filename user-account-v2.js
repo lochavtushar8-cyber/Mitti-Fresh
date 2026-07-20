@@ -268,8 +268,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  window.openAccountDrawer = () => {
+    drawer.classList.add('open');
+    drawerOverlay.classList.add('open');
+    renderAccountContent();
+  };
+
+  window.closeAccountDrawer = () => {
+    drawer.classList.remove('open');
+    drawerOverlay.classList.remove('open');
+  };
+
   document.addEventListener('click', (e) => {
-    if (e.target.closest('#account-toggle') || e.target.closest('#account-close') || e.target === drawerOverlay) {
+    if (e.target.closest('#account-toggle') || e.target.closest('#account-close') || e.target.closest('.btn-open-refer-earn') || e.target === drawerOverlay) {
+      e.preventDefault();
       toggleDrawer();
     }
   });
