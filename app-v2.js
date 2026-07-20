@@ -90,11 +90,20 @@ const rebuildCatalog = (dbProducts) => {
           nutrition: item.nutrition || null,
           badge: item.badge || "",
           badgeType: item.badgeType || "",
-          bestSellerRank: rankVal || null,
-          bestseller_rank: rankVal || null,
-          rank: rankVal || null
+          bestSellerRank: (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) ? Number(rankVal) : null,
+          bestseller_rank: (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) ? Number(rankVal) : null,
+          rank: (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) ? Number(rankVal) : null
         };
       } else {
+        if (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) {
+          const currentRank = catalogMap[actualBaseId].bestSellerRank;
+          if (currentRank === null || currentRank === undefined || Number(rankVal) < Number(currentRank)) {
+            catalogMap[actualBaseId].bestSellerRank = Number(rankVal);
+            catalogMap[actualBaseId].bestseller_rank = Number(rankVal);
+            catalogMap[actualBaseId].rank = Number(rankVal);
+          }
+        }
+
         const currentImg = catalogMap[actualBaseId].image;
         const isCurrentDefault = !currentImg || currentImg === 'assets/logo.jpg' || currentImg === 'assets/grinding_live.jpg' || currentImg === 'assets/hero_banner.jpg';
         const isNewUploaded = itemImg && itemImg.startsWith('/uploads/');
