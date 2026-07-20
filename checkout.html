@@ -614,12 +614,13 @@
         }
 
         // 2. Shipping calculation
-        const threshold = window.CONFIG.FREE_DELIVERY_MIN;
+        const threshold = (window.CONFIG.FREE_DELIVERY_MIN !== undefined && window.CONFIG.FREE_DELIVERY_MIN !== null) ? window.CONFIG.FREE_DELIVERY_MIN : 500;
+        const flatRateVal = (window.CONFIG.FLAT_RATE !== undefined && window.CONFIG.FLAT_RATE !== null) ? window.CONFIG.FLAT_RATE : 50;
         const isFreeShippingCoupon = appliedCoupon && appliedCoupon.type === 'Free Shipping';
         if (subtotal >= threshold || isFreeShippingCoupon) {
           shippingCharge = 0;
         } else {
-          shippingCharge = 50;
+          shippingCharge = flatRateVal;
         }
 
         // 3. COD Fee calculation
@@ -1296,10 +1297,12 @@
                 window.CONFIG.UPI_ID = dbSettings.upiId;
               }
               if (dbSettings.shippingRules) {
-                window.CONFIG.FREE_DELIVERY_MIN = dbSettings.shippingRules.freeShippingThreshold || 500;
-                window.CONFIG.COD_CHARGE = dbSettings.shippingRules.codConvenienceFee || 50;
+                const s = dbSettings.shippingRules;
+                window.CONFIG.FREE_DELIVERY_MIN = (s.freeShippingThreshold !== undefined && s.freeShippingThreshold !== null && s.freeShippingThreshold !== "") ? Number(s.freeShippingThreshold) : 500;
+                window.CONFIG.COD_CHARGE = (s.codConvenienceFee !== undefined && s.codConvenienceFee !== null && s.codConvenienceFee !== "") ? Number(s.codConvenienceFee) : 50;
+                window.CONFIG.FLAT_RATE = (s.flatRate !== undefined && s.flatRate !== null && s.flatRate !== "") ? Number(s.flatRate) : 50;
               }
-              if (dbSettings.serviceablePincodes && dbSettings.serviceablePincodes.length > 0) {
+              if (dbSettings.serviceablePincodes && Array.isArray(dbSettings.serviceablePincodes)) {
                 window.CONFIG.COD_ELIGIBLE_PINS = dbSettings.serviceablePincodes;
               }
               
@@ -1310,20 +1313,6 @@
           })
           .catch(err => {
             console.warn("Could not load dynamic settings, using default configurations.", err);
-            try {
-              const cached = localStorage.getItem('mitti_fresh_settings');
-              if (cached) {
-                const dbSettings = JSON.parse(cached);
-                if (dbSettings.upiId) window.CONFIG.UPI_ID = dbSettings.upiId;
-                if (dbSettings.shippingRules) {
-                  window.CONFIG.FREE_DELIVERY_MIN = dbSettings.shippingRules.freeShippingThreshold || 500;
-                  window.CONFIG.COD_CHARGE = dbSettings.shippingRules.codConvenienceFee || 50;
-                }
-                if (dbSettings.serviceablePincodes) window.CONFIG.COD_ELIGIBLE_PINS = dbSettings.serviceablePincodes;
-                calculateTotals();
-                setupSavedAddresses();
-              }
-            } catch(e) {}
           });
       }
 

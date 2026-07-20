@@ -337,14 +337,17 @@
         document.getElementById('setting-gstin').value = settings.GSTIN || "";
         document.getElementById('setting-pan').value = settings.PAN || "";
         
-        if (settings.serviceablePincodes) {
+        if (settings.serviceablePincodes && Array.isArray(settings.serviceablePincodes)) {
           document.getElementById('settings-pincodes-input').value = settings.serviceablePincodes.join(', ');
         }
         
         if (settings.shippingRules) {
-          document.getElementById('settings-shipping-flat').value = settings.shippingRules.flatRate || 50;
-          document.getElementById('settings-shipping-free').value = settings.shippingRules.freeShippingThreshold || 500;
-          document.getElementById('settings-shipping-cod').value = settings.shippingRules.codConvenienceFee || 50;
+          const flat = settings.shippingRules.flatRate;
+          const free = settings.shippingRules.freeShippingThreshold;
+          const cod = settings.shippingRules.codConvenienceFee;
+          document.getElementById('settings-shipping-flat').value = (flat !== undefined && flat !== null && flat !== "" && !isNaN(flat)) ? Number(flat) : 50;
+          document.getElementById('settings-shipping-free').value = (free !== undefined && free !== null && free !== "" && !isNaN(free)) ? Number(free) : 500;
+          document.getElementById('settings-shipping-cod').value = (cod !== undefined && cod !== null && cod !== "" && !isNaN(cod)) ? Number(cod) : 50;
         }
       };
 
@@ -370,11 +373,17 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updated)
         })
-        .then(() => { alert("Settings saved on server successfully!"); syncData(); })
-        .catch(() => {
-          localStorage.setItem('mitti_fresh_settings', JSON.stringify({ ...settings, ...updated }));
-          alert("Settings cached locally offline!");
+        .then(res => res.json().then(json => ({ ok: res.ok, json })))
+        .then(({ ok, json }) => {
+          if (!ok) {
+            alert("Error saving settings: " + (json.error || JSON.stringify(json)));
+            return;
+          }
+          alert("Settings saved on server successfully!");
           syncData();
+        })
+        .catch(err => {
+          alert("Error saving settings: " + err.message);
         });
       });
 
@@ -396,19 +405,16 @@
           alert("Serviceable pincodes updated!");
           syncData();
         })
-        .catch(() => {
-          settings.serviceablePincodes = pinsArr;
-          localStorage.setItem('mitti_fresh_settings', JSON.stringify(settings));
-          alert("PIN codes cached locally (offline)!");
-          syncData();
+        .catch(err => {
+          alert("Error saving pincodes: " + err.message);
         });
       });
 
       document.getElementById('btn-save-shipping-costs').addEventListener('click', () => {
         const rules = {
-          flatRate: parseInt(document.getElementById('settings-shipping-flat').value),
-          freeShippingThreshold: parseInt(document.getElementById('settings-shipping-free').value),
-          codConvenienceFee: parseInt(document.getElementById('settings-shipping-cod').value)
+          flatRate: parseInt(document.getElementById('settings-shipping-flat').value) || 0,
+          freeShippingThreshold: parseInt(document.getElementById('settings-shipping-free').value) || 0,
+          codConvenienceFee: parseInt(document.getElementById('settings-shipping-cod').value) || 0
         };
         
         fetch(API_BASE + "/api/settings", {
@@ -425,11 +431,8 @@
           alert("Shipping parameters saved!");
           syncData();
         })
-        .catch(() => {
-          settings.shippingRules = rules;
-          localStorage.setItem('mitti_fresh_settings', JSON.stringify(settings));
-          alert("Shipping rules cached locally (offline)!");
-          syncData();
+        .catch(err => {
+          alert("Error saving shipping rules: " + err.message);
         });
       });
 
