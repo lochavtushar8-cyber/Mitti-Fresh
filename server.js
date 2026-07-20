@@ -172,15 +172,37 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// Endpoint to upload product images using existing Multer storage
+// Endpoint to upload product images to permanent InsForge Cloud Storage
 app.post('/api/upload-image', (req, res) => {
-  upload.single('image')(req, res, (err) => {
+  upload.single('image')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ error: err.message || "Image upload failed." });
     }
     if (!req.file) {
       return res.status(400).json({ error: "No image file provided." });
     }
+
+    try {
+      if (insforge && insforge.storage) {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const blob = new Blob([fileBuffer], { type: req.file.mimetype || 'image/jpeg' });
+        const fileName = `asset-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(req.file.originalname)}`;
+        
+        const { data: storageData, error: storageErr } = await insforge.storage
+          .from('product-images')
+          .upload(fileName, blob);
+
+        if (!storageErr && storageData && storageData.url) {
+          try { fs.unlinkSync(req.file.path); } catch (e) {}
+          return res.json({ status: "success", url: storageData.url, key: storageData.key });
+        } else if (storageErr) {
+          console.warn("InsForge storage upload notice:", storageErr);
+        }
+      }
+    } catch (storageException) {
+      console.warn("InsForge storage upload fallback to local static URL:", storageException.message);
+    }
+
     const imageUrl = `/uploads/${req.file.filename}`;
     return res.json({ status: "success", url: imageUrl });
   });
