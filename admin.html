@@ -948,17 +948,97 @@
         </div>
       </section>
 
-      <!-- TAB: REFERRAL MANAGEMENT (Phase 1) -->
+      <!-- TAB: REFERRAL PROGRAM (Phase 1 & Phase 2) -->
       <section class="tab-panel" id="tab-referrals">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
           <div>
-            <h2 style="font-family: 'Playfair Display', serif; margin-bottom: 4px;">Referral Management</h2>
-            <p style="color: var(--color-text-muted); margin: 0;">Manage customer referral codes, links, and track invitation status.</p>
+            <h2 style="font-family: 'Playfair Display', serif; margin-bottom: 4px;">Marketing &rarr; Referral Program</h2>
+            <p style="color: var(--color-text-muted); margin: 0;">Configure referral rewards, trigger rules, and view analytics performance.</p>
           </div>
-          <button class="btn btn-secondary" id="btn-refresh-referrals"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          <button class="btn btn-secondary" id="btn-refresh-referrals"><i class="fa-solid fa-arrows-rotate"></i> Refresh Data</button>
         </div>
 
-        <!-- Section 0: Quick Create / Assign Referral Code Box (Always Visible Inline) -->
+        <!-- Section 1: Referral Program Settings Box -->
+        <div class="card" style="padding: 20px; background: #FFF; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px;">
+          <h3 style="margin-top: 0; margin-bottom: 16px; color: var(--color-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-sliders"></i> Referral Program Configuration & Rules
+          </h3>
+          
+          <form id="form-referral-settings">
+            <div class="form-row" style="margin-bottom: 16px;">
+              <div>
+                <label style="font-weight: 600;">Program Status</label>
+                <select id="ref-set-enabled" class="form-control">
+                  <option value="true">Active (Enabled)</option>
+                  <option value="false">Inactive (Disabled)</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-weight: 600;">Referrer Reward Amount (₹)</label>
+                <input type="number" id="ref-set-referrer-reward" class="form-control" min="0" required placeholder="100">
+              </div>
+              <div>
+                <label style="font-weight: 600;">Friend Reward Amount (₹)</label>
+                <input type="number" id="ref-set-friend-reward" class="form-control" min="0" required placeholder="50">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-bottom: 16px;">
+              <div>
+                <label style="font-weight: 600;">Min Order Value Required (₹)</label>
+                <input type="number" id="ref-set-min-order" class="form-control" min="0" required placeholder="300">
+              </div>
+              <div>
+                <label style="font-weight: 600;">Reward Trigger Event</label>
+                <input type="text" id="ref-set-trigger" class="form-control" value="Delivered" readonly style="background: #F1F5F9; color: #64748B;">
+              </div>
+              <div>
+                <label style="font-weight: 600;">Max Referral Limit per User</label>
+                <input type="number" id="ref-set-max-limit" class="form-control" min="1" required placeholder="50">
+              </div>
+            </div>
+
+            <div style="text-align: right;">
+              <button type="submit" class="btn btn-primary" style="background-color: #214E34 !important; padding: 10px 24px; font-weight: 700;">
+                <i class="fa-solid fa-floppy-disk"></i> Save Program Settings
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Section 2: Admin Analytics Summary Cards -->
+        <div class="admin-stats-grid" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #EBF5ED; color: #214E34;"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <div style="font-size: 0.8rem; color: #64748B;">Total Referrals</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: #1E293B;" id="analytics-total-referrals">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #DCFCE7; color: #16A34A;"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+              <div style="font-size: 0.8rem; color: #64748B;">Successful Referrals</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: #16A34A;" id="analytics-successful-referrals">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div>
+              <div style="font-size: 0.8rem; color: #64748B;">Pending Referrals</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: #D97706;" id="analytics-pending-referrals">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #DBEAFE; color: #2563EB;"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+            <div>
+              <div style="font-size: 0.8rem; color: #64748B;">Total Rewards Issued</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: #2563EB;" id="analytics-total-rewards">₹0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Quick Create / Assign Referral Code Box (Always Visible Inline) -->
         <div class="card" style="padding: 20px; background: #F4F8F5; border: 1.5px solid #214E34; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(33,78,52,0.08);">
           <h3 style="margin-top: 0; margin-bottom: 12px; color: #214E34; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
             <i class="fa-solid fa-plus-circle"></i> Create or Assign Custom Referral Code
@@ -983,7 +1063,7 @@
           </form>
         </div>
 
-        <!-- Section 1: Registered Customer Referral Codes -->
+        <!-- Section 4: Registered Customer Referral Codes -->
         <div class="card" style="padding: 20px; background: #FFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px;">
           <h3 style="margin-top: 0; margin-bottom: 16px; color: var(--color-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
             <i class="fa-solid fa-users-rectangle"></i> Customer Referral Codes & Share Links
@@ -1008,11 +1088,21 @@
           </div>
         </div>
 
-        <!-- Section 2: Referral Invitations History -->
+        <!-- Section 5: Tracked Referrals List with Status Filter -->
         <div class="card" style="padding: 20px; background: #FFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <h3 style="margin-top: 0; margin-bottom: 16px; color: var(--color-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-gift"></i> Tracked Referral Invitations (History)
-          </h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-gift"></i> Tracked Referral Invitations
+            </h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label style="font-size: 0.85rem; font-weight: 600; color: #475569;">Filter Status:</label>
+              <select id="filter-referral-status" class="form-control" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Successful">Successful</option>
+              </select>
+            </div>
+          </div>
           <div style="overflow-x: auto;">
             <table class="admin-table" style="width: 100%; border-collapse: collapse;">
               <thead>

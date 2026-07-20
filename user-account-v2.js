@@ -405,26 +405,35 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
 
-            <!-- Share on WhatsApp CTA -->
-            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Join Mitti Fresh for fresh & organic staples. Use my referral code *${refCode}* or sign up using my link: ${refLink}`)}" target="_blank" style="background: #25D366; color: #FFF; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 12px; margin-top: 14px; border-radius: 12px; box-shadow: 0 4px 12px rgba(37,211,102,0.22); font-size: 0.9rem;">
-              <i class="fa-brands fa-whatsapp" style="font-size: 1.25rem;"></i> Share on WhatsApp
-            </a>
+            <!-- Share Buttons CTA (WhatsApp & Facebook) -->
+            <div style="display: flex; gap: 8px; margin-top: 14px;">
+              <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Join Mitti Fresh for fresh & organic staples. Use my referral code *${refCode}* or sign up using my link: ${refLink}`)}" target="_blank" style="flex: 1; background: #25D366; color: #FFF; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; padding: 10px; border-radius: 10px; box-shadow: 0 4px 12px rgba(37,211,102,0.2); font-size: 0.82rem;">
+                <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem;"></i> WhatsApp
+              </a>
+              <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(refLink)}" target="_blank" style="flex: 1; background: #1877F2; color: #FFF; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; padding: 10px; border-radius: 10px; box-shadow: 0 4px 12px rgba(24,119,242,0.2); font-size: 0.82rem;">
+                <i class="fa-brands fa-facebook" style="font-size: 1.1rem;"></i> Facebook
+              </a>
+            </div>
           </div>
 
           <!-- TAB 2: My Earnings / Stats Panel -->
           <div id="ref-subtab-content-earnings" style="padding: 16px 14px; display: none;">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; text-align: center;">
-              <div style="background: #F8FAFC; padding: 10px 4px; border-radius: 10px; border: 1px solid #E2E8F0;">
-                <div style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Total Invited</div>
-                <div style="font-weight: 800; font-size: 1.2rem; color: #214E34; margin-top: 2px;">${refStats.totalReferrals}</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; text-align: center;">
+              <div style="background: #F8FAFC; padding: 8px 2px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 600;">Invited</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #214E34; margin-top: 2px;">${refStats.totalReferrals}</div>
               </div>
-              <div style="background: #F8FAFC; padding: 10px 4px; border-radius: 10px; border: 1px solid #E2E8F0;">
-                <div style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Pending</div>
-                <div style="font-weight: 800; font-size: 1.2rem; color: #D97706; margin-top: 2px;">${refStats.pendingReferrals}</div>
+              <div style="background: #F8FAFC; padding: 8px 2px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 600;">Pending</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #D97706; margin-top: 2px;">${refStats.pendingReferrals}</div>
               </div>
-              <div style="background: #F8FAFC; padding: 10px 4px; border-radius: 10px; border: 1px solid #E2E8F0;">
-                <div style="font-size: 0.72rem; color: #64748B; font-weight: 600;">Successful</div>
-                <div style="font-weight: 800; font-size: 1.2rem; color: #16A34A; margin-top: 2px;">${refStats.successfulReferrals}</div>
+              <div style="background: #F8FAFC; padding: 8px 2px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 600;">Successful</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #16A34A; margin-top: 2px;">${refStats.successfulReferrals}</div>
+              </div>
+              <div style="background: #F8FAFC; padding: 8px 2px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 600;">Earned</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #2563EB; margin-top: 2px;">₹${refStats.totalRewardsEarned || 0}</div>
               </div>
             </div>
 

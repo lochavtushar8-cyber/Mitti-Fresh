@@ -1514,6 +1514,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addToCartExternal = addToCart;
   window.toggleCartDrawerExternal = toggleCartDrawer;
 
+  // --- INITIALIZE REFERRAL CAPTURE ---
+  try {
+    const refParam = new URLSearchParams(window.location.search).get('ref');
+    if (refParam && refParam.trim()) {
+      sessionStorage.setItem('mitti_referral_code', refParam.trim().toUpperCase());
+    }
+  } catch(e) {}
+
   // --- INITIALIZE CATALOG & CART ---
   renderProducts();
   loadCart();

@@ -1530,15 +1530,75 @@
         };
       };
 
-      // REFERRAL MANAGEMENT (Phase 1)
-      const renderReferrals = async () => {
+      // REFERRAL PROGRAM & ANALYTICS (Phase 1 & Phase 2)
+      let cachedReferralsList = [];
+
+      const loadReferralSettings = async () => {
+        try {
+          const res = await fetch(API_BASE + "/api/admin/referral-settings");
+          const data = await res.json();
+          if (res.ok && data.settings) {
+            const s = data.settings;
+            if (document.getElementById('ref-set-enabled')) document.getElementById('ref-set-enabled').value = String(s.enabled);
+            if (document.getElementById('ref-set-referrer-reward')) document.getElementById('ref-set-referrer-reward').value = s.referrerReward;
+            if (document.getElementById('ref-set-friend-reward')) document.getElementById('ref-set-friend-reward').value = s.friendReward;
+            if (document.getElementById('ref-set-min-order')) document.getElementById('ref-set-min-order').value = s.minOrderValue;
+            if (document.getElementById('ref-set-trigger')) document.getElementById('ref-set-trigger').value = s.trigger || "Delivered";
+            if (document.getElementById('ref-set-max-limit')) document.getElementById('ref-set-max-limit').value = s.maxLimit;
+          }
+        } catch (e) {}
+      };
+
+      const loadReferralAnalytics = async () => {
+        try {
+          const res = await fetch(API_BASE + "/api/admin/referrals-analytics");
+          const data = await res.json();
+          if (res.ok && data.analytics) {
+            const a = data.analytics;
+            if (document.getElementById('analytics-total-referrals')) document.getElementById('analytics-total-referrals').textContent = a.totalReferrals;
+            if (document.getElementById('analytics-successful-referrals')) document.getElementById('analytics-successful-referrals').textContent = a.successfulReferrals;
+            if (document.getElementById('analytics-pending-referrals')) document.getElementById('analytics-pending-referrals').textContent = a.pendingReferrals;
+            if (document.getElementById('analytics-total-rewards')) document.getElementById('analytics-total-rewards').textContent = `₹${a.totalRewardsIssued}`;
+          }
+        } catch (e) {}
+      };
+
+      const renderReferralsHistoryTable = (filterStatus = "All") => {
         const tbodyRefHistory = document.getElementById('referrals-table-body');
+        if (!tbodyRefHistory) return;
+
+        let filtered = cachedReferralsList;
+        if (filterStatus !== "All") {
+          filtered = cachedReferralsList.filter(r => r.status === filterStatus);
+        }
+
+        if (filtered.length === 0) {
+          tbodyRefHistory.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No referral invitations found matching status "${filterStatus}".</td></tr>`;
+          return;
+        }
+
+        tbodyRefHistory.innerHTML = filtered.map(r => `
+          <tr>
+            <td style="padding: 12px;"><strong>${r.referrerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referrerEmail}</span></td>
+            <td style="padding: 12px;"><strong>${r.referredCustomerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referredCustomerEmail}</span></td>
+            <td style="padding: 12px;"><code style="font-weight: 700;">${r.referralCode}</code></td>
+            <td style="padding: 12px; font-size: 0.85rem;">${r.referralDate ? new Date(r.referralDate).toLocaleDateString() : 'N/A'}</td>
+            <td style="padding: 12px;">
+              <span style="background: ${r.status === 'Successful' ? '#DCFCE7' : '#FEF3C7'}; color: ${r.status === 'Successful' ? '#166534' : '#92400E'}; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 0.78rem;">${r.status || 'Pending'}</span>
+            </td>
+          </tr>
+        `).join('');
+      };
+
+      const renderReferrals = async () => {
         const tbodyCustCodes = document.getElementById('customer-ref-codes-table-body');
+        loadReferralSettings();
+        loadReferralAnalytics();
 
         try {
           const res = await fetch(API_BASE + "/api/admin/referrals");
           const data = await res.json();
-          const referrals = data.referrals || [];
+          cachedReferralsList = data.referrals || [];
           const customers = data.customers || [];
           
           // 1. Render Customer Referral Codes Table
@@ -1564,7 +1624,6 @@
                 `;
               }).join('');
 
-              // Edit / Assign Code button click listeners - populates the inline form at top!
               document.querySelectorAll('.btn-assign-ref-code').forEach(btn => {
                 btn.addEventListener('click', () => {
                   const email = btn.getAttribute('data-email');
@@ -1574,7 +1633,6 @@
                   if (emailInput) emailInput.value = email;
                   if (codeInput) codeInput.value = code;
                   
-                  // Scroll smoothly to top inline form box
                   const inlineBox = document.getElementById('inline-form-create-referral');
                   if (inlineBox) inlineBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 });
@@ -1582,27 +1640,56 @@
             }
           }
 
-          // 2. Render Tracked Referrals History Table
-          if (tbodyRefHistory) {
-            if (referrals.length === 0) {
-              tbodyRefHistory.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No referral invitations recorded yet.</td></tr>`;
-            } else {
-              tbodyRefHistory.innerHTML = referrals.map(r => `
-                <tr>
-                  <td style="padding: 12px;"><strong>${r.referrerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referrerEmail}</span></td>
-                  <td style="padding: 12px;"><strong>${r.referredCustomerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referredCustomerEmail}</span></td>
-                  <td style="padding: 12px;"><code style="font-weight: 700;">${r.referralCode}</code></td>
-                  <td style="padding: 12px; font-size: 0.85rem;">${r.referralDate ? new Date(r.referralDate).toLocaleDateString() : 'N/A'}</td>
-                  <td style="padding: 12px;"><span style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;">${r.status || 'Pending'}</span></td>
-                </tr>
-              `).join('');
-            }
-          }
+          // 2. Render Tracked Referrals History Table with active filter
+          const filterSel = document.getElementById('filter-referral-status');
+          const currentFilter = filterSel ? filterSel.value : "All";
+          renderReferralsHistoryTable(currentFilter);
 
         } catch (e) {
-          if (tbodyRefHistory) tbodyRefHistory.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #DC2626; padding: 20px;">Failed to load referrals data.</td></tr>`;
+          console.error("Error loading referrals:", e);
         }
       };
+
+      // Status filter dropdown change listener
+      const filterReferralStatusEl = document.getElementById('filter-referral-status');
+      if (filterReferralStatusEl) {
+        filterReferralStatusEl.addEventListener('change', (e) => {
+          renderReferralsHistoryTable(e.target.value);
+        });
+      }
+
+      // Settings form submit listener
+      const formReferralSettingsEl = document.getElementById('form-referral-settings');
+      if (formReferralSettingsEl) {
+        formReferralSettingsEl.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const settingsPayload = {
+            enabled: document.getElementById('ref-set-enabled').value === 'true',
+            referrerReward: Number(document.getElementById('ref-set-referrer-reward').value),
+            friendReward: Number(document.getElementById('ref-set-friend-reward').value),
+            minOrderValue: Number(document.getElementById('ref-set-min-order').value),
+            trigger: "Delivered",
+            maxLimit: Number(document.getElementById('ref-set-max-limit').value)
+          };
+
+          try {
+            const res = await fetch(API_BASE + "/api/admin/referral-settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(settingsPayload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+              alert(data.message || "Referral program settings saved!");
+              loadReferralSettings();
+            } else {
+              alert(data.error || "Failed to save settings.");
+            }
+          } catch (err) {
+            alert("Error connecting to server.");
+          }
+        });
+      }
 
       // Auto generate code button listener for Inline form
       const btnInlineAuto = document.getElementById('btn-inline-auto-code');

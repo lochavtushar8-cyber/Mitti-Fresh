@@ -993,8 +993,13 @@ app.post('/api/update-order-status', async (req, res) => {
       return res.status(404).json({ error: "Order not found." });
     }
 
+    const updatedOrder = data[0];
+    if (updatedOrder && updatedOrder.orderStatus === 'Delivered') {
+      processReferralRewardOnDelivery(updatedOrder).catch(e => console.error("Referral trigger error:", e));
+    }
+
     await logAction(req.headers['x-user-name'] || "Admin", "Update Order", `Changed status for order ${orderId}`);
-    return res.json({ status: "success", order: data[0] });
+    return res.json({ status: "success", order: updatedOrder });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1427,10 +1432,169 @@ const getCustomerFromToken = async (req) => {
   }
 };
 // ==========================================================================
-// REFERRAL SYSTEM HELPERS (Phase 1)
+// REFERRAL SYSTEM HELPERS (Phase 1 & Phase 2)
 // ==========================================================================
 const REFERRALS_FILE = path.join(__dirname, 'data', 'referrals.json');
 const CUSTOMER_CODES_FILE = path.join(__dirname, 'data', 'customer_codes.json');
+const REFERRAL_SETTINGS_FILE = path.join(__dirname, 'data', 'referral_settings.json');
+
+const DEFAULT_REFERRAL_SETTINGS = {
+  enabled: true,
+  friendReward: 50,
+  referrerReward: 100,
+  minOrderValue: 300,
+  trigger: "Delivered",
+  maxLimit: 50
+};
+
+const getReferralSettings = async () => {
+  let settings = { ...DEFAULT_REFERRAL_SETTINGS };
+  try {
+    if (fs.existsSync(REFERRAL_SETTINGS_FILE)) {
+      const content = fs.readFileSync(REFERRAL_SETTINGS_FILE, 'utf8');
+      settings = { ...DEFAULT_REFERRAL_SETTINGS, ...JSON.parse(content) };
+    }
+  } catch (e) {}
+
+  if (!fs.existsSync(REFERRAL_SETTINGS_FILE)) {
+    try {
+      const { data: logRecords } = await insforge.database.from('logs').select().eq('action', 'referral-settings');
+      if (logRecords && logRecords.length > 0) {
+        const last = logRecords[logRecords.length - 1];
+        try {
+          settings = { ...DEFAULT_REFERRAL_SETTINGS, ...JSON.parse(last.details) };
+        } catch (e) {}
+        saveReferralSettings(settings);
+      }
+    } catch (e) {}
+  }
+  return settings;
+};
+
+const saveReferralSettings = (settings) => {
+  try {
+    const dir = path.dirname(REFERRAL_SETTINGS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(REFERRAL_SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf8');
+  } catch (e) {
+    console.error("Save referral settings disk failed:", e);
+  }
+};
+
+const processReferralRewardOnDelivery = async (order) => {
+  try {
+    if (!order || !order.customer) return;
+    const settings = await getReferralSettings();
+    if (!settings.enabled) return;
+
+    const custEmail = (order.customer.email || '').toLowerCase();
+    if (!custEmail) return;
+
+    // Fetch all customers from DB
+    const { data: allCusts } = await insforge.database.from('customers').select();
+    const customerList = allCusts || [];
+    const customer = customerList.find(c => (c.email || '').toLowerCase() === custEmail);
+    if (!customer || !customer.referredBy) return;
+
+    const referrerCode = customer.referredBy.toUpperCase();
+    const customerMap = await getCustomerCodesMap();
+
+    // Find referrer customer by code
+    const referrerCust = customerList.find(c => {
+      const em = (c.email || '').toLowerCase();
+      const code = customerMap[em] || c.referralCode;
+      return code && code.toUpperCase() === referrerCode;
+    });
+
+    if (!referrerCust) return;
+    if (referrerCust.email && referrerCust.email.toLowerCase() === custEmail) return; // Prevent self-referral
+
+    // Check if order value meets minOrderValue
+    const orderAmt = Number(order.amount || 0);
+    if (orderAmt < Number(settings.minOrderValue || 0)) return;
+
+    // Check if this is customer's FIRST delivered order
+    const { data: allOrders } = await insforge.database.from('orders').select();
+    const custDeliveredOrders = (allOrders || []).filter(o => {
+      const oEm = o.customer ? (o.customer.email || '').toLowerCase() : '';
+      return oEm === custEmail && o.orderStatus === 'Delivered';
+    });
+
+    // Only reward on the FIRST delivered order
+    if (custDeliveredOrders.length !== 1) return;
+
+    // Fetch referrals history list
+    const referralsList = await getReferralsData();
+    let refRecord = referralsList.find(r => r.referredCustomerEmail && r.referredCustomerEmail.toLowerCase() === custEmail);
+
+    // Check referrer max limit
+    const referrerSuccessfulCount = referralsList.filter(r => r.referrerEmail && r.referrerEmail.toLowerCase() === referrerCust.email.toLowerCase() && r.status === 'Successful').length;
+    if (referrerSuccessfulCount >= Number(settings.maxLimit || 50)) return;
+
+    // Update or create referral record to Successful
+    if (!refRecord) {
+      refRecord = {
+        id: 'REF-' + Date.now() + '-' + Math.floor(Math.random()*1000),
+        referralCode: referrerCode,
+        referrerId: referrerCust.id,
+        referrerName: referrerCust.name,
+        referrerEmail: referrerCust.email,
+        referredCustomerId: customer.id,
+        referredCustomerName: customer.name,
+        referredCustomerEmail: customer.email,
+        referralDate: new Date().toISOString(),
+        status: "Successful",
+        rewardDate: new Date().toISOString(),
+        referrerRewardAmount: settings.referrerReward,
+        friendRewardAmount: settings.friendReward
+      };
+      referralsList.push(refRecord);
+    } else {
+      refRecord.status = "Successful";
+      refRecord.rewardDate = new Date().toISOString();
+      refRecord.referrerRewardAmount = settings.referrerReward;
+      refRecord.friendRewardAmount = settings.friendReward;
+    }
+    saveReferralsData(referralsList);
+
+    // Credit reward points & totalRewardsEarned to Referrer
+    const currentReferrerPts = Number(referrerCust.rewardPoints || 0);
+    const newReferrerPts = currentReferrerPts + Number(settings.referrerReward || 100);
+    const currentReferrerEarned = Number(referrerCust.totalRewardsEarned || 0);
+    const newReferrerEarned = currentReferrerEarned + Number(settings.referrerReward || 100);
+
+    try {
+      await insforge.database.from('customers').update({
+        rewardPoints: newReferrerPts,
+        totalRewardsEarned: newReferrerEarned
+      }).eq('id', referrerCust.id);
+    } catch (e) {}
+
+    // Credit friend reward if enabled
+    if (Number(settings.friendReward || 0) > 0) {
+      const currentFriendPts = Number(customer.rewardPoints || 0);
+      const newFriendPts = currentFriendPts + Number(settings.friendReward);
+      try {
+        await insforge.database.from('customers').update({
+          rewardPoints: newFriendPts
+        }).eq('id', customer.id);
+      } catch (e) {}
+    }
+
+    try {
+      await logAction(referrerCust.email, "referral-reward-issued", JSON.stringify({
+        referrer: referrerCust.email,
+        referred: custEmail,
+        orderId: order.orderId,
+        referrerReward: settings.referrerReward,
+        friendReward: settings.friendReward
+      }));
+    } catch (e) {}
+
+  } catch (err) {
+    console.error("Error processing referral reward on delivery:", err);
+  }
+};
 
 const getCustomerCodesMap = async () => {
   let map = {};
@@ -1669,6 +1833,8 @@ app.get('/api/customers/profile', async (req, res) => {
     const referralsList = await getReferralsData();
     const myReferrals = referralsList.filter(r => r.referrerEmail === customer.email || r.referralCode === customer.referralCode);
 
+    const totalRewardsEarned = customer.totalRewardsEarned || myReferrals.filter(r => r.status === 'Successful').reduce((acc, r) => acc + (r.referrerRewardAmount || 100), 0);
+
     return res.json({
       status: "success",
       customer,
@@ -1677,12 +1843,100 @@ app.get('/api/customers/profile', async (req, res) => {
         totalReferrals: myReferrals.length,
         pendingReferrals: myReferrals.filter(r => r.status === 'Pending').length,
         successfulReferrals: myReferrals.filter(r => r.status === 'Successful').length,
+        totalRewardsEarned,
         referrals: myReferrals
       },
       orders: customerOrders.map(o => ({
         ...o,
         date: o.created_at ? new Date(o.created_at).toLocaleString() : ''
       }))
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin Referral Program Settings GET API
+app.get('/api/admin/referral-settings', async (req, res) => {
+  try {
+    const settings = await getReferralSettings();
+    return res.json({ status: "success", settings });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin Referral Program Settings POST API
+app.post('/api/admin/referral-settings', async (req, res) => {
+  try {
+    const newSettings = req.body || {};
+    const currentSettings = await getReferralSettings();
+    const updated = {
+      ...currentSettings,
+      enabled: newSettings.enabled !== undefined ? Boolean(newSettings.enabled) : currentSettings.enabled,
+      friendReward: Number(newSettings.friendReward ?? currentSettings.friendReward),
+      referrerReward: Number(newSettings.referrerReward ?? currentSettings.referrerReward),
+      minOrderValue: Number(newSettings.minOrderValue ?? currentSettings.minOrderValue),
+      trigger: newSettings.trigger || currentSettings.trigger || "Delivered",
+      maxLimit: Number(newSettings.maxLimit ?? currentSettings.maxLimit)
+    };
+
+    saveReferralSettings(updated);
+    try {
+      await logAction("Admin", "referral-settings", JSON.stringify(updated));
+    } catch (e) {}
+
+    return res.json({ status: "success", message: "Referral program settings saved successfully.", settings: updated });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin Referral Analytics API
+app.get('/api/admin/referrals-analytics', async (req, res) => {
+  try {
+    const referralsList = await getReferralsData();
+    const settings = await getReferralSettings();
+
+    const totalReferrals = referralsList.length;
+    const successfulReferrals = referralsList.filter(r => r.status === 'Successful').length;
+    const pendingReferrals = referralsList.filter(r => r.status === 'Pending').length;
+
+    const totalRewardsIssued = referralsList.filter(r => r.status === 'Successful').reduce((sum, r) => sum + (Number(r.referrerRewardAmount) || Number(settings.referrerReward) || 100), 0);
+
+    // Calculate Top Referrers
+    const referrerMap = {};
+    referralsList.forEach(r => {
+      const key = r.referrerEmail || r.referralCode;
+      if (!referrerMap[key]) {
+        referrerMap[key] = {
+          name: r.referrerName || r.referralCode,
+          email: r.referrerEmail || '',
+          referralCode: r.referralCode,
+          totalCount: 0,
+          successfulCount: 0,
+          totalEarned: 0
+        };
+      }
+      referrerMap[key].totalCount += 1;
+      if (r.status === 'Successful') {
+        referrerMap[key].successfulCount += 1;
+        referrerMap[key].totalEarned += (Number(r.referrerRewardAmount) || Number(settings.referrerReward) || 100);
+      }
+    });
+
+    const topReferrers = Object.values(referrerMap).sort((a, b) => b.successfulCount - a.successfulCount || b.totalCount - a.totalCount).slice(0, 10);
+
+    return res.json({
+      status: "success",
+      analytics: {
+        totalReferrals,
+        successfulReferrals,
+        pendingReferrals,
+        totalRewardsIssued,
+        topReferrers,
+        settings
+      }
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });
