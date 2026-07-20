@@ -559,16 +559,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const renderProducts = () => {
     if (bestsellersList) {
       bestsellersList.innerHTML = '';
-      let bestsellers = PRODUCTS.filter(prod => {
-        const r = prod.bestSellerRank ?? prod.bestseller_rank ?? prod.rank;
-        const hasRank = (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0);
-        return hasRank || prod.badgeType === 'bestseller' || (prod.badge && prod.badge.toLowerCase().includes('best'));
-      });
-      if (bestsellers.length === 0) {
-        bestsellers = PRODUCTS;
-      }
-
-      const sortedBestsellers = sortByBestSellerRank(bestsellers).slice(0, 8);
+      const sortedBestsellers = sortByBestSellerRank(PRODUCTS);
       
       sortedBestsellers.forEach(prod => {
         const card = document.createElement('div');
@@ -577,7 +568,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         card.innerHTML = createProductCardHTML(prod);
         bestsellersList.appendChild(card);
       });
-      return;
     }
 
     if (productList) {
