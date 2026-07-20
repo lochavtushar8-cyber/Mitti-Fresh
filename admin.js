@@ -729,20 +729,39 @@
           shortDescription: document.getElementById('prod-form-short').value
         };
 
-        if (id && finalImageUrls.length > 0) {
-          payload.image = finalImageUrls[0];
-          payload.gallery = finalImageUrls;
-        }
-
         if (id) {
+          payload.image = finalImageUrls.length > 0 ? finalImageUrls[0] : 'assets/logo.jpg';
+          payload.gallery = finalImageUrls;
+
           // Update
-          fetch(`${API_BASE}/api/products/${id}/update`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          })
-          .then(() => { alert("Product updated!"); productModal.style.display = "none"; syncData(); })
-          .catch(() => {
+          try {
+            const updateRes = await fetch(`${API_BASE}/api/products/${id}/update`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (!updateRes.ok) {
+              throw new Error(`Server update failed with status ${updateRes.status}`);
+            }
+
+            const updatedProd = await updateRes.json();
+            const idx = products.findIndex(p => p.id === id);
+            if (idx !== -1) {
+              products[idx] = {
+                ...products[idx],
+                ...(updatedProd && updatedProd.id ? updatedProd : payload),
+                image: payload.image,
+                gallery: payload.gallery
+              };
+              renderProducts();
+            }
+
+            alert("Product updated!");
+            productModal.style.display = "none";
+            syncData();
+          } catch (err) {
+            console.error("Error updating product via API:", err);
             const idx = products.findIndex(p => p.id === id);
             if (idx !== -1) {
               products[idx] = { ...products[idx], ...payload };
@@ -751,7 +770,7 @@
               productModal.style.display = "none";
               syncData();
             }
-          });
+          }
         } else {
           // Insert
           fetch(API_BASE + "/api/products", {
