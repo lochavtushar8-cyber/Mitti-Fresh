@@ -961,6 +961,31 @@
           </div>
         </div>
 
+        <!-- Section 0: Quick Create / Assign Referral Code Box (Always Visible Inline) -->
+        <div class="card" style="padding: 20px; background: #F4F8F5; border: 1.5px solid #214E34; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(33,78,52,0.08);">
+          <h3 style="margin-top: 0; margin-bottom: 12px; color: #214E34; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-plus-circle"></i> Create or Assign Custom Referral Code
+          </h3>
+          <form id="inline-form-create-referral" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+            <div style="flex: 1 1 250px;">
+              <label style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; color: #334155;">Customer Email</label>
+              <input type="email" id="inline-ref-email" class="form-control" placeholder="Enter customer email (e.g. user@gmail.com)" required style="width: 100%; box-sizing: border-box; background: #FFF; height: 42px;">
+            </div>
+
+            <div style="flex: 1 1 220px;">
+              <label style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; color: #334155;">Custom Referral Code</label>
+              <div style="display: flex; gap: 6px;">
+                <input type="text" id="inline-ref-code" class="form-control" placeholder="e.g. VIP50" required style="text-transform: uppercase; font-weight: 700; background: #FFF; height: 42px; flex: 1;">
+                <button type="button" class="btn btn-secondary" id="btn-inline-auto-code" style="white-space: nowrap; height: 42px; padding: 0 12px; font-size: 0.8rem;">Auto Generate</button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-inline-submit-ref" style="height: 42px; padding: 0 20px; font-weight: 700; white-space: nowrap; background-color: #214E34 !important; color: #FFFFFF !important;">
+              <i class="fa-solid fa-check"></i> Assign Code
+            </button>
+          </form>
+        </div>
+
         <!-- Section 1: Registered Customer Referral Codes -->
         <div class="card" style="padding: 20px; background: #FFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px;">
           <h3 style="margin-top: 0; margin-bottom: 16px; color: var(--color-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
