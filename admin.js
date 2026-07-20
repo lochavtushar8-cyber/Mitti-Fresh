@@ -802,6 +802,7 @@
               }
 
               alert("Product updated successfully!");
+              try { localStorage.removeItem('mitti_fresh_products'); } catch (e) {}
               productModal.style.display = "none";
               syncData();
             } catch (updateErr) {

@@ -67,13 +67,19 @@ const rebuildCatalog = (dbProducts) => {
           badgeType: item.badgeType || ""
         };
       } else {
-        if (itemImg && itemImg !== "assets/logo.jpg") {
+        const currentImg = catalogMap[actualBaseId].image;
+        const isCurrentDefault = !currentImg || currentImg === 'assets/logo.jpg' || currentImg === 'assets/grinding_live.jpg' || currentImg === 'assets/hero_banner.jpg';
+        const isNewUploaded = itemImg && itemImg.startsWith('/uploads/');
+        const isNewCustom = itemImg && itemImg !== 'assets/logo.jpg';
+
+        if (isNewUploaded || (isCurrentDefault && isNewCustom)) {
           catalogMap[actualBaseId].image = itemImg;
           catalogMap[actualBaseId].imageUrl = itemImg;
           catalogMap[actualBaseId].mainImage = itemImg;
           catalogMap[actualBaseId].thumbnail = itemImg;
         }
-        if (Array.isArray(itemGallery) && itemGallery.length > 0) {
+
+        if (Array.isArray(itemGallery) && itemGallery.length > 0 && (isNewUploaded || isCurrentDefault)) {
           catalogMap[actualBaseId].gallery = itemGallery;
           catalogMap[actualBaseId].images = itemGallery;
           catalogMap[actualBaseId].galleryImages = itemGallery;
@@ -150,9 +156,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load products list from backend dynamically
   try {
-    const res = await fetch(window.getApiEndpoint('/api/products') + '?t=' + Date.now());
+    const res = await fetch(window.getApiEndpoint('/api/products') + '?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
       const dbProducts = await res.json();
+      try { localStorage.removeItem('mitti_fresh_products'); } catch (e) {}
       PRODUCTS = rebuildCatalog(dbProducts);
     } else {
       const cached = localStorage.getItem('mitti_fresh_products');
@@ -463,10 +470,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- PRODUCT CARD HTML GENERATOR (UPDATED TO TAKE TO PRODUCT.HTML) ---
   const createProductCardHTML = (prod) => {
     const defaultOption = prod.sizes[0];
+    const cardImg = (prod.sizes && prod.sizes.find(s => s.image && s.image.startsWith('/uploads/')))
+      ? prod.sizes.find(s => s.image && s.image.startsWith('/uploads/')).image
+      : ((defaultOption && defaultOption.image) ? defaultOption.image : (prod.image || "assets/logo.jpg"));
+
     const optionsHtml = prod.sizes.map(opt => {
       const isOutOfStock = opt.stock === 0;
       const stockText = isOutOfStock ? ' (Out of Stock)' : '';
-      return `<option value="${opt.value}" data-price="${opt.price}" data-mrp="${opt.mrp || opt.price}" data-stock="${opt.stock}" ${isOutOfStock ? 'style="color:#CB4335"' : ''}>${opt.name} - ₹${opt.price}${stockText}</option>`;
+      const optImg = opt.image || cardImg;
+      return `<option value="${opt.value}" data-price="${opt.price}" data-mrp="${opt.mrp || opt.price}" data-stock="${opt.stock}" data-image="${optImg}" ${isOutOfStock ? 'style="color:#CB4335"' : ''}>${opt.name} - ₹${opt.price}${stockText}</option>`;
     }).join('');
 
     const badgeHtml = prod.badge ? `<span class="product-tag badge-${prod.badgeType || 'accent'} font-alt">${prod.badge}</span>` : '';
@@ -475,7 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `
       <a href="/product?id=${prod.id}" class="product-card-media-link">
         <div class="product-image-container">
-          <img src="${prod.image}" alt="${prod.name}" class="product-image" loading="lazy">
+          <img src="${cardImg}" alt="${prod.name}" class="product-image" loading="lazy">
           ${badgeHtml}
           ${bubbleHtml}
         </div>
@@ -574,8 +586,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newPrice = selectedOption.getAttribute('data-price');
         const newMrp = selectedOption.getAttribute('data-mrp');
         const newStock = parseInt(selectedOption.getAttribute('data-stock') || '0');
+        const newImg = selectedOption.getAttribute('data-image');
         const productId = select.getAttribute('data-product-id');
         
+        if (newImg) {
+          const cardImgEl = select.closest('.product-card') ? select.closest('.product-card').querySelector('.product-image') : null;
+          if (cardImgEl) cardImgEl.src = newImg;
+        }
+
         const priceDisplay = document.getElementById(`price-${productId}`);
         if (priceDisplay) {
           priceDisplay.textContent = newPrice;
