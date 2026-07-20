@@ -563,7 +563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       if (bestsellersList) {
         bestsellersList.innerHTML = '';
-        const sortedBestsellers = sortByBestSellerRank(PRODUCTS);
+        const sortedBestsellers = sortByBestSellerRank(PRODUCTS).slice(0, 4);
         
         sortedBestsellers.forEach(prod => {
           try {
