@@ -348,10 +348,21 @@ app.post('/api/products', async (req, res) => {
   };
 
   try {
-    const { data, error } = await insforge.database
+    let { data, error } = await insforge.database
       .from('products')
       .insert([insertRow])
       .select();
+
+    if (error && (error.message.includes('bestseller_rank') || error.message.includes('column') || error.code === 'PGRST204')) {
+      console.warn("Retrying product insert without optional rank column:", error.message);
+      delete insertRow.bestseller_rank;
+      const retryResult = await insforge.database
+        .from('products')
+        .insert([insertRow])
+        .select();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
 
     if (error) return res.status(500).json({ error: error.message });
 
@@ -408,11 +419,23 @@ async function handleProductUpdate(req, res) {
   if (updates.rank !== undefined && pgUpdates.bestseller_rank === undefined) pgUpdates.bestseller_rank = updates.rank;
 
   try {
-    const { data, error } = await insforge.database
+    let { data, error } = await insforge.database
       .from('products')
       .update(pgUpdates)
       .eq('id', id)
       .select();
+
+    if (error && (error.message.includes('bestseller_rank') || error.message.includes('column') || error.code === 'PGRST204')) {
+      console.warn("Retrying product update without optional rank column:", error.message);
+      delete pgUpdates.bestseller_rank;
+      const retryResult = await insforge.database
+        .from('products')
+        .update(pgUpdates)
+        .eq('id', id)
+        .select();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
 
     if (error || !data || data.length === 0) {
       return res.status(404).json({ error: "Product not found." });
