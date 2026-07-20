@@ -623,12 +623,8 @@
           shippingCharge = flatRateVal;
         }
 
-        // 3. COD Fee calculation
-        if (payCodOption && payCodOption.checked && !payCodOption.disabled) {
-          codFee = (window.CONFIG && window.CONFIG.COD_CHARGE !== undefined && window.CONFIG.COD_CHARGE !== null) ? Number(window.CONFIG.COD_CHARGE) : 50;
-        } else {
-          codFee = 0;
-        }
+        // 3. COD Fee calculation (Removed as requested)
+        codFee = 0;
 
         const gstVal = Math.round(subtotal * 0.05); // 5% GST included in base price
         const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
@@ -648,13 +644,8 @@
           couponRow.style.display = 'none';
         }
 
-        // Show/hide COD fee rows
-        if (codFee > 0) {
-          sumCodFee.textContent = `₹${codFee}`;
-          codRow.style.display = 'flex';
-        } else {
-          codRow.style.display = 'none';
-        }
+        // Show/hide COD fee rows (Removed - always hidden)
+        if (codRow) codRow.style.display = 'none';
 
         // 4. Update UPI dynamic pay link
         let upiLink = "";
