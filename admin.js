@@ -653,7 +653,11 @@
         
         const rankInput = document.getElementById('prod-form-rank');
         if (rankInput) {
-          const rVal = prod.bestSellerRank ?? prod.bestseller_rank ?? prod.rank;
+          let rVal = prod.bestSellerRank ?? prod.bestseller_rank ?? prod.rank;
+          if ((rVal === null || rVal === undefined || rVal === "") && prod.video && typeof prod.video === 'string' && prod.video.startsWith('RANK:')) {
+            const parsed = parseInt(prod.video.replace('RANK:', ''));
+            if (!isNaN(parsed) && parsed > 0) rVal = parsed;
+          }
           rankInput.value = (rVal !== null && rVal !== undefined && rVal !== "") ? rVal : "";
         }
         

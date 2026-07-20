@@ -44,6 +44,12 @@ const rebuildCatalog = (dbProducts) => {
         ? item.gallery 
         : ((Array.isArray(item.images) && item.images.length > 0) ? item.images : [itemImg]);
 
+      let rankVal = item.bestseller_rank ?? item.bestSellerRank ?? item.rank;
+      if ((rankVal === null || rankVal === undefined || rankVal === "") && item.video && typeof item.video === 'string' && item.video.startsWith('RANK:')) {
+        const parsed = parseInt(item.video.replace('RANK:', ''));
+        if (!isNaN(parsed) && parsed > 0) rankVal = parsed;
+      }
+
       if (!catalogMap[actualBaseId]) {
         catalogMap[actualBaseId] = {
           id: actualBaseId,
@@ -65,9 +71,9 @@ const rebuildCatalog = (dbProducts) => {
           nutrition: item.nutrition || null,
           badge: item.badge || "",
           badgeType: item.badgeType || "",
-          bestSellerRank: item.bestseller_rank ?? item.bestSellerRank ?? item.rank ?? null,
-          bestseller_rank: item.bestseller_rank ?? item.bestSellerRank ?? item.rank ?? null,
-          rank: item.bestseller_rank ?? item.bestSellerRank ?? item.rank ?? null
+          bestSellerRank: rankVal || null,
+          bestseller_rank: rankVal || null,
+          rank: rankVal || null
         };
       } else {
         const currentImg = catalogMap[actualBaseId].image;
@@ -533,7 +539,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!Array.isArray(productsArr)) return [];
     return [...productsArr].sort((a, b) => {
       const getRank = (p) => {
-        const r = p.bestSellerRank ?? p.bestseller_rank ?? p.rank;
+        let r = p.bestSellerRank ?? p.bestseller_rank ?? p.rank;
+        if ((r === null || r === undefined || r === "") && p.video && typeof p.video === 'string' && p.video.startsWith('RANK:')) {
+          const parsed = parseInt(p.video.replace('RANK:', ''));
+          if (!isNaN(parsed) && parsed > 0) r = parsed;
+        }
         return (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0) ? Number(r) : Infinity;
       };
       const rankA = getRank(a);

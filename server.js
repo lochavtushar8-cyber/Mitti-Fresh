@@ -292,7 +292,11 @@ app.get('/api/products', async (req, res) => {
     const mapped = data.map(p => {
       const imgVal = p.image || 'assets/logo.jpg';
       const galleryVal = Array.isArray(p.gallery) && p.gallery.length > 0 ? p.gallery : [imgVal];
-      const rankVal = p.bestseller_rank ?? p.bestSellerRank ?? p.rank ?? null;
+      let rankVal = p.bestseller_rank ?? p.bestSellerRank ?? p.rank;
+      if ((rankVal === null || rankVal === undefined || rankVal === "") && p.video && typeof p.video === 'string' && p.video.startsWith('RANK:')) {
+        const parsed = parseInt(p.video.replace('RANK:', ''));
+        if (!isNaN(parsed) && parsed > 0) rankVal = parsed;
+      }
       return {
         ...p,
         SKU: p.sku,
@@ -306,9 +310,9 @@ app.get('/api/products', async (req, res) => {
         gallery: galleryVal,
         images: galleryVal,
         galleryImages: galleryVal,
-        bestSellerRank: rankVal,
-        bestseller_rank: rankVal,
-        rank: rankVal
+        bestSellerRank: rankVal || null,
+        bestseller_rank: rankVal || null,
+        rank: rankVal || null
       };
     });
     return res.json(mapped);
@@ -336,7 +340,7 @@ app.post('/api/products', async (req, res) => {
     fullDescription: productData.fullDescription,
     image: productData.image,
     gallery: productData.gallery || [],
-    video: productData.video || '',
+    video: (productData.bestSellerRank || productData.bestseller_rank || productData.rank) ? `RANK:${productData.bestSellerRank || productData.bestseller_rank || productData.rank}` : (productData.video || ''),
     weight: productData.weight,
     stock: productData.stock || 0,
     sku,
@@ -414,9 +418,15 @@ async function handleProductUpdate(req, res) {
 
   if (updates.gallery !== undefined) pgUpdates.gallery = updates.gallery;
   if (updates.images !== undefined && pgUpdates.gallery === undefined) pgUpdates.gallery = updates.images;
-  if (updates.bestSellerRank !== undefined) pgUpdates.bestseller_rank = updates.bestSellerRank;
-  if (updates.bestseller_rank !== undefined && pgUpdates.bestseller_rank === undefined) pgUpdates.bestseller_rank = updates.bestseller_rank;
-  if (updates.rank !== undefined && pgUpdates.bestseller_rank === undefined) pgUpdates.bestseller_rank = updates.rank;
+  const rankNum = updates.bestSellerRank ?? updates.bestseller_rank ?? updates.rank;
+  if (rankNum !== undefined) {
+    pgUpdates.bestseller_rank = rankNum;
+    if (rankNum !== null && rankNum !== "" && !isNaN(rankNum) && Number(rankNum) > 0) {
+      pgUpdates.video = `RANK:${Number(rankNum)}`;
+    } else if (updates.video === undefined) {
+      pgUpdates.video = "";
+    }
+  }
 
   try {
     let { data, error } = await insforge.database
@@ -426,7 +436,6 @@ async function handleProductUpdate(req, res) {
       .select();
 
     if (error && (error.message.includes('bestseller_rank') || error.message.includes('column') || error.code === 'PGRST204')) {
-      console.warn("Retrying product update without optional rank column:", error.message);
       delete pgUpdates.bestseller_rank;
       const retryResult = await insforge.database
         .from('products')
@@ -444,7 +453,14 @@ async function handleProductUpdate(req, res) {
     const updated = data[0];
     const imgVal = updated.image || 'assets/logo.jpg';
     const galleryVal = Array.isArray(updated.gallery) && updated.gallery.length > 0 ? updated.gallery : [imgVal];
-    const rankVal = updated.bestseller_rank ?? updated.bestSellerRank ?? updated.rank ?? null;
+    let rankVal = updated.bestseller_rank ?? updated.bestSellerRank ?? updated.rank;
+    if ((rankVal === null || rankVal === undefined || rankVal === "") && updated.video && typeof updated.video === 'string' && updated.video.startsWith('RANK:')) {
+      const parsed = parseInt(updated.video.replace('RANK:', ''));
+      if (!isNaN(parsed) && parsed > 0) rankVal = parsed;
+    }
+    if ((rankVal === null || rankVal === undefined || rankVal === "") && rankNum !== undefined) {
+      rankVal = rankNum;
+    }
 
     const mapped = { 
       ...updated, 
@@ -457,9 +473,9 @@ async function handleProductUpdate(req, res) {
       gallery: galleryVal,
       images: galleryVal,
       galleryImages: galleryVal,
-      bestSellerRank: rankVal,
-      bestseller_rank: rankVal,
-      rank: rankVal
+      bestSellerRank: rankVal || null,
+      bestseller_rank: rankVal || null,
+      rank: rankVal || null
     };
 
     await logAction(req.headers['x-user-name'] || "Admin", "Update Product", `Modified product ID: ${id}`);
