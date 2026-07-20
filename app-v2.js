@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // --- PRODUCT CATALOG RENDER ---
-  const renderProducts = () => {
+  function renderProducts() {
     try {
       if (bestsellersList) {
         bestsellersList.innerHTML = '';
@@ -620,7 +620,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       console.error("Mitti Fresh - Render products error:", err);
     }
-  };
+  }
 
   // --- GRID INTERACTION DELEGATORS ---
   const activeGridContainer = productList || bestsellersList;
@@ -1444,11 +1444,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Sticky bottom bar viewport scroll handler
       window.addEventListener('scroll', () => {
-        const buyBtnRect = addCartBtn.getBoundingClientRect();
-        if (buyBtnRect.bottom < 0) {
-          stickyBar.classList.add('visible');
-        } else {
-          stickyBar.classList.remove('visible');
+        if (addCartBtn && stickyBar) {
+          const buyBtnRect = addCartBtn.getBoundingClientRect();
+          if (buyBtnRect.bottom < 0) {
+            stickyBar.classList.add('visible');
+          } else {
+            stickyBar.classList.remove('visible');
+          }
         }
       });
     }
