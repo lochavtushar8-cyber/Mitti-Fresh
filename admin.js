@@ -681,123 +681,157 @@
 
       document.getElementById('product-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('prod-form-id').value;
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Save Product Details';
 
-        let finalImageUrls = [];
-        if (id && currentEditProductImages.length > 0) {
-          for (let item of currentEditProductImages) {
-            if (item.file) {
-              // Upload new or replaced image file to server
-              try {
-                const formData = new FormData();
-                formData.append('image', item.file);
-                const uploadRes = await fetch(`${API_BASE}/api/upload-image`, {
-                  method: "POST",
-                  body: formData
-                });
-                const uploadData = await uploadRes.json();
-                if (uploadData && uploadData.url) {
-                  finalImageUrls.push(uploadData.url);
-                } else if (item.previewUrl) {
-                  finalImageUrls.push(item.previewUrl);
-                }
-              } catch (uploadErr) {
-                console.warn("Upload server error, falling back to base64 preview URL:", uploadErr);
-                if (item.previewUrl) {
-                  finalImageUrls.push(item.previewUrl);
-                }
-              }
-            } else if (item.url) {
-              // Retain existing image URL
-              finalImageUrls.push(item.url);
-            } else if (item.previewUrl) {
-              finalImageUrls.push(item.previewUrl);
-            }
-          }
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
         }
 
-        const payload = {
-          name: document.getElementById('prod-form-name').value,
-          SKU: document.getElementById('prod-form-sku').value,
-          weight: document.getElementById('prod-form-weight').value,
-          MRP: parseInt(document.getElementById('prod-form-mrp').value),
-          sellingPrice: parseInt(document.getElementById('prod-form-price').value),
-          stock: parseInt(document.getElementById('prod-form-stock').value),
-          category: document.getElementById('prod-form-category').value,
-          shelfLife: document.getElementById('prod-form-life').value,
-          ingredients: document.getElementById('prod-form-ingredients').value,
-          shortDescription: document.getElementById('prod-form-short').value
-        };
+        try {
+          const id = document.getElementById('prod-form-id').value;
+          let finalImageUrls = [];
 
-        if (id) {
-          const mainUrl = finalImageUrls.length > 0 ? finalImageUrls[0] : 'assets/logo.jpg';
-          payload.image = mainUrl;
-          payload.imageUrl = mainUrl;
-          payload.mainImage = mainUrl;
-          payload.thumbnail = mainUrl;
-          payload.gallery = finalImageUrls;
-          payload.images = finalImageUrls;
-          payload.galleryImages = finalImageUrls;
+          if (id && currentEditProductImages.length > 0) {
+            for (let i = 0; i < currentEditProductImages.length; i++) {
+              const item = currentEditProductImages[i];
+              if (item.file) {
+                if (submitBtn) {
+                  submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading Image ${i + 1}/${currentEditProductImages.length}...`;
+                }
+                const formData = new FormData();
+                formData.append('image', item.file);
 
-          // Update
-          try {
-            const updateRes = await fetch(`${API_BASE}/api/products/${id}/update`, {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                try {
+                  const uploadRes = await fetch(`${API_BASE}/api/upload-image`, {
+                    method: "POST",
+                    body: formData,
+                    signal: controller.signal
+                  });
+                  clearTimeout(timeoutId);
+
+                  if (!uploadRes.ok) {
+                    const errJson = await uploadRes.json().catch(() => ({}));
+                    throw new Error(errJson.error || `Upload failed with HTTP ${uploadRes.status}`);
+                  }
+                  const uploadData = await uploadRes.json();
+                  if (uploadData && uploadData.url && !uploadData.url.startsWith('data:')) {
+                    finalImageUrls.push(uploadData.url);
+                  } else {
+                    throw new Error("Server returned an invalid image URL.");
+                  }
+                } catch (uploadErr) {
+                  clearTimeout(timeoutId);
+                  const msg = uploadErr.name === 'AbortError' ? 'Upload timed out (15s limit).' : uploadErr.message;
+                  throw new Error(`Failed to upload Image #${i + 1}: ${msg}`);
+                }
+              } else if (item.url && typeof item.url === 'string' && !item.url.startsWith('data:')) {
+                finalImageUrls.push(item.url);
+              } else if (item.previewUrl && typeof item.previewUrl === 'string' && !item.previewUrl.startsWith('data:')) {
+                finalImageUrls.push(item.previewUrl);
+              }
+            }
+          }
+
+          // Filter out any invalid URLs or base64 data URIs
+          finalImageUrls = finalImageUrls.filter(url => typeof url === 'string' && url.trim().length > 0 && !url.startsWith('data:'));
+
+          if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating Product...';
+          }
+
+          const payload = {
+            name: document.getElementById('prod-form-name').value,
+            SKU: document.getElementById('prod-form-sku').value,
+            weight: document.getElementById('prod-form-weight').value,
+            MRP: parseInt(document.getElementById('prod-form-mrp').value),
+            sellingPrice: parseInt(document.getElementById('prod-form-price').value),
+            stock: parseInt(document.getElementById('prod-form-stock').value),
+            category: document.getElementById('prod-form-category').value,
+            shelfLife: document.getElementById('prod-form-life').value,
+            ingredients: document.getElementById('prod-form-ingredients').value,
+            shortDescription: document.getElementById('prod-form-short').value
+          };
+
+          if (id) {
+            const mainUrl = finalImageUrls.length > 0 ? finalImageUrls[0] : 'assets/logo.jpg';
+            payload.image = mainUrl;
+            payload.imageUrl = mainUrl;
+            payload.mainImage = mainUrl;
+            payload.thumbnail = mainUrl;
+            payload.gallery = finalImageUrls;
+            payload.images = finalImageUrls;
+            payload.galleryImages = finalImageUrls;
+
+            const updateController = new AbortController();
+            const updateTimeoutId = setTimeout(() => updateController.abort(), 15000);
+
+            try {
+              const updateRes = await fetch(`${API_BASE}/api/products/${id}/update`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                signal: updateController.signal
+              });
+              clearTimeout(updateTimeoutId);
+
+              if (!updateRes.ok) {
+                const errJson = await updateRes.json().catch(() => ({}));
+                throw new Error(errJson.error || `Server update failed with HTTP status ${updateRes.status}`);
+              }
+
+              const updatedProd = await updateRes.json();
+              const idx = products.findIndex(p => p.id === id);
+              if (idx !== -1) {
+                products[idx] = {
+                  ...products[idx],
+                  ...(updatedProd && updatedProd.id ? updatedProd : payload),
+                  image: payload.image,
+                  imageUrl: payload.image,
+                  mainImage: payload.image,
+                  thumbnail: payload.image,
+                  gallery: payload.gallery,
+                  images: payload.gallery,
+                  galleryImages: payload.gallery
+                };
+                renderProducts();
+              }
+
+              alert("Product updated successfully!");
+              productModal.style.display = "none";
+              syncData();
+            } catch (updateErr) {
+              clearTimeout(updateTimeoutId);
+              const msg = updateErr.name === 'AbortError' ? 'Product update request timed out (15s limit).' : updateErr.message;
+              throw new Error(`Product Update Error: ${msg}`);
+            }
+          } else {
+            // Insert
+            const createRes = await fetch(API_BASE + "/api/products", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload)
             });
-
-            if (!updateRes.ok) {
-              throw new Error(`Server update failed with status ${updateRes.status}`);
-            }
-
-            const updatedProd = await updateRes.json();
-            const idx = products.findIndex(p => p.id === id);
-            if (idx !== -1) {
-              products[idx] = {
-                ...products[idx],
-                ...(updatedProd && updatedProd.id ? updatedProd : payload),
-                image: payload.image,
-                imageUrl: payload.image,
-                mainImage: payload.image,
-                thumbnail: payload.image,
-                gallery: payload.gallery,
-                images: payload.gallery,
-                galleryImages: payload.gallery
-              };
-              renderProducts();
-            }
-
-            alert("Product updated!");
-            productModal.style.display = "none";
-            syncData();
-          } catch (err) {
-            console.error("Error updating product via API:", err);
-            const idx = products.findIndex(p => p.id === id);
-            if (idx !== -1) {
-              products[idx] = { ...products[idx], ...payload };
-              localStorage.setItem('mitti_fresh_products', JSON.stringify(products));
-              alert("Updated locally offline!");
+            if (createRes.ok) {
+              alert("Product added successfully!");
               productModal.style.display = "none";
               syncData();
+            } else {
+              throw new Error(`Failed to create product (HTTP ${createRes.status})`);
             }
           }
-        } else {
-          // Insert
-          fetch(API_BASE + "/api/products", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          })
-          .then(() => { alert("Product added successfully!"); productModal.style.display = "none"; syncData(); })
-          .catch(() => {
-            payload.id = "PROD-" + Math.floor(100000 + Math.random() * 900000);
-            products.push(payload);
-            localStorage.setItem('mitti_fresh_products', JSON.stringify(products));
-            alert("Added locally offline!");
-            productModal.style.display = "none";
-            syncData();
-          });
+        } catch (err) {
+          console.error("Save product error:", err);
+          alert(err.message || "Failed to save product.");
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+          }
         }
       });
 
