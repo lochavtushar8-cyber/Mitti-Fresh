@@ -39,6 +39,11 @@ const rebuildCatalog = (dbProducts) => {
       const actualSizeVal = baseId ? sizeValue : (item.weight || "1 unit");
       const nameVal = item.name ? item.name.replace(/\s*\([^)]*\)\s*$/, '').trim() : "Mitti Fresh Staple";
 
+      const itemImg = item.image || item.imageUrl || item.mainImage || item.thumbnail || "assets/logo.jpg";
+      const itemGallery = (Array.isArray(item.gallery) && item.gallery.length > 0) 
+        ? item.gallery 
+        : ((Array.isArray(item.images) && item.images.length > 0) ? item.images : [itemImg]);
+
       if (!catalogMap[actualBaseId]) {
         catalogMap[actualBaseId] = {
           id: actualBaseId,
@@ -48,8 +53,13 @@ const rebuildCatalog = (dbProducts) => {
           basePrice: item.sellingPrice || item.price || 0,
           unit: item.weight ? item.weight.replace(/[\d\s]/g, '') : "kg",
           sizes: [],
-          image: item.image || "assets/logo.jpg",
-          gallery: Array.isArray(item.gallery) && item.gallery.length > 0 ? item.gallery : [item.image || "assets/logo.jpg"],
+          image: itemImg,
+          imageUrl: itemImg,
+          mainImage: itemImg,
+          thumbnail: itemImg,
+          gallery: itemGallery,
+          images: itemGallery,
+          galleryImages: itemGallery,
           ingredients: item.ingredients || "",
           benefits: item.benefits || "",
           nutrition: item.nutrition || null,
@@ -57,11 +67,16 @@ const rebuildCatalog = (dbProducts) => {
           badgeType: item.badgeType || ""
         };
       } else {
-        if (item.image && item.image !== "assets/logo.jpg") {
-          catalogMap[actualBaseId].image = item.image;
+        if (itemImg && itemImg !== "assets/logo.jpg") {
+          catalogMap[actualBaseId].image = itemImg;
+          catalogMap[actualBaseId].imageUrl = itemImg;
+          catalogMap[actualBaseId].mainImage = itemImg;
+          catalogMap[actualBaseId].thumbnail = itemImg;
         }
-        if (Array.isArray(item.gallery) && item.gallery.length > 0) {
-          catalogMap[actualBaseId].gallery = item.gallery;
+        if (Array.isArray(itemGallery) && itemGallery.length > 0) {
+          catalogMap[actualBaseId].gallery = itemGallery;
+          catalogMap[actualBaseId].images = itemGallery;
+          catalogMap[actualBaseId].galleryImages = itemGallery;
         }
       }
       
@@ -865,7 +880,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (productDetailRoot) {
     const urlParams = new URLSearchParams(window.location.search);
     const productId = urlParams.get('id');
-    const prod = PRODUCTS.find(p => p.id === productId);
+    const prod = PRODUCTS.find(p => p.id === productId || p.slug === productId || (p.sizes && p.sizes.some(s => s.dbId === productId)));
 
     if (!prod) {
       // Redirect to shop if product not found

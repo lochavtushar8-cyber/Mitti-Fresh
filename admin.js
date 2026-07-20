@@ -730,8 +730,14 @@
         };
 
         if (id) {
-          payload.image = finalImageUrls.length > 0 ? finalImageUrls[0] : 'assets/logo.jpg';
+          const mainUrl = finalImageUrls.length > 0 ? finalImageUrls[0] : 'assets/logo.jpg';
+          payload.image = mainUrl;
+          payload.imageUrl = mainUrl;
+          payload.mainImage = mainUrl;
+          payload.thumbnail = mainUrl;
           payload.gallery = finalImageUrls;
+          payload.images = finalImageUrls;
+          payload.galleryImages = finalImageUrls;
 
           // Update
           try {
@@ -752,7 +758,12 @@
                 ...products[idx],
                 ...(updatedProd && updatedProd.id ? updatedProd : payload),
                 image: payload.image,
-                gallery: payload.gallery
+                imageUrl: payload.image,
+                mainImage: payload.image,
+                thumbnail: payload.image,
+                gallery: payload.gallery,
+                images: payload.gallery,
+                galleryImages: payload.gallery
               };
               renderProducts();
             }

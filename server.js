@@ -289,13 +289,24 @@ app.get('/api/products', async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
 
     // Map database properties to fit frontend expectations (SKU, MRP, etc.)
-    const mapped = data.map(p => ({
-      ...p,
-      SKU: p.sku,
-      MRP: p.mrp,
-      createdAt: p.created_at,
-      updatedAt: p.updated_at
-    }));
+    const mapped = data.map(p => {
+      const imgVal = p.image || 'assets/logo.jpg';
+      const galleryVal = Array.isArray(p.gallery) && p.gallery.length > 0 ? p.gallery : [imgVal];
+      return {
+        ...p,
+        SKU: p.sku,
+        MRP: p.mrp,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+        image: imgVal,
+        imageUrl: imgVal,
+        mainImage: imgVal,
+        thumbnail: imgVal,
+        gallery: galleryVal,
+        images: galleryVal,
+        galleryImages: galleryVal
+      };
+    });
     return res.json(mapped);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -380,6 +391,14 @@ async function handleProductUpdate(req, res) {
   if (updates.sellingPrice !== undefined) pgUpdates.sellingPrice = updates.sellingPrice;
   if (updates.status !== undefined) pgUpdates.status = updates.status;
   if (updates.featured !== undefined) pgUpdates.featured = updates.featured;
+  if (updates.image !== undefined) pgUpdates.image = updates.image;
+  if (updates.imageUrl !== undefined && pgUpdates.image === undefined) pgUpdates.image = updates.imageUrl;
+  if (updates.mainImage !== undefined && pgUpdates.image === undefined) pgUpdates.image = updates.mainImage;
+  if (updates.thumbnail !== undefined && pgUpdates.image === undefined) pgUpdates.image = updates.thumbnail;
+
+  if (updates.gallery !== undefined) pgUpdates.gallery = updates.gallery;
+  if (updates.images !== undefined && pgUpdates.gallery === undefined) pgUpdates.gallery = updates.images;
+  if (updates.galleryImages !== undefined && pgUpdates.gallery === undefined) pgUpdates.gallery = updates.galleryImages;
 
   try {
     const { data, error } = await insforge.database
@@ -393,7 +412,21 @@ async function handleProductUpdate(req, res) {
     }
 
     const updated = data[0];
-    const mapped = { ...updated, SKU: updated.sku, MRP: updated.mrp };
+    const imgVal = updated.image || 'assets/logo.jpg';
+    const galleryVal = Array.isArray(updated.gallery) && updated.gallery.length > 0 ? updated.gallery : [imgVal];
+
+    const mapped = { 
+      ...updated, 
+      SKU: updated.sku, 
+      MRP: updated.mrp,
+      image: imgVal,
+      imageUrl: imgVal,
+      mainImage: imgVal,
+      thumbnail: imgVal,
+      gallery: galleryVal,
+      images: galleryVal,
+      galleryImages: galleryVal
+    };
 
     await logAction(req.headers['x-user-name'] || "Admin", "Update Product", `Modified product ID: ${id}`);
     sendStorefrontEvent('catalog-updated', `Modified product ID: ${id}`);
