@@ -3192,9 +3192,9 @@ img {
   width: auto !important;
   height: 44px !important;
   padding: 0 22px !important;
-  background-color: var(--color-primary-green) !important;
+  background-color: #214E34 !important;
   color: #FFFFFF !important;
-  border: none !important;
+  border: 1px solid #163624 !important;
   border-radius: 8px !important;
   font-family: var(--font-sans) !important;
   font-size: 0.88rem !important;
@@ -3207,10 +3207,16 @@ img {
   align-items: center !important;
   justify-content: center !important;
   box-sizing: border-box !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: 0 2px 4px rgba(33, 78, 52, 0.2) !important;
 }
 
 .checkout-apply-btn:hover,
-.checkout-apply-btn:active {
+.checkout-apply-btn:active,
+.checkout-apply-btn:focus {
   background-color: #163624 !important;
   color: #FFFFFF !important;
 }
@@ -3240,8 +3246,12 @@ img {
 
   .checkout-apply-btn {
     height: 40px !important;
-    padding: 0 16px !important;
-    font-size: 0.82rem !important;
+    padding: 0 18px !important;
+    font-size: 0.85rem !important;
+    background-color: #214E34 !important;
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 }
 
