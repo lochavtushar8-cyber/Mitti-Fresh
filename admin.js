@@ -1564,12 +1564,19 @@
                 `;
               }).join('');
 
-              // Edit / Assign Code button click listeners
+              // Edit / Assign Code button click listeners - populates the inline form at top!
               document.querySelectorAll('.btn-assign-ref-code').forEach(btn => {
                 btn.addEventListener('click', () => {
                   const email = btn.getAttribute('data-email');
                   const code = btn.getAttribute('data-code');
-                  openCreateReferralModal(email, code);
+                  const emailInput = document.getElementById('inline-ref-email');
+                  const codeInput = document.getElementById('inline-ref-code');
+                  if (emailInput) emailInput.value = email;
+                  if (codeInput) codeInput.value = code;
+                  
+                  // Scroll smoothly to top inline form box
+                  const inlineBox = document.getElementById('inline-form-create-referral');
+                  if (inlineBox) inlineBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 });
               });
             }
@@ -1597,88 +1604,45 @@
         }
       };
 
-      // Modal handling for Referral Code Creation
-      const modalCreateRef = document.getElementById('modal-create-referral');
-      const openCreateReferralModal = (email = '', code = '') => {
-        if (!modalCreateRef) return;
-        document.getElementById('ref-create-email').value = email;
-        document.getElementById('ref-create-code').value = code;
-        modalCreateRef.style.display = 'flex';
-      };
-
-      const closeCreateReferralModal = () => {
-        if (modalCreateRef) modalCreateRef.style.display = 'none';
-      };
-
-      const btnOpenCreate = document.getElementById('btn-open-create-referral');
-      if (btnOpenCreate) {
-        btnOpenCreate.addEventListener('click', () => openCreateReferralModal());
-      }
-
-      const btnCloseCreate = document.getElementById('btn-close-create-referral');
-      if (btnCloseCreate) btnCloseCreate.addEventListener('click', closeCreateReferralModal);
-
-      const btnCancelCreate = document.getElementById('btn-cancel-create-referral');
-      if (btnCancelCreate) btnCancelCreate.addEventListener('click', closeCreateReferralModal);
-
-      // Auto generate code button listener (Modal & Inline)
-      const handleAutoGen = (emailInputId, codeInputId) => {
-        const emailInput = document.getElementById(emailInputId) ? document.getElementById(emailInputId).value.trim() : '';
-        const prefix = (emailInput.split('@')[0] || 'MITT').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4) || 'MITT';
-        const rand = Math.floor(1000 + Math.random() * 9000);
-        const el = document.getElementById(codeInputId);
-        if (el) el.value = `${prefix}${rand}`;
-      };
-
-      const btnAutoGen = document.getElementById('btn-auto-gen-ref-code');
-      if (btnAutoGen) {
-        btnAutoGen.addEventListener('click', () => handleAutoGen('ref-create-email', 'ref-create-code'));
-      }
-
+      // Auto generate code button listener for Inline form
       const btnInlineAuto = document.getElementById('btn-inline-auto-code');
       if (btnInlineAuto) {
-        btnInlineAuto.addEventListener('click', () => handleAutoGen('inline-ref-email', 'inline-ref-code'));
-      }
-
-      const submitReferralCodeAssignment = async (email, referralCode, modalCloseCallback) => {
-        try {
-          const res = await fetch(API_BASE + "/api/admin/referrals/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, referralCode })
-          });
-
-          const data = await res.json();
-          if (res.ok) {
-            alert(data.message || "Referral code assigned successfully!");
-            if (modalCloseCallback) modalCloseCallback();
-            renderReferrals();
-          } else {
-            alert(data.error || "Failed to save referral code.");
-          }
-        } catch (err) {
-          alert("Error connecting to server.");
-        }
-      };
-
-      // Submit Form Handlers
-      const formCreateRef = document.getElementById('form-create-referral');
-      if (formCreateRef) {
-        formCreateRef.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const email = document.getElementById('ref-create-email').value.trim();
-          const referralCode = document.getElementById('ref-create-code').value.trim();
-          await submitReferralCodeAssignment(email, referralCode, closeCreateReferralModal);
+        btnInlineAuto.addEventListener('click', () => {
+          const emailInput = document.getElementById('inline-ref-email') ? document.getElementById('inline-ref-email').value.trim() : '';
+          const prefix = (emailInput.split('@')[0] || 'MITT').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4) || 'MITT';
+          const rand = Math.floor(1000 + Math.random() * 9000);
+          const el = document.getElementById('inline-ref-code');
+          if (el) el.value = `${prefix}${rand}`;
         });
       }
 
+      // Submit Form Handler for Inline Referral Code Assignment
       const formInlineCreateRef = document.getElementById('inline-form-create-referral');
       if (formInlineCreateRef) {
         formInlineCreateRef.addEventListener('submit', async (e) => {
           e.preventDefault();
           const email = document.getElementById('inline-ref-email').value.trim();
           const referralCode = document.getElementById('inline-ref-code').value.trim();
-          await submitReferralCodeAssignment(email, referralCode);
+
+          try {
+            const res = await fetch(API_BASE + "/api/admin/referrals/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, referralCode })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+              alert(data.message || "Referral code assigned successfully!");
+              document.getElementById('inline-ref-email').value = '';
+              document.getElementById('inline-ref-code').value = '';
+              renderReferrals();
+            } else {
+              alert(data.error || "Failed to save referral code.");
+            }
+          } catch (err) {
+            alert("Error connecting to server.");
+          }
         });
       }
 
