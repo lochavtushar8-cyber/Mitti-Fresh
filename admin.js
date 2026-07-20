@@ -1530,12 +1530,59 @@
         };
       };
 
+      // REFERRAL MANAGEMENT (Phase 1)
+      const renderReferrals = async () => {
+        const tbody = document.getElementById('referrals-table-body');
+        if (!tbody) return;
+        try {
+          const res = await fetch(API_BASE + "/api/admin/referrals");
+          const data = await res.json();
+          const referrals = data.referrals || [];
+          
+          if (referrals.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No referral invitations recorded yet.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = referrals.map(r => `
+            <tr>
+              <td style="padding: 12px;"><strong>${r.referrerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referrerEmail}</span></td>
+              <td style="padding: 12px;"><strong>${r.referredCustomerName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">${r.referredCustomerEmail}</span></td>
+              <td style="padding: 12px;"><code style="font-weight: 700;">${r.referralCode}</code></td>
+              <td style="padding: 12px; font-size: 0.85rem;">${r.referralDate ? new Date(r.referralDate).toLocaleDateString() : 'N/A'}</td>
+              <td style="padding: 12px;"><span style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;">${r.status || 'Pending'}</span></td>
+            </tr>
+          `).join('');
+        } catch (e) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #DC2626; padding: 20px;">Failed to load referrals data.</td></tr>`;
+        }
+      };
+
+      const btnRefreshRefs = document.getElementById('btn-refresh-referrals');
+      if (btnRefreshRefs) {
+        btnRefreshRefs.addEventListener('click', () => {
+          renderReferrals();
+        });
+      }
+
+      // Sidebar tab clicks handler including tab-referrals
+      document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const tabId = item.getAttribute('data-tab');
+          if (tabId === 'tab-referrals') {
+            renderReferrals();
+          }
+        });
+      });
+
       document.getElementById('btn-refresh-stats').addEventListener('click', () => {
         syncData();
+        renderReferrals();
         alert("Metrics synchronized successfully!");
       });
 
       // Seeder on dashboard init
       syncData();
+      renderReferrals();
       setupSSE();
     });

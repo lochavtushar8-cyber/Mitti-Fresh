@@ -320,6 +320,9 @@
         <li class="sidebar-item" data-tab="tab-coupons">
           <a><i class="fa-solid fa-percent"></i> Coupons</a>
         </li>
+        <li class="sidebar-item" data-tab="tab-referrals">
+          <a><i class="fa-solid fa-gift"></i> Referral Management</a>
+        </li>
         <li class="sidebar-item" data-tab="tab-reviews">
           <a><i class="fa-solid fa-star-half-stroke"></i> Reviews</a>
         </li>
@@ -942,6 +945,38 @@
               </div>
             </div>
           </form>
+        </div>
+      </section>
+
+      <!-- TAB: REFERRAL MANAGEMENT (Phase 1) -->
+      <section class="tab-panel" id="tab-referrals">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <div>
+            <h2 style="font-family: 'Playfair Display', serif; margin-bottom: 4px;">Referral Management</h2>
+            <p style="color: var(--color-text-muted); margin: 0;">Track customer referral invitations and status.</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-refresh-referrals"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+
+        <div class="card" style="padding: 24px; background: #FFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <div style="overflow-x: auto;">
+            <table class="admin-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #F8F9FA; text-align: left;">
+                  <th style="padding: 12px;">Referrer</th>
+                  <th style="padding: 12px;">Referred Customer</th>
+                  <th style="padding: 12px;">Referral Code</th>
+                  <th style="padding: 12px;">Referral Date</th>
+                  <th style="padding: 12px;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="referrals-table-body">
+                <tr>
+                  <td colspan="5" style="text-align: center; color: #888; padding: 20px;">Loading referral records...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

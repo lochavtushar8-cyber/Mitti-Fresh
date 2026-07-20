@@ -1426,15 +1426,82 @@ const getCustomerFromToken = async (req) => {
     return null;
   }
 };
+// ==========================================================================
+// REFERRAL SYSTEM HELPERS (Phase 1)
+// ==========================================================================
+const REFERRALS_FILE = path.join(__dirname, 'data', 'referrals.json');
 
-// Customer Registration
+const getReferralsData = async () => {
+  let list = [];
+  try {
+    if (fs.existsSync(REFERRALS_FILE)) {
+      const content = fs.readFileSync(REFERRALS_FILE, 'utf8');
+      list = JSON.parse(content);
+    }
+  } catch (e) {}
+
+  if (!list || list.length === 0) {
+    try {
+      const { data: logRecords } = await insforge.database.from('logs').select().eq('action', 'referral-record');
+      if (logRecords && logRecords.length > 0) {
+        list = logRecords.map(l => {
+          try { return JSON.parse(l.details); } catch (e) { return null; }
+        }).filter(Boolean);
+        saveReferralsData(list);
+      }
+    } catch (e) {}
+  }
+  return list || [];
+};
+
+const saveReferralsData = (referralsList) => {
+  try {
+    const dir = path.dirname(REFERRALS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(REFERRALS_FILE, JSON.stringify(referralsList, null, 2), 'utf8');
+  } catch (e) {
+    console.error("Save referrals disk failed:", e);
+  }
+};
+
+const generateCustomerReferralCode = (name, idStr) => {
+  const cleanName = (name || 'MF').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4) || 'MITT';
+  const cleanId = (idStr || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(-3);
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `${cleanName}${cleanId || rand}`;
+};
+
+// Customer Registration with Referral Code Validation
 app.post('/api/customers/register', async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, referralCode: inputRefCode } = req.body;
     if (!name || !email || !password || !phone) {
       return res.status(400).json({ error: "Name, email, password and phone are required." });
     }
-    
+
+    const { data: allCustomers } = await insforge.database.from('customers').select();
+    const existingCustList = allCustomers || [];
+
+    let referrerCustomer = null;
+    if (inputRefCode && inputRefCode.trim()) {
+      const cleanInputCode = inputRefCode.trim().toUpperCase();
+      referrerCustomer = existingCustList.find(c => c.referralCode && c.referralCode.toUpperCase() === cleanInputCode);
+      
+      if (!referrerCustomer) {
+        return res.status(400).json({ error: "Invalid referral code. Please check the code and try again." });
+      }
+
+      if (referrerCustomer.email && referrerCustomer.email.toLowerCase() === email.trim().toLowerCase()) {
+        return res.status(400).json({ error: "You cannot refer yourself." });
+      }
+    }
+
+    // Generate unique referral code for the new customer
+    let newRefCode = generateCustomerReferralCode(name, Date.now().toString());
+    while (existingCustList.some(c => c.referralCode === newRefCode)) {
+      newRefCode = generateCustomerReferralCode(name, Math.random().toString());
+    }
+
     // 1. Sign up user using InsForge Auth
     const { data: authData, error: authError } = await insforgePublic.auth.signUp({
       email,
@@ -1454,6 +1521,8 @@ app.post('/api/customers/register', async (req, res) => {
       email,
       password: 'INSFORGE_AUTH', // Managed by InsForge Auth
       phone,
+      referralCode: newRefCode,
+      referredBy: referrerCustomer ? referrerCustomer.referralCode : null,
       rewardPoints: 100, // Gift 100 reward points on sign-up
       addresses: [],
       wishlist: [],
@@ -1463,9 +1532,35 @@ app.post('/api/customers/register', async (req, res) => {
     const { data, error } = await insforge.database.from('customers').insert([customer]).select();
     if (error) return res.status(500).json({ error: error.message });
 
+    const newCust = data[0] || customer;
+
+    // 3. If referred, create referral record
+    if (referrerCustomer) {
+      const referralsList = await getReferralsData();
+      const refRecord = {
+        id: 'REF-' + Date.now() + '-' + Math.floor(Math.random()*1000),
+        referralCode: referrerCustomer.referralCode,
+        referrerId: referrerCustomer.id,
+        referrerName: referrerCustomer.name,
+        referrerEmail: referrerCustomer.email,
+        referredCustomerId: newCust.id,
+        referredCustomerName: newCust.name,
+        referredCustomerEmail: newCust.email,
+        referralDate: new Date().toISOString(),
+        status: "Pending"
+      };
+
+      referralsList.push(refRecord);
+      saveReferralsData(referralsList);
+
+      try {
+        await logAction(referrerCustomer.email, "referral-record", JSON.stringify(refRecord));
+      } catch (e) {}
+    }
+
     await sendAdminNotification('new-customer', `New Customer Registration: ${name}`, { name, email });
     
-    return res.status(200).json({ status: "success", customer: data[0], token: authData.accessToken });
+    return res.status(200).json({ status: "success", customer: newCust, token: authData.accessToken });
   } catch (error) {
     console.error("Customer registration error:", error);
     return res.status(500).json({ error: "Registration failed." });
@@ -1508,24 +1603,52 @@ app.post('/api/customers/login', async (req, res) => {
   }
 });
 
-// Customer Profile details (including order history!)
+// Customer Profile details (including referral stats & order history!)
 app.get('/api/customers/profile', async (req, res) => {
   try {
     const customer = await getCustomerFromToken(req);
     if (!customer) return res.status(401).json({ error: "Unauthorized session." });
     
+    // Ensure customer has a referral code
+    if (!customer.referralCode) {
+      customer.referralCode = generateCustomerReferralCode(customer.name, customer.id || Date.now().toString());
+      try {
+        await insforge.database.from('customers').update({ referralCode: customer.referralCode }).eq('email', customer.email);
+      } catch (e) {}
+    }
+
     const { data: allOrders } = await insforge.database.from('orders').select();
     const ordersList = allOrders || [];
     const customerOrders = ordersList.filter(o => o.customer && (o.customer.email === customer.email || o.customer.phone === customer.phone));
     
+    const referralsList = await getReferralsData();
+    const myReferrals = referralsList.filter(r => r.referrerEmail === customer.email || r.referralCode === customer.referralCode);
+
     return res.json({
       status: "success",
       customer,
+      referralStats: {
+        referralCode: customer.referralCode,
+        totalReferrals: myReferrals.length,
+        pendingReferrals: myReferrals.filter(r => r.status === 'Pending').length,
+        successfulReferrals: myReferrals.filter(r => r.status === 'Successful').length,
+        referrals: myReferrals
+      },
       orders: customerOrders.map(o => ({
         ...o,
         date: o.created_at ? new Date(o.created_at).toLocaleString() : ''
       }))
     });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin Referrals List
+app.get('/api/admin/referrals', async (req, res) => {
+  try {
+    const referralsList = await getReferralsData();
+    return res.json({ status: "success", referrals: referralsList });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

@@ -307,6 +307,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Auto-detect referral code from URL query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCodeParam = urlParams.get('ref');
+  if (refCodeParam) {
+    activeTab = 'register';
+  }
+
   const renderAccountContent = async () => {
     const container = document.getElementById('account-drawer-content');
     if (!container) return;
@@ -314,10 +321,28 @@ document.addEventListener('DOMContentLoaded', () => {
     await verifySession();
 
     if (window.loggedInCustomer) {
-      // User is LOGGED IN: Render Dashboard panel
+      // User is LOGGED IN: Render Dashboard panel & Refer & Earn
       const c = window.loggedInCustomer;
       const totalOrders = c.orders ? c.orders.length : 0;
       
+      let refStats = { referralCode: c.referralCode || '', totalReferrals: 0, pendingReferrals: 0, successfulReferrals: 0, referrals: [] };
+      try {
+        const pRes = await fetch(getApiUrl('/api/customers/profile'), {
+          headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (pData.referralStats) refStats = pData.referralStats;
+          if (pData.customer) {
+            window.loggedInCustomer = pData.customer;
+            c.referralCode = pData.customer.referralCode || refStats.referralCode;
+          }
+        }
+      } catch(e) {}
+
+      const refCode = c.referralCode || refStats.referralCode || 'GENERATING';
+      const refLink = `${window.location.origin}/register?ref=${refCode}`;
+
       container.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
           <h4 style="margin: 0; font-size: 1.25rem;">Welcome, <strong>${c.name}</strong></h4>
@@ -329,6 +354,64 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--color-primary);">Loyalty Reward Balance</div>
           <div class="reward-points">${c.rewardPoints || 0} <span style="font-size: 1rem; font-weight: 500;">Points</span></div>
           <div style="font-size: 0.75rem; color: #777; margin-top: 4px;">Earn 5% points on every order to redeem for future discounts!</div>
+        </div>
+
+        <!-- Refer & Earn Section (Phase 1) -->
+        <div style="margin-top: 20px; padding: 16px; border: 1.5px solid #214E34; border-radius: 12px; background: #F4F8F5;">
+          <h4 style="margin: 0 0 10px 0; color: #214E34; display: flex; align-items: center; gap: 8px; font-size: 1.1rem;">
+            <i class="fa-solid fa-gift"></i> Refer & Earn
+          </h4>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; text-align: center;">
+            <div style="background: #FFF; padding: 8px 4px; border-radius: 8px; border: 1px solid #E2E8F0;">
+              <div style="font-size: 0.72rem; color: #64748B;">Total</div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #214E34;">${refStats.totalReferrals}</div>
+            </div>
+            <div style="background: #FFF; padding: 8px 4px; border-radius: 8px; border: 1px solid #E2E8F0;">
+              <div style="font-size: 0.72rem; color: #64748B;">Pending</div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #D97706;">${refStats.pendingReferrals}</div>
+            </div>
+            <div style="background: #FFF; padding: 8px 4px; border-radius: 8px; border: 1px solid #E2E8F0;">
+              <div style="font-size: 0.72rem; color: #64748B;">Successful</div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #16A34A;">${refStats.successfulReferrals}</div>
+            </div>
+          </div>
+
+          <div class="account-form-group" style="margin-bottom: 10px;">
+            <label style="font-size: 0.8rem; font-weight: 600;">Your Referral Code</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" readonly value="${refCode}" id="input-ref-code" style="font-weight: 700; text-transform: uppercase; background: #FFF; text-align: center; letter-spacing: 1px;">
+              <button type="button" class="account-btn" id="btn-copy-ref-code" style="width: auto; padding: 0 14px; font-size: 0.8rem; white-space: nowrap;">Copy Code</button>
+            </div>
+          </div>
+
+          <div class="account-form-group" style="margin-bottom: 12px;">
+            <label style="font-size: 0.8rem; font-weight: 600;">Your Referral Link</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" readonly value="${refLink}" id="input-ref-link" style="font-size: 0.75rem; background: #FFF;">
+              <button type="button" class="account-btn" id="btn-copy-ref-link" style="width: auto; padding: 0 14px; font-size: 0.8rem; white-space: nowrap;">Copy Link</button>
+            </div>
+          </div>
+
+          <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Join Mitti Fresh for fresh & organic staples. Use my referral code *${refCode}* or sign up using my link: ${refLink}`)}" target="_blank" class="account-btn" style="background: #25D366; color: #FFF; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 10px; margin-top: 10px; border-radius: 8px;">
+            <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i> Share on WhatsApp
+          </a>
+
+          ${refStats.referrals && refStats.referrals.length > 0 ? `
+            <div style="margin-top: 14px; border-top: 1px solid #CBD5E1; padding-top: 10px;">
+              <div style="font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 6px;">My Referred Customers:</div>
+              <div style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                ${refStats.referrals.map(r => `
+                  <div style="background: #FFF; padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <strong>${r.referredCustomerName}</strong> (${r.referredCustomerEmail})
+                    </div>
+                    <span style="background: #FEF3C7; color: #92400E; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.7rem;">${r.status}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
         </div>
 
         <!-- Saved Addresses Section -->
@@ -389,6 +472,27 @@ document.addEventListener('DOMContentLoaded', () => {
           }).join('') : '<p style="font-size: 0.85rem; color:#777;">No previous orders found.</p>'}
         </div>
       `;
+
+      // Copy Code & Link Event Handlers
+      const btnCopyCode = document.getElementById('btn-copy-ref-code');
+      if (btnCopyCode) {
+        btnCopyCode.addEventListener('click', () => {
+          navigator.clipboard.writeText(refCode).then(() => {
+            btnCopyCode.textContent = "Copied!";
+            setTimeout(() => { btnCopyCode.textContent = "Copy Code"; }, 2000);
+          });
+        });
+      }
+
+      const btnCopyLink = document.getElementById('btn-copy-ref-link');
+      if (btnCopyLink) {
+        btnCopyLink.addEventListener('click', () => {
+          navigator.clipboard.writeText(refLink).then(() => {
+            btnCopyLink.textContent = "Copied!";
+            setTimeout(() => { btnCopyLink.textContent = "Copy Link"; }, 2000);
+          });
+        });
+      }
 
       // Logout handler
       document.getElementById('btn-customer-logout').addEventListener('click', () => {
@@ -469,6 +573,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <label>Phone Number</label>
               <input type="tel" id="cust-phone" required placeholder="10-digit mobile number">
             </div>
+            <div class="account-form-group">
+              <label>Referral Code (Optional)</label>
+              <input type="text" id="cust-referral-code" placeholder="e.g. DEVA001" style="text-transform: uppercase;" value="${refCodeParam ? refCodeParam.toUpperCase() : ''}">
+            </div>
           ` : ''}
           <div class="account-form-group">
             <label>Password</label>
@@ -519,11 +627,12 @@ document.addEventListener('DOMContentLoaded', () => {
           // Process Register API
           const name = document.getElementById('cust-name').value.trim();
           const phone = document.getElementById('cust-phone').value.trim();
+          const refCode = document.getElementById('cust-referral-code') ? document.getElementById('cust-referral-code').value.trim() : '';
           try {
             const res = await fetch(getApiUrl('/api/customers/register'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name, email, password, phone })
+              body: JSON.stringify({ name, email, password, phone, referralCode: refCode })
             });
             const data = await res.json();
             if (res.ok) {
