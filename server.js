@@ -941,6 +941,10 @@ app.post('/api/submit-cod-order', async (req, res) => {
       paymentStatus: "Pending", // Cash collected at door
       orderStatus: "Pending",
       amount: parseFloat(amount),
+      codFee: parseFloat(req.body.codFee || 0),
+      shippingCharge: parseFloat(req.body.shippingCharge || 0),
+      discountAmount: parseFloat(req.body.discountAmount || 0),
+      appliedCoupon: req.body.appliedCoupon || null,
       customer: customer || {},
       address: address || {},
       items: items || []

@@ -624,8 +624,8 @@
         }
 
         // 3. COD Fee calculation
-        if (payCodOption.checked && !payCodOption.disabled) {
-          codFee = window.CONFIG.COD_CHARGE;
+        if (payCodOption && payCodOption.checked && !payCodOption.disabled) {
+          codFee = (window.CONFIG && window.CONFIG.COD_CHARGE !== undefined && window.CONFIG.COD_CHARGE !== null) ? Number(window.CONFIG.COD_CHARGE) : 50;
         } else {
           codFee = 0;
         }
@@ -1004,6 +1004,10 @@
           const orderPayload = {
             orderId: mittiOrderId,
             amount: grandTotal,
+            codFee: codFee,
+            shippingCharge: shippingCharge,
+            discountAmount: discountAmount,
+            appliedCoupon: appliedCoupon ? appliedCoupon.code : null,
             customer: { name: custName, phone: custPhone, email: custEmail },
             address: { house: houseNo, street: street, landmark: landmark, pin: pinCode, city: "New Delhi", state: "Delhi" },
             items: cart
