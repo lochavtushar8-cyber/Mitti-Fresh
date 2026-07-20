@@ -88,7 +88,14 @@ const rebuildCatalog = (dbProducts) => {
         mrp: item.MRP || item.sellingPrice || item.price || 0,
         stock: typeof item.stock === 'number' ? item.stock : 100,
         sku: item.SKU || "",
-        dbId: item.id || slugVal
+        dbId: item.id || slugVal,
+        image: itemImg,
+        imageUrl: itemImg,
+        mainImage: itemImg,
+        thumbnail: itemImg,
+        gallery: itemGallery,
+        images: itemGallery,
+        galleryImages: itemGallery
       });
     } catch (err) {
       console.error("Mitti Fresh - Failed to parse database product entry:", item, err);
@@ -957,13 +964,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Log the product object to the console to verify dynamic fields
       console.log("Mitti Fresh loaded product details schema:", prod);
 
-      // Check default size specs with secure fallback property maps
-      let activeSizeIndex = 0;
-      let activeSize = prod.sizes[activeSizeIndex];
+      // Match size variant index based on productId requested in URL
+      const targetIdx = prod.sizes.findIndex(s => s.dbId === productId);
+      let activeSizeIndex = targetIdx !== -1 ? targetIdx : 0;
+      let activeSize = prod.sizes[activeSizeIndex] || prod.sizes[0];
       let activePrice = activeSize.sellingPrice || activeSize.selling_price || activeSize.price || 0;
       let activeMrp = activeSize.mrp || activeSize.originalPrice || activeSize.original_price || activePrice || 0;
       let savings = activeMrp - activePrice;
       let savingsPercent = Math.round((savings / activeMrp) * 100);
+
+      const activeImage = (activeSize && (activeSize.image || activeSize.imageUrl || activeSize.mainImage || activeSize.thumbnail)) || prod.image || "assets/logo.jpg";
+      const activeGallery = (activeSize && Array.isArray(activeSize.gallery) && activeSize.gallery.length > 0) 
+        ? activeSize.gallery 
+        : ((Array.isArray(prod.gallery) && prod.gallery.length > 0) ? prod.gallery : [activeImage]);
 
       // Render details page grid layout
       productDetailRoot.innerHTML = `
@@ -971,11 +984,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           <!-- Left side: Images and Badges -->
           <div class="product-gallery-section">
             <div class="image-zoom-container" id="zoom-container">
-              <img src="${prod.image}" alt="${prod.name}" id="main-product-img">
+              <img src="${activeImage}" alt="${prod.name}" id="main-product-img">
             </div>
             
             <div class="gallery-thumbnails">
-              ${(Array.isArray(prod.gallery) && prod.gallery.length > 0 ? prod.gallery : [prod.image || "assets/logo.jpg"]).map((gUrl, idx) => `
+              ${activeGallery.map((gUrl, idx) => `
                 <button class="gallery-thumbnail ${idx === 0 ? 'active' : ''}" data-src="${gUrl}">
                   <img src="${gUrl}" alt="${prod.name} view ${idx + 1}">
                 </button>
@@ -1202,6 +1215,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             activeMrp = activeSize.mrp || activeSize.originalPrice || activeSize.original_price || activePrice || 0;
             savings = activeMrp - activePrice;
             savingsPercent = Math.round((savings / activeMrp) * 100);
+
+            const sizeImg = (activeSize && (activeSize.image || activeSize.imageUrl || activeSize.mainImage || activeSize.thumbnail)) || prod.image || "assets/logo.jpg";
+            const sizeGallery = (activeSize && Array.isArray(activeSize.gallery) && activeSize.gallery.length > 0) 
+              ? activeSize.gallery 
+              : ((Array.isArray(prod.gallery) && prod.gallery.length > 0) ? prod.gallery : [sizeImg]);
+
+            const mainImgEl = document.getElementById('main-product-img');
+            if (mainImgEl) mainImgEl.src = sizeImg;
+
+            const thumbnailsContainer = document.querySelector('.gallery-thumbnails');
+            if (thumbnailsContainer) {
+              thumbnailsContainer.innerHTML = sizeGallery.map((gUrl, idx) => `
+                <button class="gallery-thumbnail ${idx === 0 ? 'active' : ''}" data-src="${gUrl}">
+                  <img src="${gUrl}" alt="${prod.name} view ${idx + 1}">
+                </button>
+              `).join('');
+            }
 
             // Update details prices
             const priceEl = document.getElementById('detail-price');
