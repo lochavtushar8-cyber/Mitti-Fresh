@@ -1674,7 +1674,7 @@ const generateCustomerReferralCode = (name, idStr) => {
   return `${cleanName}${cleanId || rand}`;
 };
 
-// Customer Registration with Referral Code Validation
+// Customer Registration with Referral Code Validation & Logging
 app.post('/api/customers/register', async (req, res) => {
   try {
     const { name, email, password, phone, referralCode: inputRefCode } = req.body;
@@ -1682,8 +1682,20 @@ app.post('/api/customers/register', async (req, res) => {
       return res.status(400).json({ error: "Name, email, password and phone are required." });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    console.log(`[AUTH-REGISTRATION] Request email: "${cleanEmail}", name: "${name}"`);
+
+    // Check if customer already exists in 'customers' Postgres table
     const { data: allCustomers } = await insforge.database.from('customers').select();
     const existingCustList = allCustomers || [];
+    const existingCustRecord = existingCustList.find(c => c.email && c.email.toLowerCase() === cleanEmail);
+
+    console.log(`[AUTH-REGISTRATION] Duplicate user lookup in 'customers' table for "${cleanEmail}":`, 
+      existingCustRecord ? `FOUND record ID=${existingCustRecord.id}, name=${existingCustRecord.name}, email=${existingCustRecord.email}` : "NONE found");
+
+    if (existingCustRecord) {
+      return res.status(400).json({ error: "You are already registered. Please sign in." });
+    }
 
     let referrerCustomer = null;
     if (inputRefCode && inputRefCode.trim()) {
@@ -1694,7 +1706,7 @@ app.post('/api/customers/register', async (req, res) => {
         return res.status(400).json({ error: "Invalid referral code. Please check the code and try again." });
       }
 
-      if (referrerCustomer.email && referrerCustomer.email.toLowerCase() === email.trim().toLowerCase()) {
+      if (referrerCustomer.email && referrerCustomer.email.toLowerCase() === cleanEmail) {
         return res.status(400).json({ error: "You cannot refer yourself." });
       }
     }
@@ -1706,22 +1718,46 @@ app.post('/api/customers/register', async (req, res) => {
     }
 
     // 1. Sign up user using InsForge Auth
-    const { data: authData, error: authError } = await insforgePublic.auth.signUp({
-      email,
-      password,
-      name
-    });
-
-    if (authError) {
-      return res.status(400).json({ error: authError.message });
+    let authData = null;
+    let authError = null;
+    try {
+      const authRes = await insforgePublic.auth.signUp({
+        email: cleanEmail,
+        password,
+        name
+      });
+      authData = authRes.data;
+      authError = authRes.error;
+    } catch(e) {
+      authError = e;
     }
 
-    // 2. Insert customer profile into customers table
-    const id = authData.user.id; // use the UUID from InsForge Auth
+    console.log(`[AUTH-REGISTRATION] InsForge Auth signUp result for "${cleanEmail}":`, 
+      authData && authData.user ? `Success user.id=${authData.user.id}` : `Error/Message: ${authError ? authError.message : 'Unknown'}`);
+
+    let userId = authData && authData.user ? authData.user.id : null;
+    let accessToken = authData ? authData.accessToken : null;
+
+    // If InsForge Auth says user already exists, attempt signIn to obtain user.id & token
+    if (!userId) {
+      try {
+        const signRes = await insforgePublic.auth.signInWithPassword({ email: cleanEmail, password });
+        if (signRes.data && signRes.data.user) {
+          userId = signRes.data.user.id;
+          accessToken = signRes.data.accessToken;
+        }
+      } catch(e) {}
+    }
+
+    if (!userId) {
+      return res.status(400).json({ error: authError ? authError.message : "Registration failed in Auth system." });
+    }
+
+    // 2. Insert customer profile into customers Postgres table
     const customer = {
-      id,
+      id: userId,
       name,
-      email,
+      email: cleanEmail,
       password: 'INSFORGE_AUTH', // Managed by InsForge Auth
       phone,
       referralCode: newRefCode,
@@ -1732,10 +1768,17 @@ app.post('/api/customers/register', async (req, res) => {
       cart: []
     };
 
-    const { data, error } = await insforge.database.from('customers').insert([customer]).select();
-    if (error) return res.status(500).json({ error: error.message });
+    const { data: insertData, error: insertError } = await insforge.database.from('customers').insert([customer]).select();
+    
+    console.log(`[AUTH-REGISTRATION] User insert result in 'customers' table for "${cleanEmail}":`, 
+      insertData && insertData.length > 0 ? `SUCCESS ID=${insertData[0].id}` : `Insert Error/Fallback: ${insertError ? insertError.message : 'None'}`);
 
-    const newCust = data[0] || customer;
+    const newCust = (insertData && insertData[0]) ? insertData[0] : customer;
+
+    // Save to customer_codes map
+    const customerMap = await getCustomerCodesMap();
+    customerMap[cleanEmail] = newRefCode;
+    saveCustomerCodesMap(customerMap);
 
     // 3. If referred, create referral record
     if (referrerCustomer) {
@@ -1761,16 +1804,16 @@ app.post('/api/customers/register', async (req, res) => {
       } catch (e) {}
     }
 
-    await sendAdminNotification('new-customer', `New Customer Registration: ${name}`, { name, email });
+    await sendAdminNotification('new-customer', `New Customer Registration: ${name}`, { name, email: cleanEmail });
     
-    return res.status(200).json({ status: "success", customer: newCust, token: authData.accessToken });
+    return res.status(200).json({ status: "success", customer: newCust, token: accessToken });
   } catch (error) {
     console.error("Customer registration error:", error);
     return res.status(500).json({ error: "Registration failed." });
   }
 });
 
-// Customer Login
+// Customer Login with Detailed Logging & Auto-Healing Profile Sync
 app.post('/api/customers/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -1778,25 +1821,62 @@ app.post('/api/customers/login', async (req, res) => {
       return res.status(400).json({ error: "Email and password are required." });
     }
 
-    // 1. Sign in via InsForge Auth
-    const { data: authData, error: authError } = await insforgePublic.auth.signInWithPassword({
-      email,
-      password
-    });
+    const cleanEmail = email.trim().toLowerCase();
+    console.log(`[AUTH-LOGIN] Login request email: "${cleanEmail}"`);
 
-    if (authError) {
-      return res.status(401).json({ error: authError.message || "Invalid email or password credentials." });
+    // 1. Sign in via InsForge Auth
+    let authData = null;
+    let authError = null;
+    try {
+      const signRes = await insforgePublic.auth.signInWithPassword({
+        email: cleanEmail,
+        password
+      });
+      authData = signRes.data;
+      authError = signRes.error;
+    } catch(e) {
+      authError = e;
     }
 
-    // 2. Look up customer profile
-    const { data: customer, error: dbError } = await insforge.database
-      .from('customers')
-      .select()
-      .eq('email', email)
-      .maybeSingle();
+    console.log(`[AUTH-LOGIN] InsForge Auth signIn result for "${cleanEmail}":`, 
+      authData && authData.user ? `Success user.id=${authData.user.id}` : `Auth Error: ${authError ? authError.message : 'Invalid credentials'}`);
 
-    if (dbError || !customer) {
-      return res.status(404).json({ error: "Customer profile not found." });
+    if (authError || !authData || !authData.user) {
+      console.log(`[AUTH-LOGIN] Login lookup result: NOT FOUND or Invalid credentials in InsForge Auth / 'customers' table for "${cleanEmail}"`);
+      return res.status(401).json({ error: authError ? authError.message : "Invalid email or password credentials." });
+    }
+
+    const userId = authData.user.id;
+    const userName = authData.user.profile?.name || authData.user.name || 'Customer';
+
+    // 2. Look up customer profile in 'customers' table
+    const { data: allCustomers } = await insforge.database.from('customers').select();
+    const customerList = allCustomers || [];
+    let customer = customerList.find(c => (c.email && c.email.toLowerCase() === cleanEmail) || c.id === userId);
+
+    console.log(`[AUTH-LOGIN] Database lookup in 'customers' table for email "${cleanEmail}":`, 
+      customer ? `FOUND record ID=${customer.id}, email=${customer.email}` : `PROFILE MISSING IN 'customers' TABLE (Table searched: 'customers')`);
+
+    // Auto-heal missing profile row if user authenticated in InsForge Auth but record missing in 'customers' table
+    if (!customer) {
+      console.log(`[AUTH-LOGIN] Auto-creating missing customer profile in 'customers' table for "${cleanEmail}"...`);
+      const refCode = generateCustomerReferralCode(userName, userId);
+      const autoCustomer = {
+        id: userId,
+        name: userName,
+        email: cleanEmail,
+        password: 'INSFORGE_AUTH',
+        phone: '',
+        referralCode: refCode,
+        rewardPoints: 100,
+        addresses: [],
+        wishlist: [],
+        cart: []
+      };
+
+      const { data: inserted, error: insErr } = await insforge.database.from('customers').insert([autoCustomer]).select();
+      customer = (inserted && inserted[0]) ? inserted[0] : autoCustomer;
+      console.log(`[AUTH-LOGIN] Auto-created customer profile ID=${customer.id} in 'customers' table.`);
     }
 
     return res.status(200).json({ status: "success", customer, token: authData.accessToken });
