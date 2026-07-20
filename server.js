@@ -257,7 +257,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     if (user.status === 'Blocked') {
-      return res.status(403).json({ error: "This employee account is blocked." });
+      return res.status(401).json({ error: "This employee account is blocked." });
     }
 
     await logAction(user.name, "User Login", `Logged in successfully as ${user.role}`);
