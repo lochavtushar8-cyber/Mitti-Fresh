@@ -71,21 +71,24 @@ app.use(express.static(__dirname));
 
 // Route to serve the main homepage
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.resolve(__dirname, 'index.html'));
 });
 
 // Clean URLs routes for static pages
 app.get('/collections/staples', (req, res) => {
-  res.sendFile(path.join(__dirname, 'shop.html'));
+  res.sendFile(path.resolve(__dirname, 'shop.html'));
 });
 app.get('/checkout', (req, res) => {
-  res.sendFile(path.join(__dirname, 'checkout.html'));
+  res.sendFile(path.resolve(__dirname, 'checkout.html'));
 });
 app.get('/about', (req, res) => {
-  res.sendFile(path.join(__dirname, 'about.html'));
+  res.sendFile(path.resolve(__dirname, 'about.html'));
+});
+app.get('/register', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'index.html'));
 });
 app.get('/privacy', (req, res) => {
-  res.sendFile(path.join(__dirname, 'privacy.html'));
+  res.sendFile(path.resolve(__dirname, 'privacy.html'));
 });
 app.get('/terms', (req, res) => {
   res.sendFile(path.join(__dirname, 'terms.html'));

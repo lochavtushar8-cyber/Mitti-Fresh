@@ -319,11 +319,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Auto-detect referral code from URL query parameter
+  // Auto-detect referral code from URL query parameter or /register path
   const urlParams = new URLSearchParams(window.location.search);
   const refCodeParam = urlParams.get('ref');
-  if (refCodeParam) {
+  const isRegisterRoute = window.location.pathname.includes('/register');
+  if (refCodeParam || isRegisterRoute) {
     activeTab = 'register';
+    if (refCodeParam) {
+      sessionStorage.setItem('mitti_referral_code', refCodeParam.trim().toUpperCase());
+    }
+    // Auto-open registration drawer for referral visitors
+    setTimeout(() => {
+      if (!window.loggedInCustomer) {
+        toggleAccountDrawer(true);
+      }
+    }, 400);
   }
 
   const renderAccountContent = async () => {
