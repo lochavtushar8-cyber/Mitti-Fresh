@@ -623,6 +623,8 @@
         document.getElementById('product-modal-title').textContent = "Add New Product";
         document.getElementById('prod-form-id').value = "";
         document.getElementById('product-form').reset();
+        const rankInput = document.getElementById('prod-form-rank');
+        if (rankInput) rankInput.value = "";
         currentEditProductImages = [];
         if (editGalleryContainer) editGalleryContainer.style.display = "none";
         productModal.style.display = "flex";
@@ -648,6 +650,12 @@
         document.getElementById('prod-form-life').value = prod.shelfLife || "";
         document.getElementById('prod-form-ingredients').value = prod.ingredients || "";
         document.getElementById('prod-form-short').value = prod.shortDescription || "";
+        
+        const rankInput = document.getElementById('prod-form-rank');
+        if (rankInput) {
+          const rVal = prod.bestSellerRank ?? prod.bestseller_rank ?? prod.rank;
+          rankInput.value = (rVal !== null && rVal !== undefined && rVal !== "") ? rVal : "";
+        }
         
         // Initialize currentEditProductImages with all product images
         currentEditProductImages = [];
@@ -744,6 +752,10 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating Product...';
           }
 
+          const rankEl = document.getElementById('prod-form-rank');
+          const rawRankStr = rankEl ? rankEl.value.trim() : "";
+          const parsedRank = (rawRankStr !== "" && !isNaN(rawRankStr) && parseInt(rawRankStr) > 0) ? parseInt(rawRankStr) : null;
+
           const payload = {
             name: document.getElementById('prod-form-name').value,
             SKU: document.getElementById('prod-form-sku').value,
@@ -754,7 +766,10 @@
             category: document.getElementById('prod-form-category').value,
             shelfLife: document.getElementById('prod-form-life').value,
             ingredients: document.getElementById('prod-form-ingredients').value,
-            shortDescription: document.getElementById('prod-form-short').value
+            shortDescription: document.getElementById('prod-form-short').value,
+            bestSellerRank: parsedRank,
+            bestseller_rank: parsedRank,
+            rank: parsedRank
           };
 
           if (id) {

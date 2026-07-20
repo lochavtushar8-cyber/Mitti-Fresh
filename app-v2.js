@@ -64,7 +64,10 @@ const rebuildCatalog = (dbProducts) => {
           benefits: item.benefits || "",
           nutrition: item.nutrition || null,
           badge: item.badge || "",
-          badgeType: item.badgeType || ""
+          badgeType: item.badgeType || "",
+          bestSellerRank: item.bestseller_rank ?? item.bestSellerRank ?? item.rank ?? null,
+          bestseller_rank: item.bestseller_rank ?? item.bestSellerRank ?? item.rank ?? null,
+          rank: item.bestseller_rank ?? item.bestSellerRank ?? item.rank ?? null
         };
       } else {
         const currentImg = catalogMap[actualBaseId].image;
@@ -525,16 +528,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
   };
 
+  // --- BEST SELLER RANK SORTING HELPER ---
+  const sortByBestSellerRank = (productsArr) => {
+    if (!Array.isArray(productsArr)) return [];
+    return [...productsArr].sort((a, b) => {
+      const getRank = (p) => {
+        const r = p.bestSellerRank ?? p.bestseller_rank ?? p.rank;
+        return (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0) ? Number(r) : Infinity;
+      };
+      const rankA = getRank(a);
+      const rankB = getRank(b);
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      return 0;
+    });
+  };
+
   // --- PRODUCT CATALOG RENDER ---
   const renderProducts = () => {
     if (bestsellersList) {
       bestsellersList.innerHTML = '';
-      let bestsellers = PRODUCTS.filter(prod => prod.badgeType === 'bestseller' || (prod.badge && prod.badge.toLowerCase().includes('best')));
+      let bestsellers = PRODUCTS.filter(prod => {
+        const r = prod.bestSellerRank ?? prod.bestseller_rank ?? prod.rank;
+        const hasRank = (r !== null && r !== undefined && r !== "" && !isNaN(r) && Number(r) > 0);
+        return hasRank || prod.badgeType === 'bestseller' || (prod.badge && prod.badge.toLowerCase().includes('best'));
+      });
       if (bestsellers.length === 0) {
-        bestsellers = PRODUCTS.slice(0, 4); // Fallback to first 4 products in catalog
+        bestsellers = PRODUCTS;
       }
+
+      const sortedBestsellers = sortByBestSellerRank(bestsellers).slice(0, 8);
       
-      bestsellers.forEach(prod => {
+      sortedBestsellers.forEach(prod => {
         const card = document.createElement('div');
         card.className = 'product-card';
         card.setAttribute('data-category', prod.category);
@@ -565,7 +591,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      filteredProducts.forEach(prod => {
+      const sortedProducts = sortByBestSellerRank(filteredProducts);
+
+      sortedProducts.forEach(prod => {
         const card = document.createElement('div');
         card.className = 'product-card';
         card.setAttribute('data-category', prod.category);

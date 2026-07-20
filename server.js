@@ -292,6 +292,7 @@ app.get('/api/products', async (req, res) => {
     const mapped = data.map(p => {
       const imgVal = p.image || 'assets/logo.jpg';
       const galleryVal = Array.isArray(p.gallery) && p.gallery.length > 0 ? p.gallery : [imgVal];
+      const rankVal = p.bestseller_rank ?? p.bestSellerRank ?? p.rank ?? null;
       return {
         ...p,
         SKU: p.sku,
@@ -304,7 +305,10 @@ app.get('/api/products', async (req, res) => {
         thumbnail: imgVal,
         gallery: galleryVal,
         images: galleryVal,
-        galleryImages: galleryVal
+        galleryImages: galleryVal,
+        bestSellerRank: rankVal,
+        bestseller_rank: rankVal,
+        rank: rankVal
       };
     });
     return res.json(mapped);
@@ -339,7 +343,8 @@ app.post('/api/products', async (req, res) => {
     mrp: productData.MRP || productData.mrp || 0,
     sellingPrice: productData.sellingPrice,
     status: productData.status || 'active',
-    featured: productData.featured || false
+    featured: productData.featured || false,
+    bestseller_rank: productData.bestSellerRank ?? productData.bestseller_rank ?? productData.rank ?? null
   };
 
   try {
@@ -398,7 +403,9 @@ async function handleProductUpdate(req, res) {
 
   if (updates.gallery !== undefined) pgUpdates.gallery = updates.gallery;
   if (updates.images !== undefined && pgUpdates.gallery === undefined) pgUpdates.gallery = updates.images;
-  if (updates.galleryImages !== undefined && pgUpdates.gallery === undefined) pgUpdates.gallery = updates.galleryImages;
+  if (updates.bestSellerRank !== undefined) pgUpdates.bestseller_rank = updates.bestSellerRank;
+  if (updates.bestseller_rank !== undefined && pgUpdates.bestseller_rank === undefined) pgUpdates.bestseller_rank = updates.bestseller_rank;
+  if (updates.rank !== undefined && pgUpdates.bestseller_rank === undefined) pgUpdates.bestseller_rank = updates.rank;
 
   try {
     const { data, error } = await insforge.database
@@ -414,6 +421,7 @@ async function handleProductUpdate(req, res) {
     const updated = data[0];
     const imgVal = updated.image || 'assets/logo.jpg';
     const galleryVal = Array.isArray(updated.gallery) && updated.gallery.length > 0 ? updated.gallery : [imgVal];
+    const rankVal = updated.bestseller_rank ?? updated.bestSellerRank ?? updated.rank ?? null;
 
     const mapped = { 
       ...updated, 
@@ -425,7 +433,10 @@ async function handleProductUpdate(req, res) {
       thumbnail: imgVal,
       gallery: galleryVal,
       images: galleryVal,
-      galleryImages: galleryVal
+      galleryImages: galleryVal,
+      bestSellerRank: rankVal,
+      bestseller_rank: rankVal,
+      rank: rankVal
     };
 
     await logAction(req.headers['x-user-name'] || "Admin", "Update Product", `Modified product ID: ${id}`);
