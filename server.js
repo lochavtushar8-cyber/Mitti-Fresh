@@ -1688,9 +1688,25 @@ app.post('/api/customers/register', async (req, res) => {
     const cleanEmail = email.trim().toLowerCase();
     console.log(`[AUTH-REGISTRATION] Request email: "${cleanEmail}", name: "${name}"`);
 
-    // Check if customer already exists in 'customers' Postgres table
+    // Check existing customers in 'customers' Postgres table & customer map
+    const customerMap = await getCustomerCodesMap();
     const { data: allCustomers } = await insforge.database.from('customers').select();
-    const existingCustList = allCustomers || [];
+    const rawCustomers = allCustomers || [];
+
+    // Ensure every customer record has a referral code synced
+    const existingCustList = rawCustomers.map(c => {
+      const em = c.email ? c.email.toLowerCase() : '';
+      const code = (c.referralCode || customerMap[em] || generateCustomerReferralCode(c.name, c.id || Date.now().toString())).trim().toUpperCase();
+      if (!customerMap[em] || customerMap[em] !== code) {
+        customerMap[em] = code;
+        saveCustomerCodesMap(customerMap);
+      }
+      return {
+        ...c,
+        referralCode: code
+      };
+    });
+
     const existingCustRecord = existingCustList.find(c => c.email && c.email.toLowerCase() === cleanEmail);
 
     console.log(`[AUTH-REGISTRATION] Duplicate user lookup in 'customers' table for "${cleanEmail}":`, 
@@ -1701,22 +1717,39 @@ app.post('/api/customers/register', async (req, res) => {
     }
 
     let referrerCustomer = null;
+
     if (inputRefCode && inputRefCode.trim()) {
       const cleanInputCode = inputRefCode.trim().toUpperCase();
-      referrerCustomer = existingCustList.find(c => c.referralCode && c.referralCode.toUpperCase() === cleanInputCode);
-      
+      console.log(`[REFERRAL-LOOKUP] Entered referral code: "${cleanInputCode}"`);
+
+      // Search database customers table and persistent customerMap
+      referrerCustomer = existingCustList.find(c => {
+        const dbCode = (c.referralCode || '').trim().toUpperCase();
+        const mapCode = (customerMap[(c.email || '').toLowerCase()] || '').trim().toUpperCase();
+        return dbCode === cleanInputCode || mapCode === cleanInputCode;
+      });
+
+      console.log(`[REFERRAL-LOOKUP] Database lookup result for code "${cleanInputCode}":`, 
+        referrerCustomer 
+          ? `MATCHED User name="${referrerCustomer.name}", email="${referrerCustomer.email}", ID=${referrerCustomer.id}, Code="${referrerCustomer.referralCode}"` 
+          : "NO MATCH found in database or customer map");
+
       if (!referrerCustomer) {
+        console.log(`[REFERRAL-LOOKUP] Referral REJECTED: Code "${cleanInputCode}" does not exist in database.`);
         return res.status(400).json({ error: "Invalid referral code. Please check the code and try again." });
       }
 
       if (referrerCustomer.email && referrerCustomer.email.toLowerCase() === cleanEmail) {
+        console.log(`[REFERRAL-LOOKUP] Referral REJECTED: Self-referral attempt by "${cleanEmail}".`);
         return res.status(400).json({ error: "You cannot refer yourself." });
       }
+
+      console.log(`[REFERRAL-LOOKUP] Referral ACCEPTED for code "${cleanInputCode}". Referrer Matched: "${referrerCustomer.name}" (${referrerCustomer.email}).`);
     }
 
     // Generate unique referral code for the new customer
     let newRefCode = generateCustomerReferralCode(name, Date.now().toString());
-    while (existingCustList.some(c => c.referralCode === newRefCode)) {
+    while (existingCustList.some(c => (c.referralCode || '').trim().toUpperCase() === newRefCode || (customerMap[(c.email || '').toLowerCase()] || '').trim().toUpperCase() === newRefCode)) {
       newRefCode = generateCustomerReferralCode(name, Math.random().toString());
     }
 
@@ -1757,31 +1790,36 @@ app.post('/api/customers/register', async (req, res) => {
     }
 
     // 2. Insert customer profile into customers Postgres table
-    const customer = {
+    const dbCustomer = {
       id: userId,
       name,
       email: cleanEmail,
       password: 'INSFORGE_AUTH', // Managed by InsForge Auth
       phone,
-      referralCode: newRefCode,
-      referredBy: referrerCustomer ? referrerCustomer.referralCode : null,
       rewardPoints: 100, // Gift 100 reward points on sign-up
       addresses: [],
       wishlist: [],
       cart: []
     };
 
-    const { data: insertData, error: insertError } = await insforge.database.from('customers').insert([customer]).select();
+    const { data: insertData, error: insertError } = await insforge.database.from('customers').insert([dbCustomer]).select();
     
     console.log(`[AUTH-REGISTRATION] User insert result in 'customers' table for "${cleanEmail}":`, 
-      insertData && insertData.length > 0 ? `SUCCESS ID=${insertData[0].id}` : `Insert Error/Fallback: ${insertError ? insertError.message : 'None'}`);
+      insertData && insertData.length > 0 ? `SUCCESS ID=${insertData[0].id}` : `Insert Result/Error: ${insertError ? insertError.message : 'None'}`);
 
-    const newCust = (insertData && insertData[0]) ? insertData[0] : customer;
+    const baseCust = (insertData && insertData[0]) ? insertData[0] : dbCustomer;
+    const newCust = {
+      ...baseCust,
+      referralCode: newRefCode,
+      referredBy: referrerCustomer ? referrerCustomer.referralCode : null
+    };
 
-    // Save to customer_codes map
-    const customerMap = await getCustomerCodesMap();
+    // Save to customer_codes map and log action
     customerMap[cleanEmail] = newRefCode;
     saveCustomerCodesMap(customerMap);
+    try {
+      await logAction(cleanEmail, "customer-referral-code", JSON.stringify({ email: cleanEmail, referralCode: newRefCode, referredBy: newCust.referredBy }));
+    } catch(e) {}
 
     // 3. If referred, create referral record
     if (referrerCustomer) {
