@@ -49,12 +49,20 @@ const rebuildCatalog = (dbProducts) => {
           unit: item.weight ? item.weight.replace(/[\d\s]/g, '') : "kg",
           sizes: [],
           image: item.image || "assets/logo.jpg",
+          gallery: Array.isArray(item.gallery) && item.gallery.length > 0 ? item.gallery : [item.image || "assets/logo.jpg"],
           ingredients: item.ingredients || "",
           benefits: item.benefits || "",
           nutrition: item.nutrition || null,
           badge: item.badge || "",
           badgeType: item.badgeType || ""
         };
+      } else {
+        if (item.image && item.image !== "assets/logo.jpg") {
+          catalogMap[actualBaseId].image = item.image;
+        }
+        if (Array.isArray(item.gallery) && item.gallery.length > 0) {
+          catalogMap[actualBaseId].gallery = item.gallery;
+        }
       }
       
       catalogMap[actualBaseId].sizes.push({
@@ -952,15 +960,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
             
             <div class="gallery-thumbnails">
-              <button class="gallery-thumbnail active" data-src="${prod.image}">
-                <img src="${prod.image}" alt="Primary view">
-              </button>
-              <button class="gallery-thumbnail" data-src="assets/grinding_live.jpg">
-                <img src="assets/grinding_live.jpg" alt="Milling closeup">
-              </button>
-              <button class="gallery-thumbnail" data-src="assets/hero_banner.jpg">
-                <img src="assets/hero_banner.jpg" alt="Grains sourcing">
-              </button>
+              ${(Array.isArray(prod.gallery) && prod.gallery.length > 0 ? prod.gallery : [prod.image || "assets/logo.jpg"]).map((gUrl, idx) => `
+                <button class="gallery-thumbnail ${idx === 0 ? 'active' : ''}" data-src="${gUrl}">
+                  <img src="${gUrl}" alt="${prod.name} view ${idx + 1}">
+                </button>
+              `).join('')}
             </div>
 
             <div class="product-badges-row">
