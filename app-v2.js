@@ -298,6 +298,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   const couponInput = document.getElementById('coupon-code');
   const applyCouponBtn = document.getElementById('apply-coupon');
+  
+  // Dynamically purge coupon elements from Basket/Cart drawer
+  try {
+    document.querySelectorAll('.cart-coupon-section, #coupon-code, #apply-coupon').forEach(el => {
+      if (el && !el.closest('#checkout-form') && !el.closest('.checkout-section')) {
+        el.remove();
+      }
+    });
+  } catch (e) {}
+
   const cartProgressFill = document.getElementById('cart-progress-fill');
   const cartProgressText = document.getElementById('cart-progress-text');
 
@@ -809,6 +819,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- CART RENDER & QUANTITIES ---
   const updateCartUI = () => {
+    try {
+      document.querySelectorAll('.cart-drawer .cart-coupon-section, .cart-drawer #coupon-code, .cart-drawer #apply-coupon, .cart-coupon-section').forEach(el => el.remove());
+    } catch (e) {}
+
     const totalItemsCount = cart.reduce((total, item) => total + item.quantity, 0);
     if (cartCount) cartCount.textContent = totalItemsCount;
     

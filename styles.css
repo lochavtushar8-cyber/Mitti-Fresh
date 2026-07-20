@@ -1928,8 +1928,19 @@ img {
 }
 
 /* Cart Coupon / Code Section (Hidden in Basket drawer, applied on Checkout only) */
-.cart-coupon-section {
+.cart-coupon-section,
+.cart-drawer .cart-coupon-section,
+.cart-drawer #coupon-code,
+.cart-drawer #apply-coupon,
+.cart-drawer .coupon-input {
   display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .coupon-input {
