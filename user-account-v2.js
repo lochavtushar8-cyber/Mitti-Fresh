@@ -312,14 +312,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Extract OAuth token or code from URL hash or query parameters
+  // Extract OAuth access_token or code from URL hash or search parameters
   const extractOAuthFromUrl = () => {
     let token = null;
     let code = null;
     let isOAuthReturn = false;
     try {
-      if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('token'))) {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const rawHash = window.location.hash ? window.location.hash.substring(1) : '';
+      if (rawHash) {
+        const hashParams = new URLSearchParams(rawHash);
         token = hashParams.get('access_token') || hashParams.get('token');
         if (token) isOAuthReturn = true;
       }
@@ -368,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.loggedInCustomer = data.customer;
         window.loggedInCustomer.orders = data.orders || [];
 
-        // If returning from Google OAuth, auto-open Customer Account drawer and clean URL
+        // If returning from Google OAuth, auto-open Customer Account drawer and clean URL hash
         if (oauth.isOAuthReturn || sessionStorage.getItem('mitti_oauth_pending')) {
           sessionStorage.removeItem('mitti_oauth_pending');
           if (window.location.hash || window.location.search.includes('code=') || window.location.search.includes('access_token=')) {
