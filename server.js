@@ -2600,8 +2600,8 @@ app.get('/api/admin/employees', async (req, res) => {
   }
 });
 
-// Start listening synchronously so Hostinger/Phusion Passenger binds to PORT immediately
-const server = app.listen(PORT, '0.0.0.0', () => {
+// Start listening synchronously on process.env.PORT for Hostinger reverse proxy compatibility
+const server = app.listen(PORT, () => {
   console.log(`=======================================================`);
   console.log(` Mitti Fresh Payment & Operations REST API Backend Running`);
   console.log(` Connected to InsForge cloud Postgres database.`);
