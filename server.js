@@ -47,24 +47,36 @@ const PORT = process.env.PORT || 3000;
 // Initialize InsForge SDK client dynamically (since @insforge/sdk is ESM only)
 let insforge;
 let insforgePublic;
+let sdkModule;
 
 async function initInsForge() {
+  if (insforge && insforgePublic) return { insforge, insforgePublic };
   try {
-    const sdk = await import('@insforge/sdk');
-    insforge = sdk.createAdminClient({
-      baseUrl: INSFORGE_URL_CLEANED,
-      apiKey: process.env.INSFORGE_API_KEY
-    });
-    insforgePublic = sdk.createClient({
-      baseUrl: INSFORGE_URL_CLEANED,
-      anonKey: process.env.INSFORGE_ANON_KEY
-    });
-    console.log("✓ Connected to InsForge BaaS database successfully.");
+    if (!sdkModule) {
+      sdkModule = await import('@insforge/sdk');
+    }
+    if (process.env.INSFORGE_URL && process.env.INSFORGE_API_KEY) {
+      insforge = sdkModule.createAdminClient({
+        baseUrl: INSFORGE_URL_CLEANED,
+        apiKey: process.env.INSFORGE_API_KEY
+      });
+    }
+    if (process.env.INSFORGE_URL && process.env.INSFORGE_ANON_KEY) {
+      insforgePublic = sdkModule.createClient({
+        baseUrl: INSFORGE_URL_CLEANED,
+        anonKey: process.env.INSFORGE_ANON_KEY
+      });
+    }
+    console.log("✓ InsForge BaaS database client initialized successfully.");
+    return { insforge, insforgePublic };
   } catch (err) {
-    logStartupError(`Failed to initialize InsForge SDK client: ${err.message}\nStack: ${err.stack}`);
-    process.exit(1);
+    logStartupError(`Warning: InsForge SDK initialization delay/error: ${err.message}`);
+    return { insforge: null, insforgePublic: null };
   }
 }
+
+// Trigger initial InsForge SDK load in background without blocking server startup
+initInsForge().catch(err => console.error("InsForge bg init error:", err));
 
 // Serve static frontend files from the root directory
 app.use(express.static(__dirname));
@@ -2588,13 +2600,17 @@ app.get('/api/admin/employees', async (req, res) => {
   }
 });
 
-// Initialize database connection dynamically, then start listening
-initInsForge().then(() => {
-  app.listen(PORT, () => {
-    console.log(`=======================================================`);
-    console.log(` Mitti Fresh Payment & Operations REST API Backend Running`);
-    console.log(` Connected to InsForge cloud Postgres database.`);
-    console.log(` API Endpoint: http://localhost:${PORT}`);
-    console.log(`=======================================================`);
-  });
+// Start listening synchronously so Hostinger/Phusion Passenger binds to PORT immediately
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`=======================================================`);
+  console.log(` Mitti Fresh Payment & Operations REST API Backend Running`);
+  console.log(` Connected to InsForge cloud Postgres database.`);
+  console.log(` API Endpoint: http://localhost:${PORT}`);
+  console.log(`=======================================================`);
 });
+
+server.on('error', (err) => {
+  logStartupError(`Server Listen Error: ${err.message}`);
+});
+
+module.exports = app;
