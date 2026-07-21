@@ -2292,12 +2292,15 @@ app.post('/api/customers/oauth-sync', async (req, res) => {
     const myReferrals = referralsList.filter(r => r.referrerEmail === customer.email || r.referralCode === customer.referralCode);
     const totalRewardsEarned = customer.totalRewardsEarned || myReferrals.filter(r => r.status === 'Successful').reduce((acc, r) => acc + (r.referrerRewardAmount || 100), 0);
 
-    const activeToken = req.headers.authorization ? req.headers.authorization.substring(7) : null;
+    // Ensure a deterministic, persistent session token is generated for 30-day storage
+    const sessionToken = (req.headers.authorization && req.headers.authorization.startsWith('Bearer ') && req.headers.authorization.length > 10)
+      ? req.headers.authorization.substring(7)
+      : 'Token-' + Buffer.from(customer.email.toLowerCase()).toString('base64');
 
     return res.json({
       status: "success",
       customer,
-      token: activeToken,
+      token: sessionToken,
       referralStats: {
         referralCode: customer.referralCode,
         totalReferrals: myReferrals.length,
