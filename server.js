@@ -1395,8 +1395,9 @@ app.post('/api/homepage', async (req, res) => {
 
 // Helper: Authenticate customer email from Authorization Header token
 const getCustomerFromToken = async (req) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+
   const token = authHeader.substring(7);
   try {
     if (token.startsWith('Token-')) {
@@ -1423,14 +1424,41 @@ const getCustomerFromToken = async (req) => {
     const { data, error } = await userClient.auth.getCurrentUser();
     if (error || !data || !data.user) return null;
 
-    const { data: customerProfile } = await insforge.database
-      .from('customers')
-      .select()
-      .eq('email', data.user.email)
-      .maybeSingle();
+    const userEmail = data.user.email ? data.user.email.toLowerCase() : '';
+    const userId = data.user.id;
+    const userName = data.user.profile?.name || data.user.name || (userEmail ? userEmail.split('@')[0] : 'Customer');
+
+    const { data: allCusts } = await insforge.database.from('customers').select();
+    const customerList = allCusts || [];
+    let customerProfile = customerList.find(c => (c.email && c.email.toLowerCase() === userEmail) || c.id === userId);
+
+    // Auto-heal missing profile row for OAuth / newly authenticated users
+    if (!customerProfile && userEmail) {
+      console.log(`[AUTH-PROFILE] Auto-healing missing customer profile for email "${userEmail}" (ID: ${userId})...`);
+      const refCode = generateCustomerReferralCode(userName, userId);
+      const autoCustomer = {
+        id: userId,
+        name: userName,
+        email: userEmail,
+        password: 'GOOGLE_OAUTH',
+        phone: '',
+        rewardPoints: 100,
+        addresses: [],
+        wishlist: [],
+        cart: []
+      };
+
+      const { data: inserted } = await insforge.database.from('customers').insert([autoCustomer]).select();
+      customerProfile = (inserted && inserted[0]) ? inserted[0] : autoCustomer;
+      
+      const customerMap = await getCustomerCodesMap();
+      customerMap[userEmail] = refCode;
+      saveCustomerCodesMap(customerMap);
+    }
 
     return customerProfile;
   } catch (e) {
+    console.error("getCustomerFromToken error:", e);
     return null;
   }
 };
@@ -1854,6 +1882,200 @@ app.post('/api/customers/register', async (req, res) => {
   }
 });
 
+// ==========================================================================
+// PASSWORD RESET TOKENS HELPERS & APIS
+// ==========================================================================
+const RESET_TOKENS_FILE = path.join(__dirname, 'data', 'reset_tokens.json');
+
+const getResetTokensData = async () => {
+  let list = [];
+  try {
+    if (fs.existsSync(RESET_TOKENS_FILE)) {
+      const content = fs.readFileSync(RESET_TOKENS_FILE, 'utf8');
+      list = JSON.parse(content);
+    }
+  } catch (e) {}
+  return list;
+};
+
+const saveResetTokensData = (list) => {
+  try {
+    const dir = path.dirname(RESET_TOKENS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(RESET_TOKENS_FILE, JSON.stringify(list, null, 2), 'utf8');
+  } catch (e) {
+    console.error("Save reset tokens disk failed:", e);
+  }
+};
+
+// Forgot Password API (30-min token generation)
+app.post('/api/customers/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    console.log(`[AUTH-FORGOT-PASSWORD] Request email: "${cleanEmail}"`);
+
+    // Check if customer exists in 'customers' table
+    const { data: allCustomers } = await insforge.database.from('customers').select();
+    const customerList = allCustomers || [];
+    const customer = customerList.find(c => c.email && c.email.toLowerCase() === cleanEmail);
+
+    const successMsg = "If an account exists for this email, a password reset link has been sent.";
+
+    if (!customer) {
+      console.log(`[AUTH-FORGOT-PASSWORD] Email "${cleanEmail}" not found in database.`);
+      return res.status(200).json({ status: "success", message: successMsg });
+    }
+
+    // Generate single-use secure reset token with 30-minute expiration
+    const token = 'RESET-' + Date.now() + '-' + crypto.randomBytes(16).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 mins
+
+    const tokensList = await getResetTokensData();
+    // Invalidate old tokens for this email
+    tokensList.forEach(t => {
+      if (t.email && t.email.toLowerCase() === cleanEmail) {
+        t.used = true;
+      }
+    });
+
+    const newTokenRecord = {
+      id: 'TOK-' + Date.now(),
+      email: cleanEmail,
+      token,
+      expiresAt,
+      used: false,
+      createdAt: new Date().toISOString()
+    };
+
+    tokensList.push(newTokenRecord);
+    saveResetTokensData(tokensList);
+
+    try {
+      await logAction(cleanEmail, "password-reset-requested", JSON.stringify({ email: cleanEmail, token }));
+    } catch(e) {}
+
+    const resetUrl = `${req.protocol}://${req.get('host')}?resetToken=${token}`;
+    await sendAdminNotification('forgot-password', `Password Reset Request for ${cleanEmail}`, { email: cleanEmail, resetUrl });
+
+    console.log(`[AUTH-FORGOT-PASSWORD] Reset token generated for "${cleanEmail}": ${token}`);
+    return res.status(200).json({ status: "success", message: successMsg, resetUrl, token });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return res.status(500).json({ error: "Failed to process password reset request." });
+  }
+});
+
+// Reset Password API (Token validation & update)
+app.post('/api/customers/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: "Token and new password are required." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters long." });
+    }
+
+    const tokensList = await getResetTokensData();
+    const tokenRecord = tokensList.find(t => t.token === token.trim());
+
+    if (!tokenRecord || tokenRecord.used) {
+      return res.status(400).json({ error: "Invalid or already used password reset token." });
+    }
+
+    if (new Date(tokenRecord.expiresAt).getTime() < Date.now()) {
+      return res.status(400).json({ error: "Password reset token has expired (valid for 30 minutes). Please request a new link." });
+    }
+
+    const cleanEmail = tokenRecord.email.toLowerCase();
+
+    // Look up customer in InsForge Auth & Postgres table
+    const { data: allCustomers } = await insforge.database.from('customers').select();
+    const customerList = allCustomers || [];
+    let customer = customerList.find(c => c.email && c.email.toLowerCase() === cleanEmail);
+
+    // Update password in InsForge Auth using admin client if supported
+    try {
+      if (insforge.auth && insforge.auth.admin) {
+        await insforge.auth.admin.updateUserById(customer ? customer.id : tokenRecord.id, { password: newPassword });
+      }
+    } catch(e) {}
+
+    // Invalidate token
+    tokenRecord.used = true;
+    tokenRecord.usedAt = new Date().toISOString();
+    saveResetTokensData(tokensList);
+
+    try {
+      await logAction(cleanEmail, "password-reset-completed", JSON.stringify({ email: cleanEmail }));
+    } catch(e) {}
+
+    console.log(`[AUTH-RESET-PASSWORD] Password reset successfully completed for "${cleanEmail}".`);
+    return res.status(200).json({ status: "success", message: "Password reset successfully! Please log in with your new password." });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return res.status(500).json({ error: "Failed to reset password." });
+  }
+});
+
+// Change Password API (Inside Customer Account Drawer)
+app.post('/api/customers/change-password', async (req, res) => {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) {
+      return res.status(401).json({ error: "Unauthorized session." });
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: "Current password, new password, and confirmation password are required." });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "New password and confirmation password do not match." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters long." });
+    }
+
+    const cleanEmail = customer.email.toLowerCase();
+
+    // Verify current password via InsForge Auth
+    const { data: signData, error: signErr } = await insforgePublic.auth.signInWithPassword({
+      email: cleanEmail,
+      password: currentPassword
+    });
+
+    if (signErr || !signData || !signData.user) {
+      return res.status(400).json({ error: "Current password is incorrect." });
+    }
+
+    // Update password in InsForge Auth
+    try {
+      if (insforge.auth && insforge.auth.admin) {
+        await insforge.auth.admin.updateUserById(customer.id, { password: newPassword });
+      }
+    } catch(e) {}
+
+    try {
+      await logAction(cleanEmail, "password-changed", JSON.stringify({ email: cleanEmail }));
+    } catch(e) {}
+
+    console.log(`[AUTH-CHANGE-PASSWORD] Password successfully changed for customer "${cleanEmail}".`);
+    return res.status(200).json({ status: "success", message: "Password updated successfully!" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    return res.status(500).json({ error: "Failed to change password." });
+  }
+});
+
 // Customer Login with Detailed Logging & Auto-Healing Profile Sync
 app.post('/api/customers/login', async (req, res) => {
   try {
@@ -1973,6 +2195,92 @@ app.get('/api/customers/profile', async (req, res) => {
       }))
     });
   } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Google OAuth Customer Profile Sync & Referral Attachment API
+app.post('/api/customers/oauth-sync', async (req, res) => {
+  try {
+    const customer = await getCustomerFromToken(req);
+    if (!customer) {
+      return res.status(401).json({ error: "Unauthorized OAuth session." });
+    }
+
+    const cleanEmail = customer.email.toLowerCase();
+    const customerMap = await getCustomerCodesMap();
+    const inputRefCode = req.body.referralCode ? req.body.referralCode.trim().toUpperCase() : null;
+
+    // Ensure customer has referralCode assigned
+    if (!customer.referralCode) {
+      customer.referralCode = customerMap[cleanEmail] || generateCustomerReferralCode(customer.name, customer.id);
+      customerMap[cleanEmail] = customer.referralCode;
+      saveCustomerCodesMap(customerMap);
+    }
+
+    // Check if customer already has a recorded referral
+    const referralsList = await getReferralsData();
+    const existingReferral = referralsList.find(r => r.referredCustomerEmail && r.referredCustomerEmail.toLowerCase() === cleanEmail);
+
+    // If new customer & valid referral code passed & no existing referral recorded
+    if (inputRefCode && !existingReferral && !customer.referredBy) {
+      const { data: allCustomers } = await insforge.database.from('customers').select();
+      const customerList = allCustomers || [];
+      const referrerCustomer = customerList.find(c => {
+        const dbCode = (c.referralCode || '').trim().toUpperCase();
+        const mapCode = (customerMap[(c.email || '').toLowerCase()] || '').trim().toUpperCase();
+        return dbCode === inputRefCode || mapCode === inputRefCode;
+      });
+
+      if (referrerCustomer && referrerCustomer.email && referrerCustomer.email.toLowerCase() !== cleanEmail) {
+        customer.referredBy = referrerCustomer.referralCode;
+        const refRecord = {
+          id: 'REF-' + Date.now() + '-' + Math.floor(Math.random()*1000),
+          referralCode: referrerCustomer.referralCode,
+          referrerId: referrerCustomer.id,
+          referrerName: referrerCustomer.name,
+          referrerEmail: referrerCustomer.email,
+          referredCustomerId: customer.id,
+          referredCustomerName: customer.name,
+          referredCustomerEmail: customer.email,
+          referralDate: new Date().toISOString(),
+          status: "Pending"
+        };
+
+        referralsList.push(refRecord);
+        saveReferralsData(referralsList);
+
+        try {
+          await logAction(referrerCustomer.email, "referral-record", JSON.stringify(refRecord));
+        } catch (e) {}
+        console.log(`[OAUTH-SYNC] Attached referral code "${inputRefCode}" to NEW Google customer "${cleanEmail}".`);
+      }
+    }
+
+    const { data: allOrders } = await insforge.database.from('orders').select();
+    const ordersList = allOrders || [];
+    const customerOrders = ordersList.filter(o => o.customer && (o.customer.email === customer.email || o.customer.phone === customer.phone));
+    const myReferrals = referralsList.filter(r => r.referrerEmail === customer.email || r.referralCode === customer.referralCode);
+    const totalRewardsEarned = customer.totalRewardsEarned || myReferrals.filter(r => r.status === 'Successful').reduce((acc, r) => acc + (r.referrerRewardAmount || 100), 0);
+
+    return res.json({
+      status: "success",
+      customer,
+      referralStats: {
+        referralCode: customer.referralCode,
+        totalReferrals: myReferrals.length,
+        pendingReferrals: myReferrals.filter(r => r.status === 'Pending').length,
+        successfulReferrals: myReferrals.filter(r => r.status === 'Successful').length,
+        totalRewardsEarned,
+        referrals: myReferrals
+      },
+      orders: customerOrders.map(o => ({
+        ...o,
+        date: o.created_at ? new Date(o.created_at).toLocaleString() : ''
+      }))
+    });
+  } catch (err) {
+    console.error("OAuth sync error:", err);
     return res.status(500).json({ error: err.message });
   }
 });

@@ -287,51 +287,108 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 6. Account UI Rendering Logic
-  let activeTab = 'login'; // 'login' or 'register'
+  let activeTab = 'login'; // 'login', 'register', 'forgot', or 'reset'
   window.loggedInCustomer = null;
 
-  const getAuthToken = () => localStorage.getItem('mitti_customer_token');
-  const setAuthToken = (token) => {
+  const getAuthToken = () => {
+    return localStorage.getItem('mitti_customer_token') || sessionStorage.getItem('mitti_customer_token');
+  };
+
+  const setAuthToken = (token, rememberMe = true) => {
     if (token) {
-      localStorage.setItem('mitti_customer_token', token);
+      if (rememberMe) {
+        localStorage.setItem('mitti_customer_token', token);
+        localStorage.setItem('mitti_remember_me', 'true');
+        sessionStorage.removeItem('mitti_customer_token');
+      } else {
+        sessionStorage.setItem('mitti_customer_token', token);
+        localStorage.removeItem('mitti_customer_token');
+        localStorage.removeItem('mitti_remember_me');
+      }
     } else {
       localStorage.removeItem('mitti_customer_token');
+      localStorage.removeItem('mitti_remember_me');
+      sessionStorage.removeItem('mitti_customer_token');
     }
   };
 
-  // Check initial session
+  // Check initial session & handle OAuth sync
   const verifySession = async () => {
-    const token = getAuthToken();
+    let token = getAuthToken();
+
+    // Check if InsForge SDK has an active OAuth session token
+    if (!token) {
+      try {
+        const sdk = await import('@insforge/sdk');
+        const insforgePublic = sdk.createClient({
+          baseUrl: (window.INSFORGE_URL || window.location.origin).replace(/\/+$/, ''),
+          anonKey: window.INSFORGE_ANON_KEY || ''
+        });
+        const sessionRes = await insforgePublic.auth.getCurrentSession();
+        if (sessionRes && sessionRes.data && sessionRes.data.accessToken) {
+          token = sessionRes.data.accessToken;
+          setAuthToken(token, true);
+        }
+      } catch(e) {}
+    }
+
     if (!token) return;
+
     try {
-      const res = await fetch(getApiUrl('/api/customers/profile') + '?t=' + Date.now(), {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const savedRefCode = sessionStorage.getItem('mitti_referral_code') || '';
+      const res = await fetch(getApiUrl('/api/customers/oauth-sync'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ referralCode: savedRefCode })
       });
+
       if (res.ok) {
         const data = await res.json();
         window.loggedInCustomer = data.customer;
         window.loggedInCustomer.orders = data.orders || [];
       } else {
-        setAuthToken(null);
+        const profRes = await fetch(getApiUrl('/api/customers/profile') + '?t=' + Date.now(), {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (profRes.ok) {
+          const profData = await profRes.json();
+          window.loggedInCustomer = profData.customer;
+          window.loggedInCustomer.orders = profData.orders || [];
+        } else {
+          setAuthToken(null);
+        }
       }
     } catch (e) {
       console.warn("Verify session failed", e);
     }
   };
 
-  // Auto-detect referral code from URL query parameter or /register path
+  // Auto-detect referral code or reset token from URL query parameters
   const urlParams = new URLSearchParams(window.location.search);
   const refCodeParam = urlParams.get('ref');
+  const resetTokenParam = urlParams.get('resetToken');
   const isRegisterRoute = window.location.pathname.includes('/register');
-  if (refCodeParam || isRegisterRoute) {
+
+  if (resetTokenParam) {
+    activeTab = 'reset';
+    setTimeout(() => {
+      drawer.classList.add('open');
+      drawerOverlay.classList.add('open');
+      renderAccountContent();
+    }, 400);
+  } else if (refCodeParam || isRegisterRoute) {
     activeTab = 'register';
     if (refCodeParam) {
       sessionStorage.setItem('mitti_referral_code', refCodeParam.trim().toUpperCase());
     }
-    // Auto-open registration drawer for referral visitors
     setTimeout(() => {
       if (!window.loggedInCustomer) {
-        toggleAccountDrawer(true);
+        drawer.classList.add('open');
+        drawerOverlay.classList.add('open');
+        renderAccountContent();
       }
     }, 400);
   }
@@ -642,102 +699,258 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } else {
       // User is NOT logged in: Render Forms
-      container.innerHTML = `
-        <div class="account-tabs">
-          <div class="account-tab ${activeTab === 'login' ? 'active' : ''}" id="tab-cust-login">Login</div>
-          <div class="account-tab ${activeTab === 'register' ? 'active' : ''}" id="tab-cust-register">Register</div>
-        </div>
-
-        <form id="customer-account-form">
-          ${activeTab === 'register' ? `
-            <div class="account-form-group">
-              <label>Full Name</label>
-              <input type="text" id="cust-name" required placeholder="Enter your name">
-            </div>
-          ` : ''}
-          <div class="account-form-group">
-            <label>Email Address</label>
-            <input type="email" id="cust-email" required placeholder="name@example.com">
+      if (activeTab === 'forgot') {
+        container.innerHTML = `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 6px 0; color: #1E293B; font-size: 1.2rem; font-weight: 800;">Forgot Password</h4>
+            <p style="font-size: 0.82rem; color: #64748B; margin: 0;">Enter your registered email address to receive a secure 30-minute password reset link.</p>
           </div>
-          ${activeTab === 'register' ? `
+
+          <form id="customer-forgot-form">
             <div class="account-form-group">
-              <label>Phone Number</label>
-              <input type="tel" id="cust-phone" required placeholder="10-digit mobile number">
+              <label>Email Address</label>
+              <input type="email" id="forgot-cust-email" required placeholder="name@example.com">
             </div>
-            <div class="account-form-group">
-              <label>Referral Code (Optional)</label>
-              <input type="text" id="cust-referral-code" placeholder="e.g. DEVA001" style="text-transform: uppercase;" value="${refCodeParam ? refCodeParam.toUpperCase() : ''}">
-            </div>
-          ` : ''}
-          <div class="account-form-group">
-            <label>Password</label>
-            <input type="password" id="cust-password" required placeholder="••••••••">
-          </div>
-          <button type="submit" class="account-btn" id="btn-cust-submit">
-            ${activeTab === 'login' ? 'Sign In' : 'Create Account'}
-          </button>
-        </form>
-      `;
+            <button type="submit" class="account-btn" style="margin-bottom: 10px;">Send Reset Link</button>
+            <button type="button" id="btn-back-to-login" class="account-btn" style="background: #F1F5F9; color: #334155; font-weight: 600;">Back to Login</button>
+          </form>
+        `;
 
-      // Tabs click event handlers
-      document.getElementById('tab-cust-login').addEventListener('click', () => {
-        activeTab = 'login';
-        renderAccountContent();
-      });
-      document.getElementById('tab-cust-register').addEventListener('click', () => {
-        activeTab = 'register';
-        renderAccountContent();
-      });
+        document.getElementById('btn-back-to-login').addEventListener('click', () => {
+          activeTab = 'login';
+          renderAccountContent();
+        });
 
-      // Submit Form handler
-      document.getElementById('customer-account-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('cust-email').value.trim();
-        const password = document.getElementById('cust-password').value.trim();
-
-        if (activeTab === 'login') {
-          // Process Login API
+        document.getElementById('customer-forgot-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('forgot-cust-email').value.trim();
           try {
-            const res = await fetch(getApiUrl('/api/customers/login'), {
+            const res = await fetch(getApiUrl('/api/customers/forgot-password'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password })
+              body: JSON.stringify({ email })
             });
             const data = await res.json();
             if (res.ok) {
-              setAuthToken(data.token);
-              window.loggedInCustomer = data.customer;
+              alert(data.message || "Password reset link sent!");
+              activeTab = 'login';
               renderAccountContent();
             } else {
-              alert(data.error || "Invalid credentials.");
+              alert(data.error || "Failed to send reset link.");
             }
-          } catch (err) {
-            alert("Login service is currently offline.");
+          } catch(err) {
+            alert("Failed to connect to authentication server.");
           }
-        } else {
-          // Process Register API
-          const name = document.getElementById('cust-name').value.trim();
-          const phone = document.getElementById('cust-phone').value.trim();
-          const refCode = document.getElementById('cust-referral-code') ? document.getElementById('cust-referral-code').value.trim() : '';
+        });
+
+      } else if (activeTab === 'reset') {
+        const resetTokenVal = new URLSearchParams(window.location.search).get('resetToken') || '';
+        container.innerHTML = `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 6px 0; color: #1E293B; font-size: 1.2rem; font-weight: 800;">Set New Password</h4>
+            <p style="font-size: 0.82rem; color: #64748B; margin: 0;">Enter a new secure password for your account.</p>
+          </div>
+
+          <form id="customer-reset-form">
+            <input type="hidden" id="reset-token-val" value="${resetTokenVal}">
+            <div class="account-form-group">
+              <label>New Password (min 6 characters)</label>
+              <input type="password" id="reset-new-pass" required minlength="6" placeholder="Enter new password">
+            </div>
+            <div class="account-form-group">
+              <label>Confirm New Password</label>
+              <input type="password" id="reset-confirm-pass" required minlength="6" placeholder="Confirm new password">
+            </div>
+            <button type="submit" class="account-btn">Save New Password & Sign In</button>
+          </form>
+        `;
+
+        document.getElementById('customer-reset-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const token = document.getElementById('reset-token-val').value;
+          const newPassword = document.getElementById('reset-new-pass').value;
+          const confirmPass = document.getElementById('reset-confirm-pass').value;
+
+          if (newPassword !== confirmPass) {
+            alert("New password and confirmation password do not match.");
+            return;
+          }
+
           try {
-            const res = await fetch(getApiUrl('/api/customers/register'), {
+            const res = await fetch(getApiUrl('/api/customers/reset-password'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name, email, password, phone, referralCode: refCode })
+              body: JSON.stringify({ token, newPassword })
             });
             const data = await res.json();
             if (res.ok) {
-              setAuthToken(data.token);
-              window.loggedInCustomer = data.customer;
+              alert(data.message || "Password reset successfully! Please log in.");
+              activeTab = 'login';
               renderAccountContent();
             } else {
-              alert(data.error || "Registration failed.");
+              alert(data.error || "Password reset failed.");
             }
-          } catch (err) {
-            alert("Registration service is currently offline.");
+          } catch(err) {
+            alert("Failed to connect to authentication server.");
           }
+        });
+
+      } else {
+        container.innerHTML = `
+          <div class="account-tabs">
+            <div class="account-tab ${activeTab === 'login' ? 'active' : ''}" id="tab-cust-login">Login</div>
+            <div class="account-tab ${activeTab === 'register' ? 'active' : ''}" id="tab-cust-register">Register</div>
+          </div>
+
+          <form id="customer-account-form">
+            ${activeTab === 'register' ? `
+              <div class="account-form-group">
+                <label>Full Name</label>
+                <input type="text" id="cust-name" required placeholder="Enter your name">
+              </div>
+            ` : ''}
+            <div class="account-form-group">
+              <label>Email Address</label>
+              <input type="email" id="cust-email" required placeholder="name@example.com">
+            </div>
+            ${activeTab === 'register' ? `
+              <div class="account-form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="cust-phone" required placeholder="10-digit mobile number">
+              </div>
+              <div class="account-form-group">
+                <label>Referral Code (Optional)</label>
+                <input type="text" id="cust-referral-code" placeholder="e.g. DEVA001" style="text-transform: uppercase;" value="${refCodeParam ? refCodeParam.toUpperCase() : ''}">
+              </div>
+            ` : ''}
+            <div class="account-form-group">
+              <label>Password</label>
+              <input type="password" id="cust-password" required placeholder="••••••••">
+            </div>
+
+            ${activeTab === 'login' ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; margin: -4px 0 16px 0;">
+                <label style="font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px; color: #475569; font-weight: 500;">
+                  <input type="checkbox" id="cust-remember-me" checked style="accent-color: #214E34; cursor: pointer;"> Remember Me (30 Days)
+                </label>
+                <a href="#" id="btn-forgot-password-link" style="font-size: 0.8rem; color: #214E34; font-weight: 600; text-decoration: none;">Forgot Password?</a>
+              </div>
+            ` : ''}
+
+            <button type="submit" class="account-btn" id="btn-cust-submit">
+              ${activeTab === 'login' ? 'Sign In' : 'Create Account'}
+            </button>
+
+            <div style="margin-top: 14px; text-align: center;">
+              <div style="display: flex; align-items: center; margin: 12px 0;">
+                <div style="flex: 1; border-bottom: 1px solid #E2E8F0;"></div>
+                <span style="padding: 0 10px; font-size: 0.75rem; color: #94A3B8; font-weight: 600; text-transform: uppercase;">Or</span>
+                <div style="flex: 1; border-bottom: 1px solid #E2E8F0;"></div>
+              </div>
+              <button type="button" class="btn-google-auth" style="width: 100%; background: #FFF; color: #334155; border: 1.5px solid #CBD5E1; border-radius: 10px; padding: 10px; font-weight: 600; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.04);">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                Continue with Google
+              </button>
+            </div>
+          </form>
+        `;
+
+        // Attach Google OAuth button listener
+        document.querySelectorAll('.btn-google-auth').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            try {
+              const refInput = document.getElementById('cust-referral-code');
+              const currentRefCode = refInput ? refInput.value.trim() : (sessionStorage.getItem('mitti_referral_code') || '');
+              if (currentRefCode) {
+                sessionStorage.setItem('mitti_referral_code', currentRefCode.toUpperCase());
+              }
+
+              const sdk = await import('@insforge/sdk');
+              const insforgePublic = sdk.createClient({
+                baseUrl: (window.INSFORGE_URL || window.location.origin).replace(/\/+$/, ''),
+                anonKey: window.INSFORGE_ANON_KEY || ''
+              });
+
+              await insforgePublic.auth.signInWithOAuth({
+                provider: 'google',
+                redirectTo: window.location.origin
+              });
+            } catch (err) {
+              console.error("Google auth error:", err);
+              alert("Could not start Google login. Please try again.");
+            }
+          });
+        });
+
+        // Tabs click event handlers
+        document.getElementById('tab-cust-login').addEventListener('click', () => {
+          activeTab = 'login';
+          renderAccountContent();
+        });
+        document.getElementById('tab-cust-register').addEventListener('click', () => {
+          activeTab = 'register';
+          renderAccountContent();
+        });
+
+        const forgotLink = document.getElementById('btn-forgot-password-link');
+        if (forgotLink) {
+          forgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            activeTab = 'forgot';
+            renderAccountContent();
+          });
         }
-      });
+
+        // Submit Form handler
+        document.getElementById('customer-account-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('cust-email').value.trim();
+          const password = document.getElementById('cust-password').value.trim();
+
+          if (activeTab === 'login') {
+            const rememberMe = document.getElementById('cust-remember-me') ? document.getElementById('cust-remember-me').checked : true;
+            try {
+              const res = await fetch(getApiUrl('/api/customers/login'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, rememberMe })
+              });
+              const data = await res.json();
+              if (res.ok) {
+                setAuthToken(data.token, rememberMe);
+                window.loggedInCustomer = data.customer;
+                renderAccountContent();
+              } else {
+                alert(data.error || "Invalid credentials.");
+              }
+            } catch (err) {
+              alert("Login service is currently offline.");
+            }
+          } else {
+            // Process Register API
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const refCode = document.getElementById('cust-referral-code') ? document.getElementById('cust-referral-code').value.trim() : '';
+            try {
+              const res = await fetch(getApiUrl('/api/customers/register'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, phone, referralCode: refCode })
+              });
+              const data = await res.json();
+              if (res.ok) {
+                setAuthToken(data.token, true);
+                window.loggedInCustomer = data.customer;
+                renderAccountContent();
+              } else {
+                alert(data.error || "Registration failed.");
+              }
+            } catch (err) {
+              alert("Registration service is currently offline.");
+            }
+          }
+        });
+      }
     }
   };
 
