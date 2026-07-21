@@ -312,53 +312,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Check initial session & handle OAuth sync
-  const verifySession = async () => {
-    let token = getAuthToken();
+  // Extract OAuth token or code from URL hash or query parameters
+  const extractOAuthFromUrl = () => {
+    let token = null;
+    let code = null;
+    let isOAuthReturn = false;
+    try {
+      if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('token'))) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        token = hashParams.get('access_token') || hashParams.get('token');
+        if (token) isOAuthReturn = true;
+      }
+      const searchParams = new URLSearchParams(window.location.search);
+      if (!token) {
+        token = searchParams.get('access_token') || searchParams.get('token');
+        if (token) isOAuthReturn = true;
+      }
+      code = searchParams.get('code');
+      if (code) isOAuthReturn = true;
 
-    // Check if InsForge SDK has an active OAuth session token
-    if (!token) {
-      try {
-        const sdk = await import('@insforge/sdk');
-        const insforgePublic = sdk.createClient({
-          baseUrl: (window.INSFORGE_URL || window.location.origin).replace(/\/+$/, ''),
-          anonKey: window.INSFORGE_ANON_KEY || ''
-        });
-        const sessionRes = await insforgePublic.auth.getCurrentSession();
-        if (sessionRes && sessionRes.data && sessionRes.data.accessToken) {
-          token = sessionRes.data.accessToken;
-          setAuthToken(token, true);
-        }
-      } catch(e) {}
+      if (sessionStorage.getItem('mitti_oauth_pending')) {
+        isOAuthReturn = true;
+      }
+    } catch(e) {}
+    return { token, code, isOAuthReturn };
+  };
+
+  // Check initial session & handle OAuth callback sync
+  const verifySession = async () => {
+    const oauth = extractOAuthFromUrl();
+    let token = getAuthToken() || oauth.token;
+
+    if (oauth.token) {
+      setAuthToken(oauth.token, true);
     }
 
-    if (!token) return;
+    if (!token && !oauth.code) return;
 
     try {
       const savedRefCode = sessionStorage.getItem('mitti_referral_code') || '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(getApiUrl('/api/customers/oauth-sync'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ referralCode: savedRefCode })
+        headers,
+        body: JSON.stringify({ referralCode: savedRefCode, code: oauth.code })
       });
 
       if (res.ok) {
         const data = await res.json();
+        if (data.token) {
+          setAuthToken(data.token, true);
+        }
         window.loggedInCustomer = data.customer;
         window.loggedInCustomer.orders = data.orders || [];
+
+        // If returning from Google OAuth, auto-open Customer Account drawer and clean URL
+        if (oauth.isOAuthReturn || sessionStorage.getItem('mitti_oauth_pending')) {
+          sessionStorage.removeItem('mitti_oauth_pending');
+          if (window.location.hash || window.location.search.includes('code=') || window.location.search.includes('access_token=')) {
+            const cleanUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
+          setTimeout(() => {
+            drawer.classList.add('open');
+            drawerOverlay.classList.add('open');
+            renderAccountContent();
+          }, 300);
+        }
       } else {
-        const profRes = await fetch(getApiUrl('/api/customers/profile') + '?t=' + Date.now(), {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (profRes.ok) {
-          const profData = await profRes.json();
-          window.loggedInCustomer = profData.customer;
-          window.loggedInCustomer.orders = profData.orders || [];
-        } else {
-          setAuthToken(null);
+        if (token) {
+          const profRes = await fetch(getApiUrl('/api/customers/profile') + '?t=' + Date.now(), {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (profRes.ok) {
+            const profData = await profRes.json();
+            window.loggedInCustomer = profData.customer;
+            window.loggedInCustomer.orders = profData.orders || [];
+          } else {
+            setAuthToken(null);
+          }
         }
       }
     } catch (e) {
@@ -869,6 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
               const data = await res.json();
 
               if (res.ok && data.url) {
+                sessionStorage.setItem('mitti_oauth_pending', 'true');
                 window.location.href = data.url;
               } else {
                 alert(data.error || "Could not start Google login. Please try again.");

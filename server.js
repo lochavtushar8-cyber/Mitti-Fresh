@@ -2214,7 +2214,24 @@ app.get('/api/customers/profile', async (req, res) => {
 // Google OAuth Customer Profile Sync & Referral Attachment API
 app.post('/api/customers/oauth-sync', async (req, res) => {
   try {
-    const customer = await getCustomerFromToken(req);
+    let customer = await getCustomerFromToken(req);
+
+    // If client passed OAuth code, exchange code for token
+    if (!customer && req.body.code) {
+      try {
+        const { insforgePublic: pubClient } = await initInsForge();
+        if (pubClient && pubClient.http) {
+          const codeRes = await pubClient.http.post('/api/auth/oauth/token', { code: req.body.code });
+          if (codeRes && codeRes.accessToken) {
+            req.headers.authorization = `Bearer ${codeRes.accessToken}`;
+            customer = await getCustomerFromToken(req);
+          }
+        }
+      } catch (e) {
+        console.error("OAuth code exchange error:", e);
+      }
+    }
+
     if (!customer) {
       return res.status(401).json({ error: "Unauthorized OAuth session." });
     }
@@ -2275,9 +2292,12 @@ app.post('/api/customers/oauth-sync', async (req, res) => {
     const myReferrals = referralsList.filter(r => r.referrerEmail === customer.email || r.referralCode === customer.referralCode);
     const totalRewardsEarned = customer.totalRewardsEarned || myReferrals.filter(r => r.status === 'Successful').reduce((acc, r) => acc + (r.referrerRewardAmount || 100), 0);
 
+    const activeToken = req.headers.authorization ? req.headers.authorization.substring(7) : null;
+
     return res.json({
       status: "success",
       customer,
+      token: activeToken,
       referralStats: {
         referralCode: customer.referralCode,
         totalReferrals: myReferrals.length,
