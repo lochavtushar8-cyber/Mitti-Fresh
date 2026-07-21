@@ -2297,6 +2297,36 @@ app.post('/api/customers/oauth-sync', async (req, res) => {
   }
 });
 
+// Generate Google OAuth Login URL API
+app.get('/api/auth/google-url', async (req, res) => {
+  try {
+    const { insforgePublic: pubClient } = await initInsForge();
+    const host = req.get('host');
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+    const redirectUri = `${protocol}://${host}`;
+
+    if (!pubClient || !pubClient.auth) {
+      return res.status(500).json({ error: "InsForge Auth service unavailable." });
+    }
+
+    const oauthRes = await pubClient.auth.signInWithOAuth({
+      provider: 'google',
+      redirectTo: redirectUri
+    });
+
+    if (oauthRes.error || !oauthRes.data || !oauthRes.data.url) {
+      console.error("[GOOGLE-OAUTH] Failed to generate Google OAuth URL:", oauthRes.error);
+      return res.status(500).json({ error: oauthRes.error ? oauthRes.error.message : "Failed to generate Google login link." });
+    }
+
+    console.log(`[GOOGLE-OAUTH] Generated Google OAuth URL for redirect: ${redirectUri}`);
+    return res.json({ status: "success", url: oauthRes.data.url });
+  } catch (err) {
+    console.error("Google OAuth URL error:", err);
+    return res.status(500).json({ error: "Failed to initialize Google login." });
+  }
+});
+
 // Admin Referral Program Settings GET API
 app.get('/api/admin/referral-settings', async (req, res) => {
   try {

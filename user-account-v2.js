@@ -865,19 +865,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('mitti_referral_code', currentRefCode.toUpperCase());
               }
 
-              const sdk = await import('@insforge/sdk');
-              const insforgePublic = sdk.createClient({
-                baseUrl: (window.INSFORGE_URL || window.location.origin).replace(/\/+$/, ''),
-                anonKey: window.INSFORGE_ANON_KEY || ''
-              });
+              const res = await fetch(getApiUrl('/api/auth/google-url'));
+              const data = await res.json();
 
-              await insforgePublic.auth.signInWithOAuth({
-                provider: 'google',
-                redirectTo: window.location.origin
-              });
+              if (res.ok && data.url) {
+                window.location.href = data.url;
+              } else {
+                alert(data.error || "Could not start Google login. Please try again.");
+              }
             } catch (err) {
               console.error("Google auth error:", err);
-              alert("Could not start Google login. Please try again.");
+              alert("Could not start Google login. Please check connection.");
             }
           });
         });
