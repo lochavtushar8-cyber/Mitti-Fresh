@@ -1021,6 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setAuthToken(data.token, rememberMe);
                 window.loggedInCustomer = data.customer;
                 renderAccountContent();
+                window.dispatchEvent(new CustomEvent('customerLogin', { detail: data.customer }));
               } else {
                 alert(data.error || "Invalid credentials.");
               }
@@ -1043,6 +1044,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setAuthToken(data.token, true);
                 window.loggedInCustomer = data.customer;
                 renderAccountContent();
+                window.dispatchEvent(new CustomEvent('customerLogin', { detail: data.customer }));
               } else {
                 alert(data.error || "Registration failed.");
               }
