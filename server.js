@@ -947,7 +947,7 @@ app.post('/api/submit-cod-order', async (req, res) => {
   try {
     const { orderId, amount, customer, address, items } = req.body;
     
-    if (!orderId || !amount || !customer || !address || !items) {
+    if (!orderId || amount === undefined || amount === null || !customer || !address || !items) {
       return res.status(400).json({ error: "Missing required order submission fields." });
     }
 
@@ -959,16 +959,18 @@ app.post('/api/submit-cod-order', async (req, res) => {
       paymentStatus: "Pending", // Cash collected at door
       orderStatus: "Pending",
       amount: parseFloat(amount),
-      codFee: parseFloat(req.body.codFee || 0),
       shippingCharge: parseFloat(req.body.shippingCharge || 0),
-      discountAmount: parseFloat(req.body.discountAmount || 0),
-      appliedCoupon: req.body.appliedCoupon || null,
+      discount: parseFloat(req.body.discountAmount || 0),
       customer: customer || {},
       address: address || {},
       items: items || []
     };
 
-    await insforge.database.from('orders').insert([newOrder]);
+    const { error: dbError } = await insforge.database.from('orders').insert([newOrder]);
+    if (dbError) {
+      console.error("[COD-ORDER] Database insert failed:", dbError);
+      return res.status(500).json({ error: "Failed to store COD order in database: " + dbError.message });
+    }
 
     // Deduct inventory and trigger alerts
     try {
