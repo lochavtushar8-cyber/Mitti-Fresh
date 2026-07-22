@@ -861,7 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
               <div class="account-form-group">
                 <label>Referral Code (Optional)</label>
-                <input type="text" id="cust-referral-code" placeholder="e.g. DEVA001" style="text-transform: uppercase;" value="${refCodeParam ? refCodeParam.toUpperCase() : ''}">
+                <input type="text" id="cust-referral-code" placeholder="e.g. DEVA001" style="text-transform: uppercase;" value="${(refCodeParam || sessionStorage.getItem('mitti_referral_code') || '').toUpperCase()}">
               </div>
             ` : ''}
             <div class="account-form-group">

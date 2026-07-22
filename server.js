@@ -1537,7 +1537,9 @@ const processReferralReward = async (order, triggerStage) => {
 
     // Check configured trigger stage
     const configuredTrigger = (settings.trigger || 'Delivered').toLowerCase();
-    if (configuredTrigger !== triggerStage.toLowerCase()) return;
+    if (triggerStage.toLowerCase() === 'paid' && configuredTrigger !== 'paid') {
+      return;
+    }
 
     const custEmail = (order.customer.email || '').toLowerCase();
     if (!custEmail) return;
