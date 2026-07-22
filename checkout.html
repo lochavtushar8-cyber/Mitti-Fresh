@@ -493,22 +493,32 @@
 
       // Fetch latest profile to get real credit balance
       const loadCustomerCredits = async () => {
+        console.log("[CREDITS-DEBUG] loadCustomerCredits starting...");
         const token = localStorage.getItem('mitti_customer_token') || sessionStorage.getItem('mitti_customer_token');
+        console.log("[CREDITS-DEBUG] Token retrieved:", token ? "Exists" : "None");
         if (!token) return;
 
         try {
           const res = await fetch(window.getApiEndpoint('/api/customers/profile'), {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+          console.log("[CREDITS-DEBUG] Profile API response status:", res.status);
           if (res.ok) {
             const data = await res.json();
+            console.log("[CREDITS-DEBUG] Profile API data customer:", data.customer ? "Found" : "None");
             if (data.customer) {
               userCredits = data.customer.rewardPoints || 0;
+              console.log("[CREDITS-DEBUG] Customer rewardPoints:", userCredits);
               document.getElementById('lbl-available-credits').textContent = userCredits;
               document.getElementById('lbl-available-value').textContent = `₹${(userCredits / 10).toFixed(2)}`;
               
               const box = document.getElementById('checkout-credits-box');
-              if (box) box.style.display = 'block';
+              if (box) {
+                box.style.display = 'block';
+                console.log("[CREDITS-DEBUG] Set checkout-credits-box style.display = 'block'");
+              } else {
+                console.warn("[CREDITS-DEBUG] checkout-credits-box element not found!");
+              }
 
               const input = document.getElementById('checkout-credits-input');
               const btn = document.getElementById('btn-apply-credits');
@@ -547,7 +557,7 @@
         const savedAddrsList = document.getElementById('saved-addresses-list');
         
         let addrs = [];
-        const loggedIn = window.getLoggedInCustomer();
+        const loggedIn = typeof window.getLoggedInCustomer === 'function' ? window.getLoggedInCustomer() : null;
         if (loggedIn) {
           // Pre-fill profile
           document.getElementById('cust-name').value = loggedIn.name || '';
