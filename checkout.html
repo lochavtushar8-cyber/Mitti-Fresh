@@ -493,7 +493,7 @@
 
       // Fetch latest profile to get real credit balance
       const loadCustomerCredits = async () => {
-        const token = localStorage.getItem('mitti_customer_token');
+        const token = localStorage.getItem('mitti_customer_token') || sessionStorage.getItem('mitti_customer_token');
         if (!token) return;
 
         try {
