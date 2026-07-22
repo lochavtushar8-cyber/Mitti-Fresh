@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
         token = searchParams.get('access_token') || searchParams.get('token');
         if (token) isOAuthReturn = true;
       }
-      code = searchParams.get('code');
+      code = searchParams.get('insforge_code') || searchParams.get('code');
       if (code) isOAuthReturn = true;
 
       if (sessionStorage.getItem('mitti_oauth_pending')) {
@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (oauth.isOAuthReturn || sessionStorage.getItem('mitti_oauth_pending')) {
           sessionStorage.removeItem('mitti_oauth_pending');
           sessionStorage.removeItem('mitti_oauth_verifier');
-          if (window.location.hash || window.location.search.includes('code=') || window.location.search.includes('access_token=')) {
+          if (window.location.hash || window.location.search.includes('code=') || window.location.search.includes('insforge_code=') || window.location.search.includes('access_token=')) {
             const cleanUrl = window.location.origin + window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
           }
