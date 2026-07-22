@@ -2220,11 +2220,13 @@ app.post('/api/customers/oauth-sync', async (req, res) => {
     if (!customer && req.body.code) {
       try {
         const { insforgePublic: pubClient } = await initInsForge();
-        if (pubClient && pubClient.http) {
-          const codeRes = await pubClient.http.post('/api/auth/oauth/token', { code: req.body.code });
-          if (codeRes && codeRes.accessToken) {
-            req.headers.authorization = `Bearer ${codeRes.accessToken}`;
+        if (pubClient && pubClient.auth) {
+          const exchangeRes = await pubClient.auth.exchangeOAuthCode(req.body.code, req.body.codeVerifier);
+          if (exchangeRes && exchangeRes.data && exchangeRes.data.accessToken) {
+            req.headers.authorization = `Bearer ${exchangeRes.data.accessToken}`;
             customer = await getCustomerFromToken(req);
+          } else if (exchangeRes && exchangeRes.error) {
+            console.error("InsForge exchangeOAuthCode error:", exchangeRes.error.message);
           }
         }
       } catch (e) {
@@ -2343,7 +2345,11 @@ app.get('/api/auth/google-url', async (req, res) => {
     }
 
     console.log(`[GOOGLE-OAUTH] Generated Google OAuth URL for redirect: ${redirectUri}`);
-    return res.json({ status: "success", url: oauthRes.data.url });
+    return res.json({ 
+      status: "success", 
+      url: oauthRes.data.url,
+      codeVerifier: oauthRes.data.codeVerifier 
+    });
   } catch (err) {
     console.error("Google OAuth URL error:", err);
     return res.status(500).json({ error: "Failed to initialize Google login." });

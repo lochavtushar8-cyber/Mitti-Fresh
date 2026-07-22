@@ -352,13 +352,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const savedRefCode = sessionStorage.getItem('mitti_referral_code') || '';
+      const verifier = sessionStorage.getItem('mitti_oauth_verifier') || '';
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch(getApiUrl('/api/customers/oauth-sync'), {
         method: 'POST',
         headers,
-        body: JSON.stringify({ referralCode: savedRefCode, code: oauth.code })
+        body: JSON.stringify({ 
+          referralCode: savedRefCode, 
+          code: oauth.code,
+          codeVerifier: verifier
+        })
       });
 
       if (res.ok) {
@@ -372,6 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // If returning from Google OAuth, auto-open Customer Account drawer and clean URL hash
         if (oauth.isOAuthReturn || sessionStorage.getItem('mitti_oauth_pending')) {
           sessionStorage.removeItem('mitti_oauth_pending');
+          sessionStorage.removeItem('mitti_oauth_verifier');
           if (window.location.hash || window.location.search.includes('code=') || window.location.search.includes('access_token=')) {
             const cleanUrl = window.location.origin + window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
@@ -905,6 +911,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
               if (res.ok && data.url) {
                 sessionStorage.setItem('mitti_oauth_pending', 'true');
+                if (data.codeVerifier) {
+                  sessionStorage.setItem('mitti_oauth_verifier', data.codeVerifier);
+                }
                 window.location.href = data.url;
               } else {
                 alert(data.error || "Could not start Google login. Please try again.");
