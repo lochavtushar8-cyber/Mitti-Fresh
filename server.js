@@ -746,14 +746,8 @@ const findProductFromCartItem = async (item) => {
 // Create Razorpay Order
 const createOrderController = async (req, res) => {
   try {
-    const { amount, currency, receipt, items } = req.body;
+    const { amount, currency, receipt, items, creditsUsed, couponCode, customerEmail } = req.body;
 
-    if (!amount || amount < 100) {
-      return res.status(400).json({ error: "Invalid amount. Minimum amount is 100 paise." });
-    }
-    if (!currency) {
-      return res.status(400).json({ error: "Currency is required." });
-    }
     if (!receipt) {
       return res.status(400).json({ error: "Receipt is required." });
     }
@@ -771,8 +765,70 @@ const createOrderController = async (req, res) => {
       }
     }
 
+    // Server-side recalculation to prevent payment gateway manipulation
+    let calculatedAmountPaise = parseInt(amount);
+
+    if (items && Array.isArray(items)) {
+      const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.sellingPrice || item.price || 0) * parseInt(item.quantity || 1)), 0);
+      
+      let couponDiscount = 0;
+      if (couponCode) {
+        const { data: coupons } = await insforge.database.from('coupons').select().eq('code', couponCode);
+        const coupon = coupons && coupons[0];
+        if (coupon) {
+          if (coupon.type === 'Percentage') {
+            couponDiscount = Math.round(subtotal * (coupon.discountVal / 100));
+          } else if (coupon.type === 'Flat') {
+            couponDiscount = coupon.discountVal;
+          }
+        }
+      }
+
+      let finalCreditsUsed = 0;
+      if (creditsUsed && Number(creditsUsed) > 0 && customerEmail) {
+        const { data: allCusts } = await insforge.database.from('customers').select().eq('email', customerEmail.toLowerCase());
+        const customer = allCusts && allCusts[0];
+        if (customer) {
+          finalCreditsUsed = Math.floor(Number(creditsUsed));
+          if (finalCreditsUsed > (customer.rewardPoints || 0)) {
+            finalCreditsUsed = customer.rewardPoints || 0;
+          }
+          const maxDiscountRupees = Number((subtotal * 0.1).toFixed(2));
+          const maxAllowedCredits = Math.floor(maxDiscountRupees * 10);
+          if (finalCreditsUsed > maxAllowedCredits) {
+            finalCreditsUsed = maxAllowedCredits;
+          }
+        }
+      }
+      const creditsDiscount = finalCreditsUsed / 10;
+
+      let shippingCharge = 0;
+      try {
+        const { data: dbSettings } = await insforge.database.from('settings').select().eq('id', 'settings_default');
+        const appSettings = dbSettings && dbSettings[0];
+        const shippingRules = (appSettings && appSettings.shippingRules) || { flatRate: 50, freeShippingThreshold: 500 };
+        const threshold = shippingRules.freeShippingThreshold || 500;
+        const flatRateVal = shippingRules.flatRate || 50;
+
+        if (subtotal >= threshold) {
+          shippingCharge = 0;
+        } else {
+          shippingCharge = flatRateVal;
+        }
+      } catch (e) {
+        shippingCharge = 50;
+      }
+
+      const finalAmount = subtotal - couponDiscount - creditsDiscount + shippingCharge;
+      calculatedAmountPaise = Math.round(finalAmount * 100);
+    }
+
+    if (!calculatedAmountPaise || calculatedAmountPaise < 100) {
+      return res.status(400).json({ error: "Invalid amount. Minimum amount is 100 paise." });
+    }
+
     const options = {
-      amount: parseInt(amount), // in paise
+      amount: calculatedAmountPaise,
       currency: currency || "INR",
       receipt: receipt
     };
@@ -823,21 +879,66 @@ const verifyPaymentController = async (req, res) => {
             await sendAdminNotification('stock-mismatch-warning', `Paid Order placed but stock was insufficient: ${mitti_order_id} (${stockErr.message})`);
           }
 
+          // Recalculate subtotal on server
+          const subtotal = (items || []).reduce((sum, item) => sum + (parseFloat(item.sellingPrice || item.price || 0) * parseInt(item.quantity || 1)), 0);
+
+          let couponDiscount = 0;
+          if (req.body.couponCode) {
+            const { data: coupons } = await insforge.database.from('coupons').select().eq('code', req.body.couponCode);
+            const coupon = coupons && coupons[0];
+            if (coupon) {
+              if (coupon.type === 'Percentage') {
+                couponDiscount = Math.round(subtotal * (coupon.discountVal / 100));
+              } else if (coupon.type === 'Flat') {
+                couponDiscount = coupon.discountVal;
+              }
+            }
+          }
+
+          // Deduct credits securely
+          const { creditsUsed: finalCreditsUsed, creditsDiscount } = await validateAndDeductCredits(customer ? customer.email : '', req.body.creditsUsed, mitti_order_id, subtotal);
+
+          // Get shipping rules
+          let shippingCharge = 0;
+          try {
+            const { data: dbSettings } = await insforge.database.from('settings').select().eq('id', 'settings_default');
+            const appSettings = dbSettings && dbSettings[0];
+            const shippingRules = (appSettings && appSettings.shippingRules) || { flatRate: 50, freeShippingThreshold: 500 };
+            const threshold = shippingRules.freeShippingThreshold || 500;
+            const flatRateVal = shippingRules.flatRate || 50;
+
+            if (subtotal >= threshold) {
+              shippingCharge = 0;
+            } else {
+              shippingCharge = flatRateVal;
+            }
+          } catch (e) {
+            shippingCharge = 50;
+          }
+
+          const finalAmount = subtotal - couponDiscount - creditsDiscount + shippingCharge;
+
           const newOrder = {
             orderId: mitti_order_id,
             razorpayOrderId: razorpay_order_id,
             razorpayPaymentId: razorpay_payment_id,
             paymentStatus: "Paid",
             orderStatus: "Preparing Order",
-            amount: parseFloat(amount),
-            customer: customer || {},
+            amount: finalAmount,
+            shippingCharge,
+            discount: couponDiscount,
+            customer: {
+              ...(customer || {}),
+              creditsUsed: finalCreditsUsed,
+              creditsDiscount: creditsDiscount
+            },
             address: address || {},
             items: items || [],
             paymentMethod: "Razorpay"
           };
           
           await insforge.database.from('orders').insert([newOrder]);
-          await sendAdminNotification('new-order', `New Razorpay Order Verified: ${mitti_order_id}`, { orderId: mitti_order_id, amount });
+          await sendAdminNotification('new-order', `New Razorpay Order Verified: ${mitti_order_id}`, { orderId: mitti_order_id, amount: finalAmount });
           
           // Trigger referral reward check on successful payment verification
           processReferralReward(newOrder, 'Paid').catch(e => console.error("Referral trigger error:", e));
@@ -951,6 +1052,45 @@ app.post('/api/submit-cod-order', async (req, res) => {
       return res.status(400).json({ error: "Missing required order submission fields." });
     }
 
+    // Secure server-side recalculation of subtotal and totals
+    const subtotal = (items || []).reduce((sum, item) => sum + (parseFloat(item.sellingPrice || item.price || 0) * parseInt(item.quantity || 1)), 0);
+
+    let couponDiscount = 0;
+    if (req.body.couponCode) {
+      const { data: coupons } = await insforge.database.from('coupons').select().eq('code', req.body.couponCode);
+      const coupon = coupons && coupons[0];
+      if (coupon) {
+        if (coupon.type === 'Percentage') {
+          couponDiscount = Math.round(subtotal * (coupon.discountVal / 100));
+        } else if (coupon.type === 'Flat') {
+          couponDiscount = coupon.discountVal;
+        }
+      }
+    }
+
+    // Deduct credits securely
+    const { creditsUsed: finalCreditsUsed, creditsDiscount } = await validateAndDeductCredits(customer ? customer.email : '', req.body.creditsUsed, orderId, subtotal);
+
+    // Get shipping rules
+    let shippingCharge = 0;
+    try {
+      const { data: dbSettings } = await insforge.database.from('settings').select().eq('id', 'settings_default');
+      const appSettings = dbSettings && dbSettings[0];
+      const shippingRules = (appSettings && appSettings.shippingRules) || { flatRate: 50, freeShippingThreshold: 500 };
+      const threshold = shippingRules.freeShippingThreshold || 500;
+      const flatRateVal = shippingRules.flatRate || 50;
+
+      if (subtotal >= threshold) {
+        shippingCharge = 0;
+      } else {
+        shippingCharge = flatRateVal;
+      }
+    } catch (e) {
+      shippingCharge = 50;
+    }
+
+    const finalAmount = subtotal - couponDiscount - creditsDiscount + shippingCharge;
+
     const newOrder = {
       orderId,
       paymentMethod: "COD",
@@ -958,10 +1098,14 @@ app.post('/api/submit-cod-order', async (req, res) => {
       razorpayPaymentId: "COD",
       paymentStatus: "Pending", // Cash collected at door
       orderStatus: "Pending",
-      amount: parseFloat(amount),
-      shippingCharge: parseFloat(req.body.shippingCharge || 0),
-      discount: parseFloat(req.body.discountAmount || 0),
-      customer: customer || {},
+      amount: finalAmount,
+      shippingCharge,
+      discount: couponDiscount,
+      customer: {
+        ...(customer || {}),
+        creditsUsed: finalCreditsUsed,
+        creditsDiscount: creditsDiscount
+      },
       address: address || {},
       items: items || []
     };
@@ -979,7 +1123,7 @@ app.post('/api/submit-cod-order', async (req, res) => {
       return res.status(400).json({ error: stockErr.message });
     }
 
-    await sendAdminNotification('new-order', `New COD Order Received: ${orderId}`, { orderId, amount });
+    await sendAdminNotification('new-order', `New COD Order Received: ${orderId}`, { orderId, amount: finalAmount });
 
     return res.status(200).json({ status: "success", orderId });
   } catch (error) {
@@ -1014,8 +1158,13 @@ app.post('/api/update-order-status', async (req, res) => {
     }
 
     const updatedOrder = data[0];
-    if (updatedOrder && updatedOrder.orderStatus === 'Delivered') {
-      processReferralReward(updatedOrder, 'Delivered').catch(e => console.error("Referral trigger error:", e));
+    if (updatedOrder) {
+      if (updatedOrder.orderStatus === 'Delivered') {
+        processReferralReward(updatedOrder, 'Delivered').catch(e => console.error("Referral trigger error:", e));
+      }
+      if (updatedOrder.orderStatus === 'Cancelled' || updatedOrder.paymentStatus === 'Refunded') {
+        processOrderRefund(updatedOrder).catch(e => console.error("Refund trigger error:", e));
+      }
     }
 
     await logAction(req.headers['x-user-name'] || "Admin", "Update Order", `Changed status for order ${orderId}`);
@@ -1589,6 +1738,7 @@ const processReferralReward = async (order, triggerStage) => {
       await insforge.database.from('customers').update({
         rewardPoints: newReferrerPts
       }).eq('id', referrerCust.id);
+      await logCreditTransaction(referrerCust.id, referrerCust.email, settings.referrerReward || 100, 'Referral Reward');
       console.log(`[REFERRAL-REWARD] Credited ${settings.referrerReward} points to referrer ${referrerCust.email}`);
     } catch (e) {
       console.error("[REFERRAL-REWARD] Failed to update referrer points:", e);
@@ -1602,6 +1752,7 @@ const processReferralReward = async (order, triggerStage) => {
         await insforge.database.from('customers').update({
           rewardPoints: newFriendPts
         }).eq('id', customer.id);
+        await logCreditTransaction(customer.id, customer.email, settings.friendReward, 'Referral Reward');
         console.log(`[REFERRAL-REWARD] Credited ${settings.friendReward} points to referred friend ${customer.email}`);
       } catch (e) {
         console.error("[REFERRAL-REWARD] Failed to update friend points:", e);
@@ -1691,6 +1842,133 @@ const saveReferralsData = (referralsList) => {
     fs.writeFileSync(REFERRALS_FILE, JSON.stringify(referralsList, null, 2), 'utf8');
   } catch (e) {
     console.error("Save referrals disk failed:", e);
+  }
+};
+
+const CREDIT_TRANSACTIONS_FILE = path.join(__dirname, 'data', 'credit_transactions.json');
+
+const getCreditTransactions = async () => {
+  try {
+    if (fs.existsSync(CREDIT_TRANSACTIONS_FILE)) {
+      return JSON.parse(fs.readFileSync(CREDIT_TRANSACTIONS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error("Read credit transactions disk failed:", e);
+  }
+  return [];
+};
+
+const saveCreditTransactions = async (txns) => {
+  try {
+    const dir = path.dirname(CREDIT_TRANSACTIONS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(CREDIT_TRANSACTIONS_FILE, JSON.stringify(txns, null, 2), 'utf8');
+  } catch (e) {
+    console.error("Save credit transactions disk failed:", e);
+  }
+};
+
+const logCreditTransaction = async (customerId, email, amount, type) => {
+  const txns = await getCreditTransactions();
+  const newTxn = {
+    id: 'TXN-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    customerId,
+    customerEmail: (email || '').toLowerCase(),
+    amount: Number(amount),
+    type,
+    date: new Date().toISOString()
+  };
+  txns.push(newTxn);
+  await saveCreditTransactions(txns);
+  return newTxn;
+};
+
+const validateAndDeductCredits = async (customerEmail, creditsToUse, orderId, subtotal) => {
+  try {
+    const cleanEmail = (customerEmail || '').toLowerCase();
+    if (!cleanEmail) return { creditsUsed: 0, creditsDiscount: 0 };
+
+    const txns = await getCreditTransactions();
+    const existingTxn = txns.find(t => t.type === 'Used on Order #' + orderId);
+    if (existingTxn) {
+      console.log(`[CREDITS] Order ${orderId} already had credits deducted. Skipping duplicate deduction.`);
+      return {
+        creditsUsed: Math.abs(existingTxn.amount),
+        creditsDiscount: Math.abs(existingTxn.amount) / 10
+      };
+    }
+
+    if (!creditsToUse || Number(creditsToUse) <= 0) {
+      return { creditsUsed: 0, creditsDiscount: 0 };
+    }
+
+    const { data: allCusts } = await insforge.database.from('customers').select().eq('email', cleanEmail);
+    const customer = allCusts && allCusts[0];
+    if (!customer) {
+      console.warn(`[CREDITS] Customer not found for email: ${cleanEmail}`);
+      return { creditsUsed: 0, creditsDiscount: 0 };
+    }
+
+    let resolvedCredits = Math.floor(Number(creditsToUse));
+    if (resolvedCredits > (customer.rewardPoints || 0)) {
+      resolvedCredits = customer.rewardPoints || 0;
+    }
+
+    // Max discount is 10% of subtotal. 10 Credits = 1 Rupee.
+    const maxDiscountRupees = Number((subtotal * 0.1).toFixed(2));
+    const maxAllowedCredits = Math.floor(maxDiscountRupees * 10);
+
+    if (resolvedCredits > maxAllowedCredits) {
+      resolvedCredits = maxAllowedCredits;
+    }
+
+    if (resolvedCredits <= 0) {
+      return { creditsUsed: 0, creditsDiscount: 0 };
+    }
+
+    const newPoints = (customer.rewardPoints || 0) - resolvedCredits;
+    await insforge.database.from('customers').update({ rewardPoints: newPoints }).eq('id', customer.id);
+    await logCreditTransaction(customer.id, customer.email, -resolvedCredits, `Used on Order #${orderId}`);
+    
+    const creditsDiscount = resolvedCredits / 10;
+    console.log(`[CREDITS] Successfully deducted ${resolvedCredits} credits (₹${creditsDiscount} discount) for order ${orderId}`);
+    return { creditsUsed: resolvedCredits, creditsDiscount };
+  } catch (err) {
+    console.error("[CREDITS] Error in validateAndDeductCredits:", err);
+    return { creditsUsed: 0, creditsDiscount: 0 };
+  }
+};
+
+const processOrderRefund = async (order) => {
+  try {
+    if (!order || !order.customer) return;
+    const creditsUsed = Math.floor(Number(order.customer.creditsUsed || 0));
+    if (creditsUsed <= 0) return;
+
+    const txns = await getCreditTransactions();
+    const refundType = `Refund for Cancelled Order #${order.orderId}`;
+    const refundExists = txns.some(t => t.type === refundType);
+    if (refundExists) {
+      console.log(`[CREDITS-REFUND] Order ${order.orderId} already had credits refunded. Skipping duplicate refund.`);
+      return;
+    }
+
+    const cleanEmail = (order.customer.email || '').toLowerCase();
+    if (!cleanEmail) return;
+
+    const { data: allCusts } = await insforge.database.from('customers').select().eq('email', cleanEmail);
+    const customer = allCusts && allCusts[0];
+    if (!customer) {
+      console.warn(`[CREDITS-REFUND] Customer not found for refund: ${cleanEmail}`);
+      return;
+    }
+
+    const newPoints = (customer.rewardPoints || 0) + creditsUsed;
+    await insforge.database.from('customers').update({ rewardPoints: newPoints }).eq('id', customer.id);
+    await logCreditTransaction(customer.id, customer.email, creditsUsed, refundType);
+    console.log(`[CREDITS-REFUND] Successfully refunded ${creditsUsed} credits to customer ${customer.email} for cancelled order ${order.orderId}`);
+  } catch (err) {
+    console.error("[CREDITS-REFUND] Error in processOrderRefund:", err);
   }
 };
 
@@ -2174,6 +2452,12 @@ app.get('/api/customers/profile', async (req, res) => {
 
     const totalRewardsEarned = customer.totalRewardsEarned || myReferrals.filter(r => r.status === 'Successful').reduce((acc, r) => acc + (r.referrerRewardAmount || 100), 0);
 
+    const allTxns = await getCreditTransactions();
+    const myTxns = allTxns.filter(t => t.customerId === customer.id || (t.customerEmail && t.customerEmail.toLowerCase() === custEmail));
+
+    const totalCreditsEarned = myTxns.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+    const totalCreditsUsed = Math.abs(myTxns.filter(t => t.amount < 0).reduce((acc, t) => acc + t.amount, 0));
+
     return res.json({
       status: "success",
       customer,
@@ -2184,6 +2468,12 @@ app.get('/api/customers/profile', async (req, res) => {
         successfulReferrals: myReferrals.filter(r => r.status === 'Successful').length,
         totalRewardsEarned,
         referrals: myReferrals
+      },
+      creditStats: {
+        balance: customer.rewardPoints || 0,
+        totalCreditsEarned,
+        totalCreditsUsed,
+        history: myTxns.sort((a, b) => new Date(b.date) - new Date(a.date))
       },
       orders: customerOrders.map(o => ({
         ...o,
@@ -2279,6 +2569,12 @@ app.post('/api/customers/oauth-sync', async (req, res) => {
     const myReferrals = referralsList.filter(r => r.referrerEmail === customer.email || r.referralCode === customer.referralCode);
     const totalRewardsEarned = customer.totalRewardsEarned || myReferrals.filter(r => r.status === 'Successful').reduce((acc, r) => acc + (r.referrerRewardAmount || 100), 0);
 
+    const allTxns = await getCreditTransactions();
+    const myTxns = allTxns.filter(t => t.customerId === customer.id || (t.customerEmail && t.customerEmail.toLowerCase() === customer.email.toLowerCase()));
+
+    const totalCreditsEarned = myTxns.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+    const totalCreditsUsed = Math.abs(myTxns.filter(t => t.amount < 0).reduce((acc, t) => acc + t.amount, 0));
+
     // Ensure a deterministic, persistent session token is generated for 30-day storage
     const sessionToken = (req.headers.authorization && req.headers.authorization.startsWith('Bearer ') && req.headers.authorization.length > 10)
       ? req.headers.authorization.substring(7)
@@ -2295,6 +2591,12 @@ app.post('/api/customers/oauth-sync', async (req, res) => {
         successfulReferrals: myReferrals.filter(r => r.status === 'Successful').length,
         totalRewardsEarned,
         referrals: myReferrals
+      },
+      creditStats: {
+        balance: customer.rewardPoints || 0,
+        totalCreditsEarned,
+        totalCreditsUsed,
+        history: myTxns.sort((a, b) => new Date(b.date) - new Date(a.date))
       },
       orders: customerOrders.map(o => ({
         ...o,
@@ -2633,6 +2935,61 @@ app.get('/api/customers', async (req, res) => {
   }
 });
 
+// Fetch credit transactions history for a specific customer (Admin panel)
+app.get('/api/admin/customers/:id/credits', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: customers } = await insforge.database.from('customers').select().eq('id', id);
+    const customer = customers && customers[0];
+    if (!customer) return res.status(404).json({ error: "Customer not found." });
+
+    const allTxns = await getCreditTransactions();
+    const myTxns = allTxns.filter(t => t.customerId === customer.id || (t.customerEmail && t.customerEmail.toLowerCase() === customer.email.toLowerCase()));
+    
+    return res.json({
+      balance: customer.rewardPoints || 0,
+      history: myTxns.sort((a, b) => new Date(b.date) - new Date(a.date))
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Perform manual credit points adjustment for a customer (Admin panel)
+app.post('/api/admin/customers/:id/credits-adjust', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, reason } = req.body;
+
+    if (amount === undefined || amount === null || !reason) {
+      return res.status(400).json({ error: "Amount and reason are required." });
+    }
+
+    const { data: customers } = await insforge.database.from('customers').select().eq('id', id);
+    const customer = customers && customers[0];
+    if (!customer) return res.status(404).json({ error: "Customer not found." });
+
+    const changeVal = parseInt(amount);
+    if (isNaN(changeVal)) {
+      return res.status(400).json({ error: "Invalid amount value." });
+    }
+
+    const newPoints = (customer.rewardPoints || 0) + changeVal;
+    if (newPoints < 0) {
+      return res.status(400).json({ error: "Customer's credit balance cannot go below 0." });
+    }
+
+    await insforge.database.from('customers').update({ rewardPoints: newPoints }).eq('id', customer.id);
+    const txn = await logCreditTransaction(customer.id, customer.email, changeVal, `Admin Adjustment: ${reason}`);
+
+    await logAction(req.headers['x-user-name'] || "Admin", "Adjust Credits", `Adjusted credits for customer ${customer.email} by ${changeVal} points. Reason: ${reason}`);
+
+    return res.json({ status: "success", balance: newPoints, transaction: txn });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Fetch all registered employees list (Admin panel)
 app.get('/api/admin/employees', async (req, res) => {
   try {
@@ -2725,5 +3082,9 @@ module.exports = {
   getReferralSettings,
   getReferralsData,
   saveReferralsData,
-  initInsForge
+  initInsForge,
+  logCreditTransaction,
+  getCreditTransactions,
+  validateAndDeductCredits,
+  processOrderRefund
 };

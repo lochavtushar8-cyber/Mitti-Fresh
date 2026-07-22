@@ -267,6 +267,24 @@
               <input type="text" id="checkout-coupon" class="checkout-coupon-input" placeholder="Enter coupon code (e.g. PURE10)" autocomplete="off">
               <button type="button" class="checkout-apply-btn" id="checkout-apply-coupon" style="background-color: #214E34 !important; color: #FFFFFF !important; font-weight: 700 !important; opacity: 1 !important; visibility: visible !important; -webkit-appearance: none !important;">Apply</button>
             </div>
+
+            <!-- Credits application field -->
+            <div id="checkout-credits-box" style="margin-top: 16px; border: 1.5px dashed rgba(33, 78, 52, 0.2); border-radius: 12px; padding: 14px; background: rgba(33, 78, 52, 0.02); display: none;">
+              <h5 style="margin: 0 0 6px 0; color: #214E34; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-coins"></i> Use Mitti Credits
+              </h5>
+              <div style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">
+                Available: <strong id="lbl-available-credits">0</strong> Credits (Value: <strong id="lbl-available-value">₹0</strong>)
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" id="checkout-credits-input" class="checkout-coupon-input" style="flex: 1; padding: 6px 10px; font-size: 0.85rem;" placeholder="Credits to redeem (e.g. 500)" min="1" step="10">
+                <button type="button" class="checkout-apply-btn" id="btn-apply-credits" style="padding: 6px 12px; font-size: 0.82rem; background-color: #214E34 !important; color: #FFFFFF !important; font-weight: 700 !important;">Apply</button>
+                <button type="button" class="checkout-apply-btn" id="btn-remove-credits" style="padding: 6px 12px; font-size: 0.82rem; background-color: #A93226 !important; color: #FFFFFF !important; display: none;">Remove</button>
+              </div>
+              <div style="font-size: 0.72rem; color: #777; margin-top: 6px;">
+                * 10 Credits = ₹1. Maximum discount is 10% of items subtotal (excluding shipping/GST).
+              </div>
+            </div>
             
             <!-- Summary breakdown -->
             <div class="summary-breakdown-rows" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; border-bottom: 1.5px solid rgba(33, 78, 52, 0.08); padding-bottom: 24px; font-size: 0.95rem;">
@@ -277,6 +295,10 @@
               <div style="display: flex; justify-content: space-between; color: #27AE60; font-weight: 600; display: none;" id="coupon-discount-row">
                 <span>Coupon discount (<span id="coupon-code-label"></span>):</span>
                 <span id="sum-discount">-₹0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; color: #27AE60; font-weight: 600; display: none;" id="credits-discount-row">
+                <span>Credits Discount:</span>
+                <span id="sum-credits-discount">-₹0</span>
               </div>
               <div style="display: flex; justify-content: space-between; color: var(--color-text-muted); display: none;" id="cod-fee-row">
                 <span>COD Convenience Fee:</span>
@@ -387,6 +409,8 @@
       let shippingCharge = 50;
       let codFee = 0;
       let subtotal = 0;
+      let userCredits = 0;
+      let appliedCredits = 0;
 
       // Unique Order ID generated on load
       const mittiOrderId = "MF-" + Math.floor(100000 + Math.random() * 900000);
@@ -465,6 +489,31 @@
         }
         cart = JSON.parse(savedCart);
         renderOrderSummary();
+      };
+
+      // Fetch latest profile to get real credit balance
+      const loadCustomerCredits = async () => {
+        const token = localStorage.getItem('mitti_customer_token');
+        if (!token) return;
+
+        try {
+          const res = await fetch(window.getApiEndpoint('/api/customers/profile'), {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.customer) {
+              userCredits = data.customer.rewardPoints || 0;
+              if (userCredits > 0) {
+                document.getElementById('lbl-available-credits').textContent = userCredits;
+                document.getElementById('lbl-available-value').textContent = `₹${(userCredits / 10).toFixed(2)}`;
+                document.getElementById('checkout-credits-box').style.display = 'block';
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load customer credits:", e);
+        }
       };
 
       // Auto-fill saved addresses from LocalStorage or logged-in session
@@ -613,6 +662,17 @@
           }
         }
 
+        // Validate and clamp appliedCredits
+        const maxDiscount = subtotal * 0.1;
+        const maxAllowedCredits = Math.floor(maxDiscount * 10);
+        if (appliedCredits > maxAllowedCredits) {
+          appliedCredits = maxAllowedCredits;
+          const inputField = document.getElementById('checkout-credits-input');
+          if (inputField) inputField.value = appliedCredits;
+        }
+
+        const creditsDiscount = appliedCredits / 10;
+
         // 2. Shipping calculation
         const threshold = (window.CONFIG.FREE_DELIVERY_MIN !== undefined && window.CONFIG.FREE_DELIVERY_MIN !== null) ? window.CONFIG.FREE_DELIVERY_MIN : 500;
         const flatRateVal = (window.CONFIG.FLAT_RATE !== undefined && window.CONFIG.FLAT_RATE !== null) ? window.CONFIG.FLAT_RATE : 50;
@@ -627,7 +687,7 @@
         codFee = 0;
 
         const gstVal = Math.round(subtotal * 0.05); // 5% GST included in base price
-        const grandTotal = subtotal - discountAmount + shippingCharge + codFee;
+        const grandTotal = subtotal - discountAmount - creditsDiscount + shippingCharge + codFee;
 
         // Populate DOM elements
         sumSubtotal.textContent = `₹${subtotal}`;
@@ -642,6 +702,17 @@
           couponRow.style.display = 'flex';
         } else {
           couponRow.style.display = 'none';
+        }
+
+        const creditsDiscountRow = document.getElementById('credits-discount-row');
+        const sumCreditsDiscount = document.getElementById('sum-credits-discount');
+        if (creditsDiscountRow && sumCreditsDiscount) {
+          if (appliedCredits > 0) {
+            sumCreditsDiscount.textContent = `-₹${creditsDiscount}`;
+            creditsDiscountRow.style.display = 'flex';
+          } else {
+            creditsDiscountRow.style.display = 'none';
+          }
         }
 
         // Show/hide COD fee rows (Removed - always hidden)
@@ -720,6 +791,53 @@
         }
         calculateTotals();
       });
+
+      // Credits application
+      const btnApplyCredits = document.getElementById('btn-apply-credits');
+      const btnRemoveCredits = document.getElementById('btn-remove-credits');
+      const creditsInput = document.getElementById('checkout-credits-input');
+
+      if (btnApplyCredits && btnRemoveCredits && creditsInput) {
+        btnApplyCredits.addEventListener('click', () => {
+          const val = parseInt(creditsInput.value);
+          if (isNaN(val) || val <= 0) {
+            alert("Please enter a valid positive number of Credits.");
+            return;
+          }
+
+          if (val > userCredits) {
+            alert(`You only have ${userCredits} Credits available.`);
+            return;
+          }
+
+          const maxDiscount = subtotal * 0.1;
+          const maxAllowedCredits = Math.floor(maxDiscount * 10);
+
+          if (val > maxAllowedCredits) {
+            alert(`Maximum credits discount allowed is 10% of subtotal (₹${subtotal * 0.1}). Capping to ${maxAllowedCredits} credits.`);
+            appliedCredits = maxAllowedCredits;
+          } else {
+            appliedCredits = val;
+          }
+
+          creditsInput.value = appliedCredits;
+          creditsInput.disabled = true;
+          btnApplyCredits.style.display = 'none';
+          btnRemoveCredits.style.display = 'inline-block';
+
+          calculateTotals();
+        });
+
+        btnRemoveCredits.addEventListener('click', () => {
+          appliedCredits = 0;
+          creditsInput.value = '';
+          creditsInput.disabled = false;
+          btnApplyCredits.style.display = 'inline-block';
+          btnRemoveCredits.style.display = 'none';
+
+          calculateTotals();
+        });
+      }
 
       // Handle payment method toggles
       // Handle payment method toggles
@@ -999,6 +1117,8 @@
             shippingCharge: shippingCharge,
             discountAmount: discountAmount,
             appliedCoupon: appliedCoupon ? appliedCoupon.code : null,
+            couponCode: appliedCoupon ? appliedCoupon.code : null,
+            creditsUsed: appliedCredits,
             customer: { name: custName, phone: custPhone, email: custEmail },
             address: { house: houseNo, street: street, landmark: landmark, pin: pinCode, city: "New Delhi", state: "Delhi" },
             items: cart
@@ -1118,7 +1238,15 @@
           fetch(window.getApiEndpoint('/create-order'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: orderId, items: cart })
+            body: JSON.stringify({
+              amount: amount * 100,
+              currency: "INR",
+              receipt: orderId,
+              items: cart,
+              creditsUsed: appliedCredits,
+              couponCode: appliedCoupon ? appliedCoupon.code : null,
+              customerEmail: email
+            })
           })
           .then(res => {
             if (!res.ok) {
@@ -1163,6 +1291,8 @@
               razorpay_signature: response.razorpay_signature,
               mitti_order_id: mittiOrderId,
               amount: amount,
+              creditsUsed: appliedCredits,
+              couponCode: appliedCoupon ? appliedCoupon.code : null,
               customer: { name, phone, email },
               address: {
                 house: document.getElementById('addr-house').value,
@@ -1260,6 +1390,7 @@
       // Run
       loadCheckoutCart();
       setupSavedAddresses();
+      loadCustomerCredits();
       setTimeout(setupSavedAddresses, 600); // Delayed secondary check for active session updates
 
       // Fetch dynamic configuration from server on load (Key ID only)

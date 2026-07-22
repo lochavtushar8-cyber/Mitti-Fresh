@@ -446,6 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalOrders = c.orders ? c.orders.length : 0;
       
       let refStats = { referralCode: c.referralCode || '', totalReferrals: 0, pendingReferrals: 0, successfulReferrals: 0, referrals: [] };
+      let creditStats = { balance: c.rewardPoints || 0, totalCreditsEarned: 0, totalCreditsUsed: 0, history: [] };
       try {
         const pRes = await fetch(getApiUrl('/api/customers/profile'), {
           headers: { 'Authorization': `Bearer ${getAuthToken()}` }
@@ -453,9 +454,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pRes.ok) {
           const pData = await pRes.json();
           if (pData.referralStats) refStats = pData.referralStats;
+          if (pData.creditStats) creditStats = pData.creditStats;
           if (pData.customer) {
             window.loggedInCustomer = pData.customer;
             c.referralCode = pData.customer.referralCode || refStats.referralCode;
+            c.rewardPoints = pData.customer.rewardPoints || creditStats.balance;
           }
         }
       } catch(e) {}
@@ -481,11 +484,14 @@ document.addEventListener('DOMContentLoaded', () => {
           
           <!-- Hostinger Navigation Tabs -->
           <div style="display: flex; border-bottom: 1.5px solid #E2E8F0; background: #F8FAFC;">
-            <button type="button" id="ref-subtab-btn-refer" style="flex: 1; padding: 12px; border: none; background: transparent; font-weight: 700; font-size: 0.9rem; color: #214E34; border-bottom: 3px solid #214E34; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <i class="fa-solid fa-gift"></i> Refer & earn
+            <button type="button" id="ref-subtab-btn-refer" style="flex: 1; padding: 12px 6px; border: none; background: transparent; font-weight: 700; font-size: 0.8rem; color: #214E34; border-bottom: 3px solid #214E34; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <i class="fa-solid fa-gift"></i> Refer
             </button>
-            <button type="button" id="ref-subtab-btn-earnings" style="flex: 1; padding: 12px; border: none; background: transparent; font-weight: 600; font-size: 0.9rem; color: #64748B; border-bottom: 3px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <i class="fa-solid fa-chart-pie"></i> My earnings
+            <button type="button" id="ref-subtab-btn-earnings" style="flex: 1; padding: 12px 6px; border: none; background: transparent; font-weight: 600; font-size: 0.8rem; color: #64748B; border-bottom: 3px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <i class="fa-solid fa-chart-pie"></i> Earnings
+            </button>
+            <button type="button" id="ref-subtab-btn-credits" style="flex: 1; padding: 12px 6px; border: none; background: transparent; font-weight: 600; font-size: 0.8rem; color: #64748B; border-bottom: 3px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <i class="fa-solid fa-coins"></i> Credits
             </button>
           </div>
 
@@ -567,6 +573,50 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
+          <!-- TAB 3: Credits History Panel -->
+          <div id="ref-subtab-content-credits" style="padding: 16px 14px; display: none;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 16px; text-align: center;">
+              <div style="background: #F8FAFC; padding: 8px 2px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 600;">Balance</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #214E34; margin-top: 2px;">${creditStats.balance}</div>
+              </div>
+              <div style="background: #F8FAFC; padding: 8px 2px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 600;">Earned</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #16A34A; margin-top: 2px;">${creditStats.totalCreditsEarned}</div>
+              </div>
+              <div style="background: #F8FAFC; padding: 8px 2px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 600;">Used</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: #DC2626; margin-top: 2px;">${creditStats.totalCreditsUsed}</div>
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid #E2E8F0; padding-top: 12px;">
+              <h5 style="margin: 0 0 10px 0; font-size: 0.85rem; color: #334155; font-weight: 700;">Credits Transaction History</h5>
+              ${creditStats.history && creditStats.history.length > 0 ? `
+                <div style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                  ${creditStats.history.map(t => {
+                    const isPositive = t.amount > 0;
+                    return `
+                      <div style="background: #F8FAFC; padding: 8px 12px; border-radius: 8px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid #F1F5F9;">
+                        <div>
+                          <strong>${t.type}</strong><br>
+                          <span style="color: #64748B; font-size: 0.72rem;">${new Date(t.date).toLocaleDateString()}</span>
+                        </div>
+                        <span style="color: ${isPositive ? '#16A34A' : '#DC2626'}; font-weight: 700; font-size: 0.82rem;">
+                          ${isPositive ? '+' : ''}${t.amount}
+                        </span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : `
+                <div style="text-align: center; color: #94A3B8; padding: 20px 10px; font-size: 0.82rem;">
+                  No credit transactions found.
+                </div>
+              `}
+            </div>
+          </div>
+
         </div>
 
         <!-- Saved Addresses Section -->
@@ -631,35 +681,43 @@ document.addEventListener('DOMContentLoaded', () => {
       // Hostinger Subtab Switching Handlers
       const tabBtnRefer = document.getElementById('ref-subtab-btn-refer');
       const tabBtnEarnings = document.getElementById('ref-subtab-btn-earnings');
+      const tabBtnCredits = document.getElementById('ref-subtab-btn-credits');
       const contentRefer = document.getElementById('ref-subtab-content-refer');
       const contentEarnings = document.getElementById('ref-subtab-content-earnings');
+      const contentCredits = document.getElementById('ref-subtab-content-credits');
 
-      if (tabBtnRefer && tabBtnEarnings) {
-        tabBtnRefer.addEventListener('click', () => {
-          tabBtnRefer.style.color = '#214E34';
-          tabBtnRefer.style.fontWeight = '700';
-          tabBtnRefer.style.borderBottom = '3px solid #214E34';
+      if (tabBtnRefer && tabBtnEarnings && tabBtnCredits) {
+        const switchSubtab = (activeTab) => {
+          [tabBtnRefer, tabBtnEarnings, tabBtnCredits].forEach(btn => {
+            btn.style.color = '#64748B';
+            btn.style.fontWeight = '600';
+            btn.style.borderBottom = '3px solid transparent';
+          });
+          [contentRefer, contentEarnings, contentCredits].forEach(div => {
+            if (div) div.style.display = 'none';
+          });
 
-          tabBtnEarnings.style.color = '#64748B';
-          tabBtnEarnings.style.fontWeight = '600';
-          tabBtnEarnings.style.borderBottom = '3px solid transparent';
+          if (activeTab === 'refer') {
+            tabBtnRefer.style.color = '#214E34';
+            tabBtnRefer.style.fontWeight = '700';
+            tabBtnRefer.style.borderBottom = '3px solid #214E34';
+            contentRefer.style.display = 'block';
+          } else if (activeTab === 'earnings') {
+            tabBtnEarnings.style.color = '#214E34';
+            tabBtnEarnings.style.fontWeight = '700';
+            tabBtnEarnings.style.borderBottom = '3px solid #214E34';
+            contentEarnings.style.display = 'block';
+          } else if (activeTab === 'credits') {
+            tabBtnCredits.style.color = '#214E34';
+            tabBtnCredits.style.fontWeight = '700';
+            tabBtnCredits.style.borderBottom = '3px solid #214E34';
+            contentCredits.style.display = 'block';
+          }
+        };
 
-          contentRefer.style.display = 'block';
-          contentEarnings.style.display = 'none';
-        });
-
-        tabBtnEarnings.addEventListener('click', () => {
-          tabBtnEarnings.style.color = '#214E34';
-          tabBtnEarnings.style.fontWeight = '700';
-          tabBtnEarnings.style.borderBottom = '3px solid #214E34';
-
-          tabBtnRefer.style.color = '#64748B';
-          tabBtnRefer.style.fontWeight = '600';
-          tabBtnRefer.style.borderBottom = '3px solid transparent';
-
-          contentEarnings.style.display = 'block';
-          contentRefer.style.display = 'none';
-        });
+        tabBtnRefer.addEventListener('click', () => switchSubtab('refer'));
+        tabBtnEarnings.addEventListener('click', () => switchSubtab('earnings'));
+        tabBtnCredits.addEventListener('click', () => switchSubtab('credits'));
       }
 
       // Copy Code & Link Event Handlers

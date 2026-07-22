@@ -1206,49 +1206,126 @@
       };
 
       // 7. CUSTOMERS PANEL LOGIC
-      const renderCustomers = () => {
-        const tbody = document.getElementById('customers-table-body');
-        
-        // Group customers
-        const custs = {};
-        const ordList = Array.isArray(orders) ? orders : [];
-        ordList.forEach(o => {
-          if (o.customer && o.customer.phone) {
-            const key = o.customer.phone;
-            if (!custs[key]) {
-              custs[key] = {
-                name: o.customer.name,
-                email: o.customer.email,
-                phone: o.customer.phone,
-                ltv: 0,
-                address: o.address ? `${o.address.house}, ${o.address.street}` : "N/A",
-                status: "Active"
-              };
-            }
-            custs[key].ltv += o.amount;
-          }
-        });
-
-        const custArr = Object.values(custs);
-        if (custArr.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px;">No customers registered in database yet.</td></tr>`;
+      const openCreditsAdjustmentModal = (customerId, email) => {
+        const amountStr = prompt(`Adjust points for ${email}.\nEnter a positive number to award credits (e.g. 500) or negative to deduct (e.g. -200):`);
+        if (amountStr === null) return;
+        const amount = parseInt(amountStr);
+        if (isNaN(amount) || amount === 0) {
+          alert("Invalid amount specified.");
           return;
         }
 
-        tbody.innerHTML = custArr.map(c => `
-          <tr>
-            <td><strong>${c.name}</strong></td>
-            <td>${c.phone}</td>
-            <td>${c.email}</td>
-            <td style="font-size:0.8rem; color:var(--color-text-muted);">${c.address}</td>
-            <td style="font-weight:700; color:var(--color-primary);">₹${c.ltv}</td>
-            <td>120 pts</td>
-            <td><span class="badge-status badge-paid">${c.status}</span></td>
-            <td>
-              <button class="btn btn-secondary btn-sm" onclick="alert('Profile Locked / Blocked successfully!')" style="padding:4px 8px; font-size:0.8rem; color:#CB4335;">Block</button>
-            </td>
-          </tr>
-        `).join('');
+        const reason = prompt("Enter a description/reason for this manual adjustment:");
+        if (!reason || reason.trim().length === 0) {
+          alert("Reason is required.");
+          return;
+        }
+
+        fetch(API_BASE + `/api/admin/customers/${customerId}/credits-adjust`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount, reason: reason.trim() })
+        })
+        .then(res => {
+          if (!res.ok) {
+            return res.json().then(e => { throw new Error(e.error || "Adjustment failed"); });
+          }
+          return res.json();
+        })
+        .then(data => {
+          alert(`Credits adjusted successfully! New balance: ${data.balance} pts.`);
+          renderCustomers();
+        })
+        .catch(err => {
+          alert(`Adjustment Failed: ${err.message}`);
+        });
+      };
+
+      const viewCreditsHistory = (customerId, email) => {
+        fetch(API_BASE + `/api/admin/customers/${customerId}/credits`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to load credits history");
+          return res.json();
+        })
+        .then(data => {
+          const history = data.history || [];
+          if (history.length === 0) {
+            alert(`No credit transaction history found for ${email}.\nCurrent Balance: ${data.balance} pts.`);
+            return;
+          }
+
+          const listStr = history.map(h => {
+            const dateStr = new Date(h.date).toLocaleDateString();
+            return `[${dateStr}] ${h.amount > 0 ? '+' : ''}${h.amount} pts - ${h.type}`;
+          }).join('\n');
+
+          alert(`Credit Transaction Ledger for ${email}\nCurrent Balance: ${data.balance} pts.\n\nTransactions:\n${listStr}`);
+        })
+        .catch(err => {
+          alert(`Error loading history: ${err.message}`);
+        });
+      };
+
+      const renderCustomers = async () => {
+        const tbody = document.getElementById('customers-table-body');
+        if (!tbody) return;
+
+        try {
+          const res = await fetch(API_BASE + "/api/customers");
+          if (!res.ok) throw new Error("Failed to load customers.");
+          const customersList = await res.json();
+
+          const ordList = Array.isArray(orders) ? orders : [];
+
+          if (customersList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px;">No customers registered in database yet.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = customersList.map(c => {
+            const customerOrders = ordList.filter(o => o.customer && (o.customer.email === c.email || o.customer.phone === c.phone));
+            const ltv = customerOrders.reduce((sum, o) => sum + parseFloat(o.amount || 0), 0);
+            const addressStr = c.addresses && c.addresses.length > 0 ? `${c.addresses[0].house}, ${c.addresses[0].street}` : 'N/A';
+
+            return `
+              <tr>
+                <td><strong>${c.name || 'N/A'}</strong></td>
+                <td>${c.phone || 'N/A'}</td>
+                <td>${c.email}</td>
+                <td style="font-size:0.8rem; color:var(--color-text-muted);">${addressStr}</td>
+                <td style="font-weight:700; color:var(--color-primary);">₹${ltv.toFixed(2)}</td>
+                <td style="font-weight:700; color:#214E34;">${c.rewardPoints || 0} pts</td>
+                <td><span class="badge-status badge-paid">Active</span></td>
+                <td>
+                  <div style="display: flex; gap: 4px;">
+                    <button class="btn btn-primary btn-sm btn-adjust-credits" data-id="${c.id}" data-email="${c.email}" style="padding:4px 8px; font-size:0.75rem; background-color: #214E34; border: none; color: #fff; cursor: pointer;">Adjust Credits</button>
+                    <button class="btn btn-secondary btn-sm btn-view-credits-history" data-id="${c.id}" data-email="${c.email}" style="padding:4px 8px; font-size:0.75rem; cursor: pointer;">History</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          document.querySelectorAll('.btn-adjust-credits').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const id = btn.getAttribute('data-id');
+              const email = btn.getAttribute('data-email');
+              openCreditsAdjustmentModal(id, email);
+            });
+          });
+
+          document.querySelectorAll('.btn-view-credits-history').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const id = btn.getAttribute('data-id');
+              const email = btn.getAttribute('data-email');
+              viewCreditsHistory(id, email);
+            });
+          });
+
+        } catch (err) {
+          console.error("Error loading customers:", err);
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color: red;">Failed to load customer details.</td></tr>`;
+        }
       };
 
       // 8. COUPONS PANEL LOGIC
