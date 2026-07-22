@@ -838,6 +838,9 @@ const verifyPaymentController = async (req, res) => {
           
           await insforge.database.from('orders').insert([newOrder]);
           await sendAdminNotification('new-order', `New Razorpay Order Verified: ${mitti_order_id}`, { orderId: mitti_order_id, amount });
+          
+          // Trigger referral reward check on successful payment verification
+          processReferralReward(newOrder, 'Paid').catch(e => console.error("Referral trigger error:", e));
         }
       }
       return res.status(200).json({ status: 'success', message: 'Payment verified successfully.' });
@@ -1010,7 +1013,7 @@ app.post('/api/update-order-status', async (req, res) => {
 
     const updatedOrder = data[0];
     if (updatedOrder && updatedOrder.orderStatus === 'Delivered') {
-      processReferralRewardOnDelivery(updatedOrder).catch(e => console.error("Referral trigger error:", e));
+      processReferralReward(updatedOrder, 'Delivered').catch(e => console.error("Referral trigger error:", e));
     }
 
     await logAction(req.headers['x-user-name'] || "Admin", "Update Order", `Changed status for order ${orderId}`);
@@ -1524,94 +1527,68 @@ const saveReferralSettings = (settings) => {
   }
 };
 
-const processReferralRewardOnDelivery = async (order) => {
+const processReferralReward = async (order, triggerStage) => {
   try {
     if (!order || !order.customer) return;
     const settings = await getReferralSettings();
     if (!settings.enabled) return;
 
+    // Check configured trigger stage
+    const configuredTrigger = (settings.trigger || 'Delivered').toLowerCase();
+    if (configuredTrigger !== triggerStage.toLowerCase()) return;
+
     const custEmail = (order.customer.email || '').toLowerCase();
     if (!custEmail) return;
+
+    // Fetch referrals history list
+    const referralsList = await getReferralsData();
+    let refRecord = referralsList.find(r => r.referredCustomerEmail && r.referredCustomerEmail.toLowerCase() === custEmail);
+    if (!refRecord) return; // Not referred, return early
+
+    // Idempotency: Prevent duplicate rewards
+    if (refRecord.status === 'Successful' || refRecord.qualifyingOrderId) {
+      console.log(`[REFERRAL-REWARD] Order ${order.orderId} already rewarded or referral already successful.`);
+      return;
+    }
+
+    // Check min order value
+    const orderAmt = Number(order.amount || 0);
+    if (orderAmt < Number(settings.minOrderValue || 0)) return;
 
     // Fetch all customers from DB
     const { data: allCusts } = await insforge.database.from('customers').select();
     const customerList = allCusts || [];
     const customer = customerList.find(c => (c.email || '').toLowerCase() === custEmail);
-    if (!customer || !customer.referredBy) return;
+    if (!customer) return;
 
-    const referrerCode = customer.referredBy.toUpperCase();
-    const customerMap = await getCustomerCodesMap();
-
-    // Find referrer customer by code
-    const referrerCust = customerList.find(c => {
-      const em = (c.email || '').toLowerCase();
-      const code = customerMap[em] || c.referralCode;
-      return code && code.toUpperCase() === referrerCode;
-    });
-
+    const referrerCust = customerList.find(c => c.id === refRecord.referrerId || (c.email && c.email.toLowerCase() === refRecord.referrerEmail.toLowerCase()));
     if (!referrerCust) return;
     if (referrerCust.email && referrerCust.email.toLowerCase() === custEmail) return; // Prevent self-referral
-
-    // Check if order value meets minOrderValue
-    const orderAmt = Number(order.amount || 0);
-    if (orderAmt < Number(settings.minOrderValue || 0)) return;
-
-    // Check if this is customer's FIRST delivered order
-    const { data: allOrders } = await insforge.database.from('orders').select();
-    const custDeliveredOrders = (allOrders || []).filter(o => {
-      const oEm = o.customer ? (o.customer.email || '').toLowerCase() : '';
-      return oEm === custEmail && o.orderStatus === 'Delivered';
-    });
-
-    // Only reward on the FIRST delivered order
-    if (custDeliveredOrders.length !== 1) return;
-
-    // Fetch referrals history list
-    const referralsList = await getReferralsData();
-    let refRecord = referralsList.find(r => r.referredCustomerEmail && r.referredCustomerEmail.toLowerCase() === custEmail);
 
     // Check referrer max limit
     const referrerSuccessfulCount = referralsList.filter(r => r.referrerEmail && r.referrerEmail.toLowerCase() === referrerCust.email.toLowerCase() && r.status === 'Successful').length;
     if (referrerSuccessfulCount >= Number(settings.maxLimit || 50)) return;
 
-    // Update or create referral record to Successful
-    if (!refRecord) {
-      refRecord = {
-        id: 'REF-' + Date.now() + '-' + Math.floor(Math.random()*1000),
-        referralCode: referrerCode,
-        referrerId: referrerCust.id,
-        referrerName: referrerCust.name,
-        referrerEmail: referrerCust.email,
-        referredCustomerId: customer.id,
-        referredCustomerName: customer.name,
-        referredCustomerEmail: customer.email,
-        referralDate: new Date().toISOString(),
-        status: "Successful",
-        rewardDate: new Date().toISOString(),
-        referrerRewardAmount: settings.referrerReward,
-        friendRewardAmount: settings.friendReward
-      };
-      referralsList.push(refRecord);
-    } else {
-      refRecord.status = "Successful";
-      refRecord.rewardDate = new Date().toISOString();
-      refRecord.referrerRewardAmount = settings.referrerReward;
-      refRecord.friendRewardAmount = settings.friendReward;
-    }
+    // Update referral record
+    refRecord.status = "Successful";
+    refRecord.rewardDate = new Date().toISOString();
+    refRecord.qualifyingOrderId = order.orderId;
+    refRecord.referrerRewardAmount = settings.referrerReward;
+    refRecord.friendRewardAmount = settings.friendReward;
     saveReferralsData(referralsList);
 
-    // Credit reward points & totalRewardsEarned to Referrer
+    // Credit reward points to Referrer
     const currentReferrerPts = Number(referrerCust.rewardPoints || 0);
     const newReferrerPts = currentReferrerPts + Number(settings.referrerReward || 100);
-    const currentReferrerEarned = Number(referrerCust.totalRewardsEarned || 0);
-    const newReferrerEarned = currentReferrerEarned + Number(settings.referrerReward || 100);
 
     try {
       await insforge.database.from('customers').update({
-        rewardPoints: newReferrerPts,
-        totalRewardsEarned: newReferrerEarned
+        rewardPoints: newReferrerPts
       }).eq('id', referrerCust.id);
-    } catch (e) {}
+      console.log(`[REFERRAL-REWARD] Credited ${settings.referrerReward} points to referrer ${referrerCust.email}`);
+    } catch (e) {
+      console.error("[REFERRAL-REWARD] Failed to update referrer points:", e);
+    }
 
     // Credit friend reward if enabled
     if (Number(settings.friendReward || 0) > 0) {
@@ -1621,7 +1598,10 @@ const processReferralRewardOnDelivery = async (order) => {
         await insforge.database.from('customers').update({
           rewardPoints: newFriendPts
         }).eq('id', customer.id);
-      } catch (e) {}
+        console.log(`[REFERRAL-REWARD] Credited ${settings.friendReward} points to referred friend ${customer.email}`);
+      } catch (e) {
+        console.error("[REFERRAL-REWARD] Failed to update friend points:", e);
+      }
     }
 
     try {
@@ -1635,7 +1615,7 @@ const processReferralRewardOnDelivery = async (order) => {
     } catch (e) {}
 
   } catch (err) {
-    console.error("Error processing referral reward on delivery:", err);
+    console.error("Error processing referral reward:", err);
   }
 };
 
@@ -2672,4 +2652,12 @@ server.on('error', (err) => {
   logStartupError(`Server Listen Error: ${err.message}`);
 });
 
-module.exports = app;
+module.exports = {
+  app,
+  insforge,
+  processReferralReward,
+  getReferralSettings,
+  getReferralsData,
+  saveReferralsData,
+  initInsForge
+};
