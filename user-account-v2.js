@@ -662,13 +662,20 @@ document.addEventListener('DOMContentLoaded', () => {
         <div id="order-history-container">
           ${totalOrders > 0 ? c.orders.map(o => {
             const isPaid = o.paymentStatus === 'Paid' || o.paymentStatus === 'Verified';
+            const itemsListHtml = o.items ? o.items.map(item => {
+              const textureInfo = item.texture ? ` (Texture: ${item.texture})` : '';
+              return `<div style="font-size: 0.8rem; color: #475569; margin-top: 2px;">• ${item.name} (${item.size || '5kg'})${textureInfo} x ${item.quantity}</div>`;
+            }).join('') : '';
             return `
               <div class="order-history-item">
                 <div class="order-header-info">
                   <span>Order ID: <code>${o.orderId}</code></span>
                   <span>${o.date ? o.date.split(',')[0] : ''}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 4px;">
+                <div style="margin: 8px 0; border-top: 1px dashed rgba(0,0,0,0.05); padding-top: 8px;">
+                  ${itemsListHtml}
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 8px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 8px;">
                   <span>Amount paid: <strong>₹${o.amount}</strong></span>
                   <span class="order-status-badge ${isPaid ? 'status-paid' : 'status-pending'}">${o.orderStatus}</span>
                 </div>

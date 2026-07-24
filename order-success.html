@@ -320,9 +320,10 @@
 
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid #EEE';
+          const textureText = item.texture ? `<br><span style="font-size:0.75rem; color:#666; font-weight:normal;">Texture: ${item.texture}</span>` : '';
           tr.innerHTML = `
             <td style="padding: 10px 14px; text-align: left;">${index + 1}</td>
-            <td style="padding: 10px 14px; text-align: left; font-weight: 600;">${item.name} (${item.size})</td>
+            <td style="padding: 10px 14px; text-align: left; font-weight: 600;">${item.name} (${item.size})${textureText}</td>
             <td style="padding: 10px 14px; text-align: right;">₹${item.price}</td>
             <td style="padding: 10px 14px; text-align: center;">${item.quantity}</td>
             <td style="padding: 10px 14px; text-align: right; font-weight: 700;">₹${itemTotal}</td>

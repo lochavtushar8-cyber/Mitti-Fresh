@@ -1045,12 +1045,18 @@
         document.getElementById('order-modal-title').textContent = `Order ${o.orderId}`;
         const content = document.getElementById('order-modal-content');
         
-        const itemsHtml = o.items.map(item => `
-          <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.95rem;">
-            <span>${item.name} (${item.size || '5kg'}) x ${item.quantity}</span>
-            <strong>₹${item.price * item.quantity}</strong>
-          </div>
-        `).join('');
+        const itemsHtml = o.items.map(item => {
+          const textureText = item.texture ? `<div style="font-size:0.8rem; color:#666; margin-top:2px;">Texture: ${item.texture}</div>` : '';
+          return `
+            <div style="margin-bottom:10px; font-size:0.95rem;">
+              <div style="display:flex; justify-content:space-between;">
+                <span>${item.name} (${item.size || '5kg'}) x ${item.quantity}</span>
+                <strong>₹${item.price * item.quantity}</strong>
+              </div>
+              ${textureText}
+            </div>
+          `;
+        }).join('');
 
         content.innerHTML = `
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:24px;">

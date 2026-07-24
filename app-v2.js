@@ -28,6 +28,19 @@ const sortByBestSellerRank = (productsArr) => {
   });
 };
 
+// --- ATTA TEXTURE PRODUCT HELPER ---
+const isAttaTextureProduct = (prod) => {
+  if (!prod) return false;
+  const nameLower = (prod.name || '').toLowerCase();
+  const idLower = (prod.id || '').toLowerCase();
+  
+  if (nameLower.includes('mp atta') || idLower.includes('mp-atta')) return true;
+  if (nameLower.includes('sharbati') || idLower.includes('sharbati')) return true;
+  if (prod.category === 'atta-specialty') return true;
+  
+  return false;
+};
+
 // Rebuild frontend catalog structure from database variants
 const rebuildCatalog = (dbProducts) => {
   const catalogMap = {};
@@ -737,6 +750,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const btn = e.target.closest('.add-to-cart-btn');
       if (btn) {
         const id = btn.getAttribute('data-id');
+        const prod = PRODUCTS.find(p => p.id === id);
+        if (prod && isAttaTextureProduct(prod)) {
+          window.location.href = `/product?id=${prod.id}`;
+          return;
+        }
+        
         const name = btn.getAttribute('data-name');
         const image = btn.getAttribute('data-image');
         
@@ -751,18 +770,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // --- ADD TO CART UTILITY ---
-  const addToCart = (id, name, image, size, price, qtyVal = 1, btnElement = null) => {
+  const addToCart = (id, name, image, size, price, qtyVal = 1, btnElement = null, texture = undefined) => {
     // Overloaded to handle quantity values directly
     if (typeof qtyVal === 'object' && qtyVal !== null) {
       btnElement = qtyVal;
       qtyVal = 1;
     }
 
-    const existingItem = cart.find(item => item.id === id && item.size === size);
+    const existingItem = cart.find(item => item.id === id && item.size === size && (item.texture || '') === (texture || ''));
     if (existingItem) {
       existingItem.quantity += qtyVal;
     } else {
-      cart.push({ id, name, image, size, price, quantity: qtyVal });
+      const newItem = { id, name, image, size, price, quantity: qtyVal };
+      if (texture) {
+        newItem.texture = texture;
+      }
+      cart.push(newItem);
     }
 
     saveCart();
@@ -877,25 +900,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const cartItemEl = document.createElement('li');
         cartItemEl.className = 'cart-item';
+        const textureHtml = item.texture ? `<span class="cart-item-meta" style="display:block; color:var(--color-accent); font-weight:600; margin-top:2px;">Texture: ${item.texture}</span>` : '';
         cartItemEl.innerHTML = `
           <img src="${item.image}" alt="${item.name}" class="cart-item-image">
           <div class="cart-item-details">
             <h4 class="cart-item-title">${item.name}</h4>
             <span class="cart-item-meta">Size: ${item.size} • ₹${item.price} each</span>
+            ${textureHtml}
             <div class="cart-item-actions">
               <div class="quantity-control">
-                <button class="quantity-btn decrease-qty" data-id="${item.id}" data-size="${item.size}">
+                <button class="quantity-btn decrease-qty" data-id="${item.id}" data-size="${item.size}" data-texture="${item.texture || ''}">
                   <i class="fa-solid fa-minus"></i>
                 </button>
                 <span class="quantity-val">${item.quantity}</span>
-                <button class="quantity-btn increase-qty" data-id="${item.id}" data-size="${item.size}">
+                <button class="quantity-btn increase-qty" data-id="${item.id}" data-size="${item.size}" data-texture="${item.texture || ''}">
                   <i class="fa-solid fa-plus"></i>
                 </button>
               </div>
               <span class="cart-item-price">₹${itemSubtotal}</span>
             </div>
           </div>
-          <button class="remove-item-btn" data-id="${item.id}" data-size="${item.size}" aria-label="Remove item">
+          <button class="remove-item-btn" data-id="${item.id}" data-size="${item.size}" data-texture="${item.texture || ''}" aria-label="Remove item">
             <i class="fa-solid fa-trash-can"></i>
           </button>
         `;
@@ -943,12 +968,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  const adjustQuantity = (id, size, delta) => {
-    const item = cart.find(i => i.id === id && i.size === size);
+  const adjustQuantity = (id, size, texture, delta) => {
+    const item = cart.find(i => i.id === id && i.size === size && (i.texture || '') === texture);
     if (item) {
       item.quantity += delta;
       if (item.quantity <= 0) {
-        removeItem(id, size);
+        removeItem(id, size, texture);
       } else {
         saveCart();
         updateCartUI();
@@ -956,8 +981,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  const removeItem = (id, size) => {
-    cart = cart.filter(i => !(i.id === id && i.size === size));
+  const removeItem = (id, size, texture) => {
+    cart = cart.filter(i => !(i.id === id && i.size === size && (i.texture || '') === texture));
     saveCart();
     updateCartUI();
   };
@@ -971,19 +996,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (increaseBtn) {
         const id = increaseBtn.getAttribute('data-id');
         const size = increaseBtn.getAttribute('data-size');
-        adjustQuantity(id, size, 1);
+        const texture = increaseBtn.getAttribute('data-texture') || '';
+        adjustQuantity(id, size, texture, 1);
       }
       
       if (decreaseBtn) {
         const id = decreaseBtn.getAttribute('data-id');
         const size = decreaseBtn.getAttribute('data-size');
-        adjustQuantity(id, size, -1);
+        const texture = decreaseBtn.getAttribute('data-texture') || '';
+        adjustQuantity(id, size, texture, -1);
       }
       
       if (removeBtn) {
         const id = removeBtn.getAttribute('data-id');
         const size = removeBtn.getAttribute('data-size');
-        removeItem(id, size);
+        const texture = removeBtn.getAttribute('data-texture') || '';
+        removeItem(id, size, texture);
       }
     });
   }
@@ -1160,6 +1188,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `).join('')}
               </div>
             </div>
+
+            <!-- Atta Texture Selection (Atta Products Only) -->
+            ${isAttaTextureProduct(prod) ? `
+              <div class="texture-selector-wrapper" style="margin-bottom: 24px;">
+                <h4 class="variants-title" style="margin-bottom: 12px;">Select Atta Texture / Grinding:</h4>
+                <div class="texture-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                  <button type="button" class="texture-card" data-texture="Barik Atta (Fine)" style="padding: 12px; border-radius: 8px; border: 1.5px solid rgba(33, 78, 52, 0.15); background-color: var(--color-bg-light); cursor: pointer; text-align: center; font-family: var(--font-sans); transition: var(--transition-fast);">
+                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary);">Barik Atta</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px;">Fine</div>
+                  </button>
+                  <button type="button" class="texture-card active" data-texture="Medium Atta (Medium)" style="padding: 12px; border-radius: 8px; border: 2.5px solid var(--color-primary); background-color: var(--color-bg-white); cursor: pointer; text-align: center; font-family: var(--font-sans); position: relative; transition: var(--transition-fast);">
+                    <span style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background-color: var(--color-accent); color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Recommended</span>
+                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary);">Medium Atta</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px;">Medium</div>
+                  </button>
+                  <button type="button" class="texture-card" data-texture="Mota Atta (Coarse)" style="padding: 12px; border-radius: 8px; border: 1.5px solid rgba(33, 78, 52, 0.15); background-color: var(--color-bg-light); cursor: pointer; text-align: center; font-family: var(--font-sans); transition: var(--transition-fast);">
+                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary);">Mota Atta</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px;">Coarse</div>
+                  </button>
+                </div>
+              </div>
+            ` : ''}
 
             <!-- Quantity Selector & Action buttons -->
             <div class="quantity-selection-row">
@@ -1452,23 +1502,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
+      // Texture selector click binding (if element exists)
+      const textureCards = document.querySelectorAll('.texture-card');
+      let selectedTexture = 'Medium Atta (Medium)';
+      if (textureCards.length > 0) {
+        textureCards.forEach(card => {
+          card.addEventListener('click', () => {
+            textureCards.forEach(c => {
+              c.classList.remove('active');
+              c.style.borderColor = 'rgba(33, 78, 52, 0.15)';
+              c.style.borderWidth = '1.5px';
+              c.style.backgroundColor = 'var(--color-bg-light)';
+            });
+            card.classList.add('active');
+            card.style.borderColor = 'var(--color-primary)';
+            card.style.borderWidth = '2.5px';
+            card.style.backgroundColor = 'var(--color-bg-white)';
+            selectedTexture = card.getAttribute('data-texture');
+          });
+        });
+      }
+
       // Add to cart click
       const addCartBtn = document.getElementById('add-cart-btn');
       addCartBtn.addEventListener('click', () => {
-        addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, qtyVal, addCartBtn);
+        addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, qtyVal, addCartBtn, isAttaTextureProduct(prod) ? selectedTexture : undefined);
       });
 
       // Buy Now click (Adds to cart & opens cart drawer instantly)
       const buyNowBtn = document.getElementById('buy-now-btn');
       buyNowBtn.addEventListener('click', () => {
-        addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, qtyVal);
+        addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, qtyVal, null, isAttaTextureProduct(prod) ? selectedTexture : undefined);
         setTimeout(() => toggleCartDrawer(true), 200);
       });
 
       // Sticky Buy Now click
       if (stickyBuyNow) {
         stickyBuyNow.addEventListener('click', () => {
-          addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, 1);
+          addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, 1, null, isAttaTextureProduct(prod) ? selectedTexture : undefined);
           setTimeout(() => toggleCartDrawer(true), 200);
         });
       }
@@ -1476,7 +1547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Sticky Add to Cart click
       if (stickyAddCart) {
         stickyAddCart.addEventListener('click', () => {
-          addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, 1, stickyAddCart);
+          addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, 1, stickyAddCart, isAttaTextureProduct(prod) ? selectedTexture : undefined);
         });
       }
 
@@ -1484,10 +1555,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const whatsappPurchaseBtn = document.getElementById('whatsapp-purchase-btn');
       whatsappPurchaseBtn.addEventListener('click', () => {
         const number = "918595077263";
+        const texturePart = isAttaTextureProduct(prod) ? `*Grinding Texture:* ${selectedTexture}\n` : '';
         const msg = `*Mitti Fresh Product Order Inquiry*\n` +
                     `------------------------------------\n` +
                     `*Product:* ${prod.name}\n` +
                     `*Variant Size:* ${activeSize.name}\n` +
+                    texturePart +
                     `*Price per Unit:* ₹${activePrice} (MRP: ₹${activeMrp})\n` +
                     `*Quantity Ordered:* ${qtyVal}\n` +
                     `*Total Value:* *₹${activePrice * qtyVal}*\n` +
