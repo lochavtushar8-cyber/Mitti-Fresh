@@ -1063,7 +1063,7 @@ img {
 }
 
 .info-list-val {
-  color: var(--color-text-muted);
+  color: var(--color-text-dark);
 }
 
 .product-selector-group {
