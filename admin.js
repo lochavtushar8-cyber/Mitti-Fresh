@@ -153,12 +153,14 @@
             products = Array.isArray(data) ? data : [];
             renderProducts();
             renderInventory();
+            renderRecommendations();
           })
           .catch(err => {
             console.error("Failed to fetch products:", err);
             products = [];
             renderProducts();
             renderInventory();
+            renderRecommendations();
           });
 
         // Fetch Categories
@@ -1832,6 +1834,201 @@
           }
         });
       });
+
+      // Render Bundle Recommendations in Admin Panel
+      window.renderRecommendations = () => {
+        const mainSelect = document.getElementById('bundle-main-product');
+        const recList = document.getElementById('bundle-recommendations-list');
+        const activeTableBody = document.getElementById('active-bundles-table-body');
+        if (!mainSelect || !recList || !activeTableBody) return;
+
+        // 1. Populate main product dropdown
+        const selectedMainId = mainSelect.value;
+        mainSelect.innerHTML = '<option value="">-- Select Main Product --</option>';
+        products.forEach(p => {
+          mainSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.SKU || p.sku || 'No SKU'})</option>`;
+        });
+        if (selectedMainId) {
+          mainSelect.value = selectedMainId;
+        }
+
+        // 2. Populate recommendations checkboxes list
+        recList.innerHTML = '';
+        products.forEach(p => {
+          const div = document.createElement('div');
+          div.style.display = 'flex';
+          div.style.alignItems = 'center';
+          div.style.gap = '8px';
+          div.style.padding = '4px 8px';
+          div.innerHTML = `
+            <input type="checkbox" class="bundle-rec-checkbox" value="${p.id}" id="rec-cb-${p.id}">
+            <label for="rec-cb-${p.id}" style="margin: 0; font-size: 0.85rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</label>
+          `;
+          recList.appendChild(div);
+        });
+
+        // Disable checkbox of currently selected main product if any
+        if (selectedMainId) {
+          const selfCb = document.getElementById(`rec-cb-${selectedMainId}`);
+          if (selfCb) {
+            selfCb.disabled = true;
+          }
+          const mainProd = products.find(p => p.id === selectedMainId);
+          if (mainProd && mainProd.frequentlyBoughtTogether && Array.isArray(mainProd.frequentlyBoughtTogether)) {
+            mainProd.frequentlyBoughtTogether.forEach(recId => {
+              const cb = document.getElementById(`rec-cb-${recId}`);
+              if (cb) cb.checked = true;
+            });
+          }
+        }
+
+        // 3. Render active bundles table
+        activeTableBody.innerHTML = '';
+        const activeBundles = products.filter(p => p.frequentlyBoughtTogether && Array.isArray(p.frequentlyBoughtTogether) && p.frequentlyBoughtTogether.length > 0);
+        
+        if (activeBundles.length === 0) {
+          activeTableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #777; padding: 12px;">No active bundle recommendations configured.</td></tr>';
+        } else {
+          activeBundles.forEach(p => {
+            const recNames = p.frequentlyBoughtTogether.map(recId => {
+              const recProd = products.find(prod => prod.id === recId);
+              return recProd ? recProd.name : recId;
+            }).join(', ');
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="padding: 12px; border-bottom: 1px solid #EEE; font-weight: 600; color: var(--color-primary);">${p.name}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #EEE; color: #475569;">${recNames}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #EEE; text-align: center;">
+                <button class="btn btn-secondary btn-sm edit-bundle-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 0.8rem; margin-right: 6px;">Edit</button>
+                <button class="btn btn-danger btn-sm delete-bundle-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 0.8rem; background-color: #E74C3C; border-color: #E74C3C;">Remove</button>
+              </td>
+            `;
+            activeTableBody.appendChild(tr);
+          });
+        }
+      };
+
+      // Bind Main Product select dropdown change
+      const mainProductSelect = document.getElementById('bundle-main-product');
+      if (mainProductSelect) {
+        mainProductSelect.addEventListener('change', (e) => {
+          const mainId = e.target.value;
+          const checkboxes = document.querySelectorAll('.bundle-rec-checkbox');
+          
+          checkboxes.forEach(cb => {
+            cb.checked = false;
+            cb.disabled = false;
+          });
+
+          if (!mainId) return;
+
+          const selfCb = document.getElementById(`rec-cb-${mainId}`);
+          if (selfCb) selfCb.disabled = true;
+
+          const mainProd = products.find(p => p.id === mainId);
+          if (mainProd && mainProd.frequentlyBoughtTogether && Array.isArray(mainProd.frequentlyBoughtTogether)) {
+            mainProd.frequentlyBoughtTogether.forEach(recId => {
+              const cb = document.getElementById(`rec-cb-${recId}`);
+              if (cb) cb.checked = true;
+            });
+          }
+        });
+      }
+
+      // Enforce 1-3 limit on recommendations list
+      const recListContainer = document.getElementById('bundle-recommendations-list');
+      if (recListContainer) {
+        recListContainer.addEventListener('change', (e) => {
+          if (e.target.classList.contains('bundle-rec-checkbox')) {
+            const checkedBoxes = document.querySelectorAll('.bundle-rec-checkbox:checked');
+            if (checkedBoxes.length > 3) {
+              e.target.checked = false;
+              alert("You can select a maximum of 3 recommended products.");
+            }
+          }
+        });
+      }
+
+      // Save Recommendations
+      const btnSaveRecs = document.getElementById('btn-save-recommendations');
+      if (btnSaveRecs) {
+        btnSaveRecs.addEventListener('click', () => {
+          const mainSelect = document.getElementById('bundle-main-product');
+          const mainId = mainSelect.value;
+          if (!mainId) {
+            alert("Please select a main product first.");
+            return;
+          }
+
+          const checkedBoxes = document.querySelectorAll('.bundle-rec-checkbox:checked');
+          const recIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+          fetch(API_BASE + `/api/products/${mainId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-User-Name': localStorage.getItem('admin_username') || 'Admin'
+            },
+            body: JSON.stringify({ frequentlyBoughtTogether: recIds })
+          })
+          .then(res => {
+            if (!res.ok) throw new Error("Failed to save recommendations");
+            return res.json();
+          })
+          .then(() => {
+            alert("Recommendations saved successfully!");
+            syncData();
+          })
+          .catch(err => {
+            console.error(err);
+            alert("Error saving recommendations: " + err.message);
+          });
+        });
+      }
+
+      // Active bundles table actions
+      const activeTableBodyEl = document.getElementById('active-bundles-table-body');
+      if (activeTableBodyEl) {
+        activeTableBodyEl.addEventListener('click', (e) => {
+          const editBtn = e.target.closest('.edit-bundle-btn');
+          const deleteBtn = e.target.closest('.delete-bundle-btn');
+
+          if (editBtn) {
+            const id = editBtn.getAttribute('data-id');
+            const mainSelect = document.getElementById('bundle-main-product');
+            mainSelect.value = id;
+            mainSelect.dispatchEvent(new Event('change'));
+            mainSelect.scrollIntoView({ behavior: 'smooth' });
+          }
+
+          if (deleteBtn) {
+            const id = deleteBtn.getAttribute('data-id');
+            if (confirm("Are you sure you want to remove all recommendations for this product?")) {
+              fetch(API_BASE + `/api/products/${id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-User-Name': localStorage.getItem('admin_username') || 'Admin'
+                },
+                body: JSON.stringify({ frequentlyBoughtTogether: [] })
+              })
+              .then(res => {
+                if (!res.ok) throw new Error("Failed to remove recommendations");
+                return res.json();
+              })
+              .then(() => {
+                alert("Recommendations removed successfully!");
+                syncData();
+              })
+              .catch(err => {
+                console.error(err);
+                alert("Error removing recommendations: " + err.message);
+              });
+            }
+          }
+        });
+      }
 
       document.getElementById('btn-refresh-stats').addEventListener('click', () => {
         syncData();

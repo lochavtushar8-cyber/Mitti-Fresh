@@ -105,9 +105,13 @@ const rebuildCatalog = (dbProducts) => {
           badgeType: item.badgeType || "",
           bestSellerRank: (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) ? Number(rankVal) : null,
           bestseller_rank: (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) ? Number(rankVal) : null,
-          rank: (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) ? Number(rankVal) : null
+          rank: (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) ? Number(rankVal) : null,
+          frequentlyBoughtTogether: item.frequentlyBoughtTogether || []
         };
       } else {
+        if (item.frequentlyBoughtTogether && Array.isArray(item.frequentlyBoughtTogether) && item.frequentlyBoughtTogether.length > 0) {
+          catalogMap[actualBaseId].frequentlyBoughtTogether = item.frequentlyBoughtTogether;
+        }
         if (rankVal !== null && rankVal !== undefined && rankVal !== "" && !isNaN(rankVal)) {
           const currentRank = catalogMap[actualBaseId].bestSellerRank;
           if (currentRank === null || currentRank === undefined || Number(rankVal) < Number(currentRank)) {
@@ -1350,6 +1354,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </section>
 
+        <!-- Frequently Bought Together section -->
+        <section id="frequently-bought-together-section" style="display: none; border-top: 1px solid rgba(33, 78, 52, 0.08); padding-top: 48px; margin-bottom: 40px;">
+        </section>
+
         <!-- Related products section -->
         <section class="related-section" style="border-top: 1px solid rgba(33, 78, 52, 0.08); padding-top: 48px;">
           <h3 class="font-alt" style="font-size: 1.8rem; color: var(--color-primary); margin-bottom: 32px;">You May Also Like</h3>
@@ -1368,6 +1376,171 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (stickyTitle) stickyTitle.textContent = prod.name;
       if (stickyPrice) stickyPrice.textContent = `₹${activePrice}`;
+
+      // Render Frequently Bought Together (FBT)
+      const renderFBT = () => {
+        const fbtSection = document.getElementById('frequently-bought-together-section');
+        if (!fbtSection) return;
+
+        if (!prod.frequentlyBoughtTogether || !Array.isArray(prod.frequentlyBoughtTogether) || prod.frequentlyBoughtTogether.length === 0) {
+          fbtSection.style.display = 'none';
+          return;
+        }
+
+        const recommendedProducts = prod.frequentlyBoughtTogether.map(recId => {
+          return PRODUCTS.find(p => p.id === recId);
+        }).filter(p => p && p.status === 'active' && p.sizes && p.sizes.length > 0);
+
+        if (recommendedProducts.length === 0) {
+          fbtSection.style.display = 'none';
+          return;
+        }
+
+        fbtSection.style.display = 'block';
+
+        let productsHtml = '';
+        const mainSize = activeSize;
+        const mainPrice = activePrice;
+        
+        productsHtml += `
+          <div class="fbt-item" style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 250px;">
+            <div style="position: relative;">
+              <input type="checkbox" id="fbt-cb-main" checked disabled style="width: 18px; height: 18px; accent-color: var(--color-primary);">
+            </div>
+            <img src="${prod.image || 'assets/logo.jpg'}" alt="${prod.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid rgba(33,78,52,0.08);">
+            <div style="flex: 1;">
+              <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-accent); font-weight: 700;">Main Product</span>
+              <h4 style="margin: 4px 0 0 0; color: var(--color-primary); font-family: var(--font-secondary); font-size: 1rem;">${prod.name}</h4>
+              <span style="font-size: 0.85rem; color: var(--color-text-dark); font-weight: 600;" id="fbt-main-meta">${mainSize.name} — ₹${mainPrice}</span>
+            </div>
+          </div>
+        `;
+
+        recommendedProducts.forEach((rec, idx) => {
+          const recSize = rec.sizes[0];
+          const recPrice = recSize.sellingPrice || recSize.selling_price || recSize.price || 0;
+          const isOutOfStock = recSize.stock === 0;
+
+          productsHtml += `
+            <div style="font-size: 1.5rem; color: var(--color-primary); font-weight: 300; display: flex; align-items: center; justify-content: center;">+</div>
+            
+            <div class="fbt-item" style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 250px;">
+              <div>
+                <input type="checkbox" class="fbt-rec-cb" data-id="${rec.id}" data-index="${idx}" ${isOutOfStock ? 'disabled' : 'checked'} style="width: 18px; height: 18px; accent-color: var(--color-primary); cursor: ${isOutOfStock ? 'not-allowed' : 'pointer'};">
+              </div>
+              <img src="${rec.image || 'assets/logo.jpg'}" alt="${rec.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid rgba(33,78,52,0.08); opacity: ${isOutOfStock ? 0.5 : 1};">
+              <div style="flex: 1; opacity: ${isOutOfStock ? 0.7 : 1};">
+                <span style="font-size: 0.75rem; text-transform: uppercase; color: #777; font-weight: 600;">Recommended</span>
+                <h4 style="margin: 4px 0 0 0; color: var(--color-primary); font-family: var(--font-secondary); font-size: 1rem;">${rec.name}</h4>
+                ${isOutOfStock 
+                  ? `<span style="font-size: 0.8rem; color: #E74C3C; font-weight: 700;">Out of Stock</span>`
+                  : `<select class="fbt-rec-size-select" data-id="${rec.id}" data-index="${idx}" style="margin-top: 6px; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(33,78,52,0.15); font-size: 0.8rem; font-family: var(--font-sans); color: var(--color-text-dark); background: #FFF;">
+                      ${rec.sizes.map((s, sIdx) => `
+                        <option value="${s.value}" data-price="${s.sellingPrice || s.selling_price || s.price || 0}" ${sIdx === 0 ? 'selected' : ''} ${s.stock === 0 ? 'disabled' : ''}>
+                          ${s.name} — ₹${s.sellingPrice || s.selling_price || s.price || 0} ${s.stock === 0 ? '(Out of Stock)' : ''}
+                        </option>
+                      `).join('')}
+                     </select>`
+                }
+              </div>
+            </div>
+          `;
+        });
+
+        fbtSection.innerHTML = `
+          <h3 class="font-alt" style="font-size: 1.8rem; color: var(--color-primary); margin-bottom: 24px;">Frequently Bought Together</h3>
+          <div style="display: flex; flex-direction: column; gap: 24px; background: var(--color-bg-light); padding: 24px; border-radius: var(--radius-premium); border: 1.5px dashed rgba(33,78,52,0.12);">
+            
+            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+              ${productsHtml}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(33,78,52,0.08); padding-top: 20px; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <div style="font-size: 1rem; color: var(--color-text-dark); font-weight: 500;">
+                  Total Price: <strong style="font-size: 1.4rem; color: var(--color-primary);" id="fbt-total-price">₹0</strong>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="fbt-add-all-btn" style="height: 46px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-cart-plus"></i> Add Selected to Basket
+              </button>
+            </div>
+
+          </div>
+        `;
+
+        const updateFBTPrice = () => {
+          let total = activePrice;
+          
+          const recCbs = document.querySelectorAll('.fbt-rec-cb');
+          recCbs.forEach(cb => {
+            if (cb.checked) {
+              const idx = cb.getAttribute('data-index');
+              const select = document.querySelector(`.fbt-rec-size-select[data-index="${idx}"]`);
+              if (select) {
+                const opt = select.options[select.selectedIndex];
+                const price = parseFloat(opt.getAttribute('data-price')) || 0;
+                total += price;
+              }
+            }
+          });
+
+          document.getElementById('fbt-total-price').textContent = `₹${total}`;
+        };
+
+        document.querySelectorAll('.fbt-rec-size-select').forEach(select => {
+          select.addEventListener('change', updateFBTPrice);
+        });
+
+        document.querySelectorAll('.fbt-rec-cb').forEach(cb => {
+          cb.addEventListener('change', updateFBTPrice);
+        });
+
+        updateFBTPrice();
+
+        document.getElementById('fbt-add-all-btn').addEventListener('click', (e) => {
+          const btn = e.target.closest('#fbt-add-all-btn');
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Adding...`;
+
+            addToCart(prod.id, prod.name, prod.image, activeSize.value, activePrice, 1, null, isAttaTextureProduct(prod) ? selectedTexture : undefined);
+
+            const recCbs = document.querySelectorAll('.fbt-rec-cb:checked');
+            recCbs.forEach(cb => {
+              const recId = cb.getAttribute('data-id');
+              const idx = cb.getAttribute('data-index');
+              const recProd = recommendedProducts[idx];
+              if (recProd) {
+                const select = document.querySelector(`.fbt-rec-size-select[data-index="${idx}"]`);
+                if (select) {
+                  const opt = select.options[select.selectedIndex];
+                  const sizeVal = opt.value;
+                  const priceVal = parseFloat(opt.getAttribute('data-price')) || 0;
+                  const sizeObj = recProd.sizes.find(s => s.value === sizeVal);
+                  const imgUrl = (sizeObj && sizeObj.image) || recProd.image || 'assets/logo.jpg';
+                  
+                  addToCart(recProd.id, recProd.name, imgUrl, sizeVal, priceVal, 1, null, isAttaTextureProduct(recProd) ? 'Medium Atta (Medium)' : undefined);
+                }
+              }
+            });
+
+            setTimeout(() => {
+              btn.innerHTML = `<i class="fa-solid fa-check"></i> Added All!`;
+              btn.style.backgroundColor = '#C89A45';
+              setTimeout(() => {
+                btn.innerHTML = `<i class="fa-solid fa-cart-plus"></i> Add Selected to Basket`;
+                btn.style.backgroundColor = '';
+                btn.disabled = false;
+                toggleCartDrawer(true);
+              }, 1200);
+            }, 800);
+          }
+        });
+      };
+
+      // Initial render FBT
+      renderFBT();
 
       // Variant Selector Click Handlers
       const variantChipsContainer = document.getElementById('variant-chips-container');
@@ -1438,6 +1611,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
               }
             });
+
+            // Re-render Frequently Bought Together
+            renderFBT();
           }
         });
       }

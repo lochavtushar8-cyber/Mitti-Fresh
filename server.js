@@ -385,7 +385,8 @@ app.post('/api/products', async (req, res) => {
     sellingPrice: productData.sellingPrice,
     status: productData.status || 'active',
     featured: productData.featured || false,
-    bestseller_rank: productData.bestSellerRank ?? productData.bestseller_rank ?? productData.rank ?? null
+    bestseller_rank: productData.bestSellerRank ?? productData.bestseller_rank ?? productData.rank ?? null,
+    frequentlyBoughtTogether: productData.frequentlyBoughtTogether || []
   };
 
   try {
@@ -448,6 +449,7 @@ async function handleProductUpdate(req, res) {
   if (updates.sellingPrice !== undefined) pgUpdates.sellingPrice = updates.sellingPrice;
   if (updates.status !== undefined) pgUpdates.status = updates.status;
   if (updates.featured !== undefined) pgUpdates.featured = updates.featured;
+  if (updates.frequentlyBoughtTogether !== undefined) pgUpdates.frequentlyBoughtTogether = updates.frequentlyBoughtTogether;
   if (updates.image !== undefined) pgUpdates.image = updates.image;
   if (updates.imageUrl !== undefined && pgUpdates.image === undefined) pgUpdates.image = updates.imageUrl;
   if (updates.mainImage !== undefined && pgUpdates.image === undefined) pgUpdates.image = updates.mainImage;

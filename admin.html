@@ -335,6 +335,9 @@
         <li class="sidebar-item" data-tab="tab-settings">
           <a><i class="fa-solid fa-sliders"></i> Store Settings</a>
         </li>
+        <li class="sidebar-item" data-tab="tab-recommendations">
+          <a><i class="fa-solid fa-layer-group"></i> Bundle Settings</a>
+        </li>
         <li class="sidebar-item" data-tab="tab-homepage">
           <a><i class="fa-solid fa-house-chimney"></i> Homepage Hero</a>
         </li>
@@ -877,6 +880,54 @@
 
           <button type="submit" class="btn btn-primary" style="margin-top: 24px; width: 100%;">Save Configuration settings</button>
         </form>
+      </section>
+
+      <!-- TAB: BUNDLE RECOMMENDATIONS -->
+      <section class="tab-panel" id="tab-recommendations">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+          <div>
+            <h1 class="font-alt" style="font-size: 2.2rem; color: var(--color-primary); margin: 0;">Frequently Bought Together</h1>
+            <p style="color: var(--color-text-muted); margin: 4px 0 0 0;">Manage product bundle recommendations displayed to customers.</p>
+          </div>
+        </div>
+
+        <div class="checkout-card" style="padding: 30px; background-color: #FFF; margin-bottom: 30px;">
+          <div class="form-row" style="margin-bottom: 20px;">
+            <div style="flex: 1;">
+              <label style="font-weight: 600; color: var(--color-primary);">Select Main Product:</label>
+              <select id="bundle-main-product" class="form-control" style="width: 100%; margin-top: 8px;">
+                <!-- Filled dynamically via JS -->
+              </select>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <label style="font-weight: 600; color: var(--color-primary); display: block; margin-bottom: 12px;">Frequently Bought Together Products (Select 1 to 3):</label>
+            <div id="bundle-recommendations-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; max-height: 250px; overflow-y: auto; padding: 12px; border: 1px solid #E2E8F0; border-radius: 6px; background-color: var(--color-bg-light);">
+              <!-- Checkboxes filled dynamically via JS -->
+            </div>
+          </div>
+
+          <button id="btn-save-recommendations" class="btn btn-primary" style="width: 100%;">Save Recommendations</button>
+        </div>
+
+        <div class="checkout-card" style="padding: 30px; background-color: #FFF;">
+          <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--color-primary);">Active Bundles</h3>
+          <div style="overflow-x: auto;">
+            <table class="admin-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background-color: var(--color-primary); color: #FFF;">
+                  <th style="padding: 12px; border-radius: 6px 0 0 6px;">Main Product</th>
+                  <th style="padding: 12px;">Recommended Products</th>
+                  <th style="padding: 12px; text-align: center; border-radius: 0 6px 6px 0;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="active-bundles-table-body">
+                <!-- Filled dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <!-- TAB: HOMEPAGE HERO CONFIGURATION -->
